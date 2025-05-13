@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Quadros Móveis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      /* Light Theme */
+      --primary: #0071e3;
+      --primary-light: #e8f2fc;
+      --secondary: #1d1d1f;
+      --background: #f5f5f7;
+      --card-bg: #ffffff;
+      --border: #d2d2d7;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --success: #34c759;
+      --warning: #ff9500;
+      --error: #ff3b30;
+      --modal-bg: #ffffff;
+      --table-header-bg: #fafafa;
+      --table-row-hover: #f8f8f8;
+      --output-bg: #f8f8fa;
+      
+      /* Dark Theme */
+      --primary-dark: #4d90fe;
+      --primary-light-dark: #1a3a6a;
+      --secondary-dark: #e0e0e0;
+      --background-dark: #1a1a1f;
+      --card-bg-dark: #2a2a30;
+      --border-dark: #3a3a40;
+      --text-primary-dark: #e0e0e0;
+      --text-secondary-dark: #a0a0a5;
+      --success-dark: #2dbb5d;
+      --warning-dark: #e68a00;
+      --error-dark: #e62e26;
+      --modal-bg-dark: #2a2a30;
+      --table-header-bg-dark: #333338;
+      --table-row-hover-dark: #3a3a3f;
+      --output-bg-dark: #2a2a30;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--background);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding: 0;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+    
+    body.dark-theme {
+      --primary: var(--primary-dark);
+      --primary-light: var(--primary-light-dark);
+      --secondary: var(--secondary-dark);
+      --background: var(--background-dark);
+      --card-bg: var(--card-bg-dark);
+      --border: var(--border-dark);
+      --text-primary: var(--text-primary-dark);
+      --text-secondary: var(--text-secondary-dark);
+      --success: var(--success-dark);
+      --warning: var(--warning-dark);
+      --error: var(--error-dark);
+      --modal-bg: var(--modal-bg-dark);
+      --table-header-bg: var(--table-header-bg-dark);
+      --table-row-hover: var(--table-row-hover-dark);
+      --output-bg: var(--output-bg-dark);
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      background-color: var(--card-bg);
+      border-radius: 18px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .dark-theme .container {
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .theme-toggle {
+      position: absolute;
+      top: 20px;
+      right: 90px;
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+      width: auto;
+    }
+    
+    .theme-toggle:hover {
+      background-color: var(--primary-light);
+    }
+    
+    .theme-toggle svg {
+      width: 14px;
+      height: 14px;
+    }
+    
+    .admin-link {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+      width: auto;
+    }
+    
+    .admin-link:hover {
+      background-color: var(--primary-light);
+    }
+    
+    .admin-link svg {
+      width: 14px;
+      height: 14px;
+    }
+    
+    .logo-container {
+      padding: 40px 40px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .logo {
+      max-width: 220px;
+      height: auto;
+      margin-bottom: 10px;
+    }
+    
+    h2 {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--secondary);
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--secondary);
+    }
+    
+    .section {
+      padding: 30px 40px;
+    }
+    
+    .input-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 16px;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s ease;
+      background-color: var(--card-bg);
+      color: var(--text-primary);
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--primary-light);
+    }
+    
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    button:hover {
+      background-color: #0062c4;
+    }
+    
+    .dark-theme button:hover {
+      background-color: #3a7bd5;
+    }
+    
+    button.secondary {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+    
+    button.secondary:hover {
+      background-color: var(--primary-light);
+    }
+    
+    .registros-container {
+      margin-top: 30px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    th {
+      font-weight: 600;
+      color: var(--text-secondary);
+      background-color: var(--table-header-bg);
+    }
+    
+    tr:hover {
+      background-color: var(--table-row-hover);
+    }
+    
+    .categoria-A {
+      color: var(--success);
+      font-weight: 600;
+    }
+    
+    .categoria-B {
+      color: var(--primary);
+      font-weight: 600;
+    }
+    
+    .categoria-C {
+      color: var(--warning);
+      font-weight: 600;
+    }
+    
+    .categoria-D {
+      color: var(--error);
+      font-weight: 600;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .modal-content {
+      background-color: var(--modal-bg);
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+    
+    .badge-A {
+      background-color: var(--success);
+      color: white;
+    }
+    
+    .badge-B {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .badge-C {
+      background-color: var(--warning);
+      color: white;
+    }
+    
+    .badge-D {
+      background-color: var(--error);
+      color: white;
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 10px;
+      }
+      
+      .container {
+        border-radius: 12px;
+      }
+      
+      .section {
+        padding: 20px;
+      }
+      
+      .logo-container {
+        padding: 30px 20px 15px;
+      }
+      
+      .theme-toggle {
+        right: 80px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .admin-link, .theme-toggle {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      
+      .theme-toggle {
+        right: 70px;
+      }
+      
+      th, td {
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()">
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="5"></circle>
+    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+  </svg>
+  <span id="theme-text">Modo Escuro</span>
+</button>
+
+<button class="admin-link" onclick="acessarAdmin()">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+  Área Admin
+</button>
+
+<div class="container">
+  <div class="logo-container">
+    <img src="saf_botafogo_preto.png" class="logo" alt="Logo Botafogo">
+    <h2>Controle de Quadros Móveis</h2>
+  </div>
+
+  <div class="section" id="usuario-final">
+    <div class="input-group">
+      <label for="setor">Setor:</label>
+      <select id="setor" onchange="carregarFuncionarios()">
+        <option value="">Selecione um setor</option>
+      </select>
+    </div>
+    
+    <div class="input-group">
+      <label for="funcionario">Funcionário:</label>
+      <select id="funcionario" disabled>
+        <option value="">Selecione um setor primeiro</option>
+      </select>
+    </div>
+    
+    <div class="input-group">
+      <label for="evento">Evento:</label>
+      <input type="text" id="evento" placeholder="Descrição do evento">
+    </div>
+    
+    <div class="input-group">
+      <label for="dataEvento">Data do Evento:</label>
+      <input type="date" id="dataEvento">
+    </div>
+    
+    <div class="input-group">
+      <label for="categoria">Categoria do Evento:</label>
+      <select id="categoria">
+        <option value="A">Categoria A</option>
+        <option value="B">Categoria B</option>
+        <option value="C">Categoria C</option>
+        <option value="D">Categoria D</option>
+      </select>
+    </div>
+    
+    <button onclick="registrarQuadroMovel()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+        <polyline points="7 3 7 8 15 8"></polyline>
+      </svg>
+      Registrar Quadro Móvel
+    </button>
+  </div>
+
+  <div class="section">
+    <h3>Meus Registros</h3>
+    <div class="registros-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Setor</th>
+            <th>Funcionário</th>
+            <th>Evento</th>
+            <th>Categoria</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaRegistros"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="admin-area" style="display: none">
+    <div class="section">
+      <button onclick="voltarParaUsuario()" class="secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"></path>
+        </svg>
+        Voltar para usuário
+      </button>
+    </div>
+    
+    <div class="section">
+      <h3>Gerenciar Setores</h3>
+      <div class="input-group">
+        <input type="text" id="novoSetor" placeholder="Nome do Setor">
+      </div>
+      <button onclick="adicionarSetor()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Adicionar Setor
+      </button>
+      <table>
+        <thead>
+          <tr>
+            <th>Setor</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaSetores"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h3>Gerenciar Funcionários</h3>
+      <div class="input-group">
+        <select id="setorFuncionario">
+          <option value="">Selecione um setor</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <input type="text" id="novoFuncionario" placeholder="Nome do Funcionário">
+      </div>
+      <button onclick="adicionarFuncionario()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Adicionar Funcionário
+      </button>
+      <table>
+        <thead>
+          <tr>
+            <th>Setor</th>
+            <th>Funcionário</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaFuncionarios"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h3>Todos os Registros de Quadros Móveis</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Setor</th>
+            <th>Funcionário</th>
+            <th>Evento</th>
+            <th>Categoria</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaTodosRegistros"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Editar Registro</h3>
+      <button class="close-modal" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="input-group">
+      <label for="editSetor">Setor:</label>
+      <select id="editSetor" onchange="carregarFuncionariosEdicao()"></select>
+    </div>
+    <div class="input-group">
+      <label for="editFuncionario">Funcionário:</label>
+      <select id="editFuncionario"></select>
+    </div>
+    <div class="input-group">
+      <label for="editEvento">Evento:</label>
+      <input type="text" id="editEvento">
+    </div>
+    <div class="input-group">
+      <label for="editData">Data:</label>
+      <input type="date" id="editData">
+    </div>
+    <div class="input-group">
+      <label for="editCategoria">Categoria:</label>
+      <select id="editCategoria">
+        <option value="A">Categoria A</option>
+        <option value="B">Categoria B</option>
+        <option value="C">Categoria C</option>
+        <option value="D">Categoria D</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button onclick="salvarEdicao()" style="flex: 1;">Salvar</button>
+      <button onclick="closeModal()" class="secondary" style="flex: 1;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Setor Modal -->
+<div id="editSetorModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Editar Setor</h3>
+      <button class="close-modal" onclick="closeEditSetorModal()">&times;</button>
+    </div>
+    <div class="input-group">
+      <label for="editSetorNome">Nome do Setor:</label>
+      <input type="text" id="editSetorNome">
+    </div>
+    <div class="modal-actions">
+      <button onclick="salvarEdicaoSetor()" style="flex: 1;">Salvar</button>
+      <button onclick="closeEditSetorModal()" class="secondary" style="flex: 1;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Funcionário Modal -->
+<div id="editFuncionarioModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Editar Funcionário</h3>
+      <button class="close-modal" onclick="closeEditFuncionarioModal()">&times;</button>
+    </div>
+    <div class="input-group">
+      <label for="editFuncSetor">Setor:</label>
+      <select id="editFuncSetor"></select>
+    </div>
+    <div class="input-group">
+      <label for="editFuncNome">Nome do Funcionário:</label>
+      <input type="text" id="editFuncNome">
+    </div>
+    <div class="modal-actions">
+      <button onclick="salvarEdicaoFuncionario()" style="flex: 1;">Salvar</button>
+      <button onclick="closeEditFuncionarioModal()" class="secondary" style="flex: 1;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = { 
+  apiKey: "AIzaSyCg98ohG0Jl33pvD7S124NR50PzBV6-R54", 
+  authDomain: "saf-botafogo-bicho.firebaseapp.com", 
+  databaseURL: "https://saf-botafogo-bicho-default-rtdb.firebaseio.com", 
+  projectId: "saf-botafogo-bicho", 
+  storageBucket: "saf-botafogo-bicho.appspot.com", 
+  messagingSenderId: "511539259417", 
+  appId: "1:511539259417:web:309ef5d84b565b6f686288" 
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentEditingId = null;
+let currentEditingSetorId = null;
+let currentEditingFuncionarioId = null;
+let selectedFuncionarioId = null;
+
+// Função para alternar entre dark e light theme
+function toggleTheme() {
+  const body = document.body;
+  const themeText = document.getElementById('theme-text');
+  
+  if (body.classList.contains('dark-theme')) {
+    body.classList.remove('dark-theme');
+    localStorage.setItem('theme', 'light');
+    themeText.textContent = 'Modo Escuro';
+  } else {
+    body.classList.add('dark-theme');
+    localStorage.setItem('theme', 'dark');
+    themeText.textContent = 'Modo Claro';
+  }
+}
+
+// Verificar preferência de tema salva
+function checkSavedTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  const themeText = document.getElementById('theme-text');
+  
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark-theme');
+    themeText.textContent = 'Modo Claro';
+  } else {
+    document.body.classList.remove('dark-theme');
+    themeText.textContent = 'Modo Escuro';
+  }
+}
+
+// Verificar preferência do sistema
+function checkSystemPreference() {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !localStorage.getItem('theme')) {
+    document.body.classList.add('dark-theme');
+    document.getElementById('theme-text').textContent = 'Modo Claro';
+  }
+}
+
+// Inicializar verificação de tema
+window.addEventListener('DOMContentLoaded', () => {
+  checkSystemPreference();
+  checkSavedTheme();
+  carregarSetores();
+});
+
+function voltarParaUsuario() {
+  document.getElementById("admin-area").style.display = "none";
+  document.getElementById("usuario-final").style.display = "block";
+}
+
+function formatarData(dataISO) {
+  if (!dataISO) return "";
+  const [ano, mes, dia] = dataISO.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function acessarAdmin() {
+  const senha = prompt("Digite a senha de administrador:");
+  if (senha === "botafogo2025") {
+    document.getElementById("admin-area").style.display = "block";
+    document.getElementById("usuario-final").style.display = "none";
+    carregarSetores();
+    carregarFuncionariosAdmin();
+    carregarTodosRegistros();
+  } else {
+    alert("Senha incorreta!");
+  }
+}
+
+// Carregar setores no select
+function carregarSetores() {
+  const selectSetor = document.getElementById("setor");
+  const selectSetorFuncionario = document.getElementById("setorFuncionario");
+  const selectEditSetor = document.getElementById("editSetor");
+  const selectEditFuncSetor = document.getElementById("editFuncSetor");
+  const tabelaSetores = document.getElementById("tabelaSetores");
+  
+  // Limpar os selects
+  if (selectSetor) selectSetor.innerHTML = '<option value="">Selecione um setor</option>';
+  if (selectSetorFuncionario) selectSetorFuncionario.innerHTML = '<option value="">Selecione um setor</option>';
+  if (selectEditSetor) selectEditSetor.innerHTML = '<option value="">Selecione um setor</option>';
+  if (selectEditFuncSetor) selectEditFuncSetor.innerHTML = '
