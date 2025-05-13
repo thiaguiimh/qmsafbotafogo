@@ -764,3 +764,207 @@ function carregarSetores() {
   if (selectSetorFuncionario) selectSetorFuncionario.innerHTML = '<option value="">Selecione um setor</option>';
   if (selectEditSetor) selectEditSetor.innerHTML = '<option value="">Selecione um setor</option>';
   if (selectEditFuncSetor) selectEditFuncSetor.innerHTML = '
+
+  // Editar setor
+function editarSetor(id, nomeAtual) {
+  const novoNome = prompt("Editar nome do setor:", nomeAtual);
+  if (novoNome && novoNome.trim() !== "") {
+    db.ref("setores/" + id).update({ nome: novoNome.trim() }).then(carregarSetores);
+  }
+}
+
+// Excluir setor
+function excluirSetor(id) {
+  if (confirm("Tem certeza que deseja excluir este setor? Todos os funcionários e registros vinculados serão removidos.")) {
+    // Primeiro verificar se há funcionários neste setor
+    db.ref("funcionarios").orderByChild("setorId").equalTo(id).once("value", snapshot => {
+      const funcionarios = snapshot.val();
+      if (funcionarios) {
+        // Excluir todos os funcionários do setor
+        const updates = {};
+        Object.keys(funcionarios).forEach(funcId => {
+          updates[`funcionarios/${funcId}`] = null;
+        });
+        db.ref().update(updates);
+      }
+      
+      // Agora excluir o setor
+      db.ref("setores/" + id).remove().then(() => {
+        carregarSetores();
+        carregarFuncionariosAdmin();
+      });
+    });
+  }
+}
+
+// Editar funcionário
+function editarFuncionario(id, nomeAtual, setorIdAtual) {
+  const novoNome = prompt("Editar nome do funcionário:", nomeAtual);
+  if (novoNome && novoNome.trim() !== "") {
+    db.ref("funcionarios/" + id).update({ nome: novoNome.trim() }).then(carregarFuncionariosAdmin);
+  }
+}
+
+// Excluir funcionário
+function excluirFuncionario(id) {
+  if (confirm("Tem certeza que deseja excluir este funcionário?")) {
+    db.ref("funcionarios/" + id).remove().then(carregarFuncionariosAdmin);
+  }
+}
+
+// Abrir modal de edição
+function abrirModalEdicao(id, registro) {
+  currentEditingId = id;
+  
+  // Preencher os campos do modal
+  document.getElementById("editEvento").value = registro.evento;
+  document.getElementById("editData").value = registro.data;
+  document.getElementById("editCategoria").value = registro.categoria;
+  
+  // Carregar setores e selecionar o correto
+  const selectEditSetor = document.getElementById("editSetor");
+  selectEditSetor.value = registro.setorId;
+  
+  // Carregar funcionários do setor selecionado
+  carregarFuncionariosParaEdicao(registro.setorId, registro.funcionarioId);
+  
+  // Mostrar modal
+  document.getElementById("editModal").style.display = "flex";
+}
+
+// Carregar funcionários para o modal de edição
+function carregarFuncionariosParaEdicao(setorId, funcionarioIdSelecionado) {
+  const selectEditFuncionario = document.getElementById("editFuncionario");
+  selectEditFuncionario.innerHTML = '<option value="">Selecione um funcionário</option>';
+  
+  if (!setorId) return;
+  
+  db.ref("funcionarios").orderByChild("setorId").equalTo(setorId).once("value", snapshot => {
+    const dados = snapshot.val();
+    if (dados) {
+      Object.entries(dados).forEach(([id, funcionario]) => {
+        const selected = id === funcionarioIdSelecionado ? "selected" : "";
+        selectEditFuncionario.innerHTML += `<option value="${id}" ${selected}>${funcionario.nome}</option>`;
+      });
+    }
+  });
+}
+
+// Fechar modal
+function closeModal() {
+  document.getElementById("editModal").style.display = "none";
+  currentEditingId = null;
+}
+
+// Salvar edição do registro
+function salvarEdicao() {
+  const setorId = document.getElementById("editSetor").value;
+  const funcionarioId = document.getElementById("editFuncionario").value;
+  const evento = document.getElementById("editEvento").value.trim();
+  const data = document.getElementById("editData").value;
+  const categoria = document.getElementById("editCategoria").value;
+  
+  if (!setorId || !funcionarioId || !evento || !data) {
+    alert("Preencha todos os campos corretamente!");
+    return;
+  }
+  
+  // Obter nomes atualizados do setor e funcionário
+  db.ref(`setores/${setorId}`).once("value", snapshotSetor => {
+    const setor = snapshotSetor.val();
+    if (!setor) return alert("Setor não encontrado.");
+    
+    db.ref(`funcionarios/${funcionarioId}`).once("value", snapshotFuncionario => {
+      const funcionario = snapshotFuncionario.val();
+      if (!funcionario) return alert("Funcionário não encontrado.");
+      
+      const dadosAtualizados = {
+        setorId,
+        setorNome: setor.nome,
+        funcionarioId,
+        funcionarioNome: funcionario.nome,
+        evento,
+        data,
+        categoria,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      };
+      
+      db.ref("quadrosMoveis/" + currentEditingId).update(dadosAtualizados).then(() => {
+        alert("Registro atualizado com sucesso!");
+        closeModal();
+        carregarTodosRegistros();
+        
+        // Se estiver editando um registro do usuário atual, recarregar também
+        const funcionarioAtual = document.getElementById("funcionario").value;
+        if (funcionarioId === funcionarioAtual) {
+          carregarMeusRegistros(funcionarioAtual);
+        }
+      });
+    });
+  });
+}
+
+// Excluir registro
+function excluirRegistro(id) {
+  if (confirm("Tem certeza que deseja excluir este registro?")) {
+    db.ref("quadrosMoveis/" + id).remove().then(() => {
+      carregarTodosRegistros();
+      
+      // Verificar se é um registro do usuário atual e recarregar se necessário
+      const funcionarioAtual = document.getElementById("funcionario").value;
+      db.ref("quadrosMoveis/" + id).once("value", snapshot => {
+        const registro = snapshot.val();
+        if (registro && registro.funcionarioId === funcionarioAtual) {
+          carregarMeusRegistros(funcionarioAtual);
+        }
+      });
+    });
+  }
+}
+
+// Event listener para carregar funcionários quando o setor for alterado no modal
+document.getElementById("editSetor").addEventListener("change", function() {
+  carregarFuncionariosParaEdicao(this.value);
+});
+
+// Event listener para carregar os registros quando um funcionário é selecionado
+document.getElementById("funcionario").addEventListener("change", function() {
+  if (this.value) {
+    carregarMeusRegistros(this.value);
+  }
+});
+
+// Inicializar o sistema
+window.onload = function() {
+  carregarSetores();
+  checkSavedTheme();
+  checkSystemPreference();
+  
+  // Verificar se há um funcionário selecionado na URL (para compartilhamento)
+  const urlParams = new URLSearchParams(window.location.search);
+  const funcionarioId = urlParams.get('funcionario');
+  if (funcionarioId) {
+    // Carregar dados do funcionário e setor
+    db.ref(`funcionarios/${funcionarioId}`).once("value", snapshot => {
+      const funcionario = snapshot.val();
+      if (funcionario) {
+        db.ref(`setores/${funcionario.setorId}`).once("value", snapshotSetor => {
+          const setor = snapshotSetor.val();
+          if (setor) {
+            document.getElementById("setor").value = funcionario.setorId;
+            carregarFuncionarios();
+            
+            // Esperar um pouco para garantir que os funcionários foram carregados
+            setTimeout(() => {
+              document.getElementById("funcionario").value = funcionarioId;
+              carregarMeusRegistros(funcionarioId);
+            }, 500);
+          }
+        });
+      }
+    });
+  }
+};
+</script>
+</body>
+</html>
