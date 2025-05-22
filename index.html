@@ -1,970 +1,2981 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Controle de Quadros Móveis</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <style>
-    :root {
-      /* Light Theme */
-      --primary: #0071e3;
-      --primary-light: #e8f2fc;
-      --secondary: #1d1d1f;
-      --background: #f5f5f7;
-      --card-bg: #ffffff;
-      --border: #d2d2d7;
-      --text-primary: #1d1d1f;
-      --text-secondary: #86868b;
-      --success: #34c759;
-      --warning: #ff9500;
-      --error: #ff3b30;
-      --modal-bg: #ffffff;
-      --table-header-bg: #fafafa;
-      --table-row-hover: #f8f8f8;
-      --output-bg: #f8f8fa;
-      
-      /* Dark Theme */
-      --primary-dark: #4d90fe;
-      --primary-light-dark: #1a3a6a;
-      --secondary-dark: #e0e0e0;
-      --background-dark: #1a1a1f;
-      --card-bg-dark: #2a2a30;
-      --border-dark: #3a3a40;
-      --text-primary-dark: #e0e0e0;
-      --text-secondary-dark: #a0a0a5;
-      --success-dark: #2dbb5d;
-      --warning-dark: #e68a00;
-      --error-dark: #e62e26;
-      --modal-bg-dark: #2a2a30;
-      --table-header-bg-dark: #333338;
-      --table-row-hover-dark: #3a3a3f;
-      --output-bg-dark: #2a2a30;
-    }
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-    }
-    
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: var(--background);
-      color: var(--text-primary);
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-      padding: 0;
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 40px 20px;
-    }
-    
-    body.dark-theme {
-      --primary: var(--primary-dark);
-      --primary-light: var(--primary-light-dark);
-      --secondary: var(--secondary-dark);
-      --background: var(--background-dark);
-      --card-bg: var(--card-bg-dark);
-      --border: var(--border-dark);
-      --text-primary: var(--text-primary-dark);
-      --text-secondary: var(--text-secondary-dark);
-      --success: var(--success-dark);
-      --warning: var(--warning-dark);
-      --error: var(--error-dark);
-      --modal-bg: var(--modal-bg-dark);
-      --table-header-bg: var(--table-header-bg-dark);
-      --table-row-hover: var(--table-row-hover-dark);
-      --output-bg: var(--output-bg-dark);
-    }
-    
-    .container {
-      width: 100%;
-      max-width: 1200px;
-      background-color: var(--card-bg);
-      border-radius: 18px;
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-      overflow: hidden;
-      position: relative;
-    }
-    
-    .dark-theme .container {
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-    }
-    
-    .theme-toggle {
-      position: absolute;
-      top: 20px;
-      right: 90px;
-      background-color: transparent;
-      color: var(--primary);
-      border: 1px solid var(--primary);
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      z-index: 100;
-      width: auto;
-    }
-    
-    .theme-toggle:hover {
-      background-color: var(--primary-light);
-    }
-    
-    .theme-toggle svg {
-      width: 14px;
-      height: 14px;
-    }
-    
-    .admin-link {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background-color: transparent;
-      color: var(--primary);
-      border: 1px solid var(--primary);
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      z-index: 100;
-      width: auto;
-    }
-    
-    .admin-link:hover {
-      background-color: var(--primary-light);
-    }
-    
-    .admin-link svg {
-      width: 14px;
-      height: 14px;
-    }
-    
-    .logo-container {
-      padding: 40px 40px 20px;
-      text-align: center;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    .logo {
-      max-width: 220px;
-      height: auto;
-      margin-bottom: 10px;
-    }
-    
-    h2 {
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--secondary);
-      margin-bottom: 30px;
-      text-align: center;
-    }
-    
-    h3 {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 20px;
-      color: var(--secondary);
-    }
-    
-    .section {
-      padding: 30px 40px;
-    }
-    
-    .input-group {
-      margin-bottom: 20px;
-    }
-    
-    label {
-      display: block;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: var(--text-primary);
-    }
-    
-    input, select {
-      width: 100%;
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      font-size: 16px;
-      font-family: 'Inter', sans-serif;
-      transition: all 0.2s ease;
-      background-color: var(--card-bg);
-      color: var(--text-primary);
-    }
-    
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px var(--primary-light);
-    }
-    
-    button {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 14px 24px;
-      font-size: 16px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    
-    button:hover {
-      background-color: #0062c4;
-    }
-    
-    .dark-theme button:hover {
-      background-color: #3a7bd5;
-    }
-    
-    button.secondary {
-      background-color: transparent;
-      color: var(--primary);
-      border: 1px solid var(--primary);
-    }
-    
-    button.secondary:hover {
-      background-color: var(--primary-light);
-    }
-    
-    .registros-container {
-      margin-top: 30px;
-    }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      font-size: 14px;
-    }
-    
-    th, td {
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    th {
-      font-weight: 600;
-      color: var(--text-secondary);
-      background-color: var(--table-header-bg);
-    }
-    
-    tr:hover {
-      background-color: var(--table-row-hover);
-    }
-    
-    .categoria-A {
-      color: var(--success);
-      font-weight: 600;
-    }
-    
-    .categoria-B {
-      color: var(--primary);
-      font-weight: 600;
-    }
-    
-    .categoria-C {
-      color: var(--warning);
-      font-weight: 600;
-    }
-    
-    .categoria-D {
-      color: var(--error);
-      font-weight: 600;
-    }
-    
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .modal-content {
-      background-color: var(--modal-bg);
-      padding: 30px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    }
-    
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    
-    .modal-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    
-    .close-modal {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: var(--text-secondary);
-    }
-    
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 500;
-      margin-left: 8px;
-    }
-    
-    .badge-A {
-      background-color: var(--success);
-      color: white;
-    }
-    
-    .badge-B {
-      background-color: var(--primary);
-      color: white;
-    }
-    
-    .badge-C {
-      background-color: var(--warning);
-      color: white;
-    }
-    
-    .badge-D {
-      background-color: var(--error);
-      color: white;
-    }
-    
-    @media (max-width: 768px) {
-      body {
-        padding: 20px 10px;
-      }
-      
-      .container {
-        border-radius: 12px;
-      }
-      
-      .section {
-        padding: 20px;
-      }
-      
-      .logo-container {
-        padding: 30px 20px 15px;
-      }
-      
-      .theme-toggle {
-        right: 80px;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .admin-link, .theme-toggle {
-        padding: 6px 10px;
-        font-size: 12px;
-      }
-      
-      .theme-toggle {
-        right: 70px;
-      }
-      
-      th, td {
-        padding: 8px 10px;
-        font-size: 13px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Quadro Móvel (QM)</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            /* Light Theme Colors */
+            --primary: #0071e3;
+            --primary-light: #e8f2fc;
+            --secondary: #1d1d1f;
+            --background: #f5f5f7;
+            --card-bg: #ffffff;
+            --border: #d2d2d7;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --error: #ff3b30;
+            --warning: #ff9500;
+
+            /* Result Colors */
+            --success: #2E8B57; /* Green for successful actions/positive QM */
+            --info: #007bff; /* Blue for general info/pending */
+            --danger: #FF4500; /* Red for errors/negative QM */
+            --highlight-gold: #FFD700; /* Gold for special status */
+
+
+            /* UI Colors */
+            --modal-bg: #ffffff;
+            --table-header-bg: #fafafa;
+            --table-row-hover: #f8f8f8;
+            --output-bg-light-contrast: #f0f0f0;
+
+            /* Dark Theme Colors */
+            --primary-dark: #4d90fe;
+            --primary-light-dark: #1a3a6a;
+            --secondary-dark: #e0e0e0;
+            --background-dark: #1a1a1f;
+            --card-bg-dark: #2a2a30;
+            --border-dark: #3a3a40;
+            --text-primary-dark: #e0e0e0;
+            --text-secondary-dark: #a0a0a5;
+            --error-dark: #ff453a;
+            --warning-dark: #ff9f0a;
+
+            /* Dark Theme Result Colors */
+            --success-dark: #3CB371;
+            --info-dark: #6cbfff;
+            --danger-dark: #FF6347;
+            --highlight-gold-dark: #FFC000;
+
+            /* Dark Theme UI Colors */
+            --modal-bg-dark: #2a2a30;
+            --table-header-bg-dark: #333338;
+            --table-row-hover-dark: #3a3a3f;
+            --output-bg-dark-contrast: #1a1a1f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            padding: 40px 20px;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        body.dark-theme {
+            --primary: var(--primary-dark);
+            --primary-light: var(--primary-light-dark);
+            --secondary: var(--secondary-dark);
+            --background: var(--background-dark);
+            --card-bg: var(--card-bg-dark);
+            --border: var(--border-dark);
+            --text-primary: var(--text-primary-dark);
+            --text-secondary: var(--text-secondary-dark);
+            --error: var(--error-dark);
+            --warning: var(--warning-dark);
+
+            /* Result Colors Dark */
+            --success: var(--success-dark);
+            --info: var(--info-dark);
+            --danger: var(--danger-dark);
+            --highlight-gold: var(--highlight-gold-dark);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: var(--card-bg);
+            border-radius: 18px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .dark-theme .container {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .qm-category-tag {
+            display: inline-block;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .button-group {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .theme-toggle, .admin-link, .logout-btn, .change-password-btn, .manager-link {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 36px;
+            white-space: nowrap;
+        }
+
+        .theme-toggle:hover, .admin-link:hover, .logout-btn:hover, .change-password-btn:hover, .manager-link:hover {
+            background-color: var(--primary-light);
+        }
+
+        .theme-toggle svg, .admin-link svg, .logout-btn svg, .change-password-btn svg, .manager-link svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .logo-container {
+            padding: 40px 40px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        .user-watermark {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        .logo {
+            width: 220px;
+            height: auto;
+            margin-bottom: 10px;
+            object-fit: contain;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+
+        .section {
+            padding: 30px 40px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+        }
+        
+        input#employeeSalary.formatted-currency {
+            text-align: right;
+        }
+
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background-color: #0062c4;
+        }
+        .dark-theme button:hover {
+            background-color: #3a7bd5;
+        }
+
+        button.secondary {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        button.secondary:hover {
+            background-color: var(--primary-light);
+        }
+        
+        button.danger {
+            background-color: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+        button.danger:hover {
+            background-color: #cc3700;
+        }
+        .dark-theme button.danger:hover {
+            background-color: #ff7859;
+        }
+
+
+        .qm-entries-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            transform: translateY(0);
+        }
+
+        .dark-theme .card {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .dark-theme .card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-footer {
+            margin-top: auto;
+            padding-top: 12px;
+        }
+
+        .card h4 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .card p.qm-status-success {
+            font-weight: bold;
+            color: var(--success);
+        }
+        .card p.qm-status-info {
+            font-weight: bold;
+            color: var(--info);
+        }
+
+
+        .teto-info {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .qm-value-output {
+            font-weight: 600;
+            text-align: left;
+            color: var(--text-primary);
+            margin-top: 8px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: var(--output-bg-light-contrast);
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 22px;
+        }
+
+        /* Estilos específicos para o bicho bruto no modo escuro */
+        body.dark-theme .qm-value-output {
+            background-color: var(--output-bg-dark-contrast);
+            color: var(--text-primary-dark);
+        }
+
+        .static-teto-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            text-align: left;
+        }
+
+
+        .total-container {
+            margin-top: 40px;
+            padding: 30px 40px;
+            background-color: var(--primary-light);
+            border-radius: 0 0 18px 18px;
+            text-align: center;
+        }
+
+        .total-label {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .total-output {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            background-color: var(--table-header-bg);
+        }
+
+        tr:hover {
+            background-color: var(--table-row-hover);
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            accent-color: var(--primary);
+        }
+
+        .no-ceiling-tag {
+            display: inline-block;
+            background-color: var(--warning);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background-color: var(--modal-bg);
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        #userManagementModal .modal-content,
+        #employeeManagementModal .modal-content,
+        #sectorManagementModal .modal-content,
+        #eventManagementModal .modal-content,
+        #categoryManagementModal .modal-content,
+        #qmEntryModal .modal-content,
+        #exportDataModal .modal-content {
+            max-width: 800px;
+        }
+
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-actions button {
+            width: auto;
+            flex-grow: 1;
+        }
+        .modal-actions button.secondary {
+            flex-grow: 0.5;
+        }
+
+
+        .login-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-top: -15px;
+            margin-bottom: 20px;
+        }
+
+        .forgot-password a {
+            color: var(--primary);
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .reset-password-info {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+        }
+
+        body.no-screenshot::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 9999;
+            display: none;
+        }
+
+
+        @media (max-width: 1024px) {
+            
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 10px;
+            }
+
+            .container {
+                border-radius: 12px;
+            }
+
+            .section {
+                padding: 20px;
+            }
+
+            .logo-container {
+                padding: 30px 20px 15px;
+            }
+
+            .total-container {
+                padding: 20px;
+            }
+
+            .total-output {
+                font-size: 28px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-end;
+            }
+            .theme-toggle, .admin-link, .logout-btn, .change-password-btn, .manager-link {
+                width: auto;
+            }
+            #userManagementModal .modal-content,
+            #employeeManagementModal .modal-content,
+            #sectorManagementModal .modal-content,
+            #eventManagementModal .modal-content,
+            #categoryManagementModal .modal-content,
+            #qmEntryModal .modal-content,
+            #exportDataModal .modal-content {
+                max-width: 95%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .theme-toggle, .admin-link, .logout-btn, .change-password-btn, .manager-link {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            h2 {
+                font-size: 24px;
+            }
+            .total-output {
+                font-size: 24px;
+            }
+            #userManagementModal .modal-content,
+            #employeeManagementModal .modal-content,
+            #sectorManagementModal .modal-content,
+            #eventManagementModal .modal-content,
+            #categoryManagementModal .modal-content,
+            #qmEntryModal .modal-content,
+            #exportDataModal .modal-content {
+                padding: 20px;
+            }
+            .pagination-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .pagination-controls > div {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .pagination-controls .pagination-info-buttons {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                width: 100%;
+            }
+            .pagination-controls select {
+                flex-grow: 1;
+                margin-right: 10px;
+            }
+        }
+
+        #fullPageWatermark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9998;
+            overflow: hidden;
+            display: block;
+        }
+
+        #fullPageWatermark span {
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+
+        @media (max-width: 768px) {
+            #fullPageWatermark span {
+                font-size: 8vw !important;
+            }
+        }
+
+        
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: var(--primary-light);
+            border-radius: 8px;
+        }
+        .pagination-controls label, .pagination-controls span {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .pagination-controls select {
+            padding: 6px 10px;
+            font-size: 14px;
+            margin-left: 8px;
+            border-radius: 6px;
+            width: auto;
+        }
+        .pagination-controls button {
+            padding: 6px 12px;
+            font-size: 14px;
+            margin-left: 8px;
+            width: auto;
+        }
+        .pagination-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination-info {
+            margin: 0 10px;
+        }
+
+    </style>
 </head>
 <body>
-<button class="theme-toggle" onclick="toggleTheme()">
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="5"></circle>
-    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-  </svg>
-  <span id="theme-text">Modo Escuro</span>
-</button>
-
-<button class="admin-link" onclick="acessarAdmin()">
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-  Área Admin
-</button>
-
-<div class="container">
-  <div class="logo-container">
-    <img src="saf_botafogo_preto.png" class="logo" alt="Logo Botafogo">
-    <h2>Controle de Quadros Móveis</h2>
-  </div>
-
-  <div class="section" id="usuario-final">
-    <div class="input-group">
-      <label for="setor">Setor:</label>
-      <select id="setor" onchange="carregarFuncionarios()">
-        <option value="">Selecione um setor</option>
-      </select>
-    </div>
-    
-    <div class="input-group">
-      <label for="funcionario">Funcionário:</label>
-      <select id="funcionario" disabled>
-        <option value="">Selecione um setor primeiro</option>
-      </select>
-    </div>
-    
-    <div class="input-group">
-      <label for="evento">Evento:</label>
-      <input type="text" id="evento" placeholder="Descrição do evento">
-    </div>
-    
-    <div class="input-group">
-      <label for="dataEvento">Data do Evento:</label>
-      <input type="date" id="dataEvento">
-    </div>
-    
-    <div class="input-group">
-      <label for="categoria">Categoria do Evento:</label>
-      <select id="categoria">
-        <option value="A">Categoria A</option>
-        <option value="B">Categoria B</option>
-        <option value="C">Categoria C</option>
-        <option value="D">Categoria D</option>
-      </select>
-    </div>
-    
-    <button onclick="registrarQuadroMovel()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-        <polyline points="7 3 7 8 15 8"></polyline>
-      </svg>
-      Registrar Quadro Móvel
-    </button>
-  </div>
-
-  <div class="section">
-    <h3>Meus Registros</h3>
-    <div class="registros-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Setor</th>
-            <th>Funcionário</th>
-            <th>Evento</th>
-            <th>Categoria</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaRegistros"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="admin-area" style="display: none">
-    <div class="section">
-      <button onclick="voltarParaUsuario()" class="secondary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"></path>
-        </svg>
-        Voltar para usuário
-      </button>
-    </div>
-    
-    <div class="section">
-      <h3>Gerenciar Setores</h3>
-      <div class="input-group">
-        <input type="text" id="novoSetor" placeholder="Nome do Setor">
-      </div>
-      <button onclick="adicionarSetor()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Adicionar Setor
-      </button>
-      <table>
-        <thead>
-          <tr>
-            <th>Setor</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaSetores"></tbody>
-      </table>
+    <div id="fullPageWatermark"></div>
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Acesso ao Sistema</h3>
+            </div>
+            <div class="input-group">
+                <label for="loginEmail">E-mail:</label>
+                <input type="email" id="loginEmail" placeholder="Seu e-mail cadastrado">
+                <div class="error-message" id="loginEmailError"></div>
+            </div>
+            <div class="input-group">
+                <label for="loginPassword">Senha:</label>
+                <input type="password" id="loginPassword" placeholder="Sua senha">
+                <div class="error-message" id="loginPasswordError"></div>
+            </div>
+            <div class="forgot-password">
+                <a href="#" onclick="showForgotPassword()">Esqueci minha senha</a>
+            </div>
+            <button onclick="loginUser()">Entrar</button>
+        </div>
     </div>
 
-    <div class="section">
-      <h3>Gerenciar Funcionários</h3>
-      <div class="input-group">
-        <select id="setorFuncionario">
-          <option value="">Selecione um setor</option>
-        </select>
-      </div>
-      <div class="input-group">
-        <input type="text" id="novoFuncionario" placeholder="Nome do Funcionário">
-      </div>
-      <button onclick="adicionarFuncionario()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Adicionar Funcionário
-      </button>
-      <table>
-        <thead>
-          <tr>
-            <th>Setor</th>
-            <th>Funcionário</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaFuncionarios"></tbody>
-      </table>
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Redefinir Senha</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <p class="reset-password-info">Digite seu e-mail cadastrado para receber um link de redefinição de senha.</p>
+            <div class="input-group">
+                <label for="resetEmail">E-mail:</label>
+                <input type="email" id="resetEmail" placeholder="Seu e-mail cadastrado">
+                <div class="error-message" id="resetEmailError"></div>
+            </div>
+            <div class="modal-actions">
+                <button onclick="sendPasswordReset()">Enviar Link</button>
+                <button onclick="showLogin()" class="secondary">Voltar</button>
+            </div>
+        </div>
     </div>
 
-    <div class="section">
-      <h3>Todos os Registros de Quadros Móveis</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Setor</th>
-            <th>Funcionário</th>
-            <th>Evento</th>
-            <th>Categoria</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaTodosRegistros"></tbody>
-      </table>
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Alterar Senha</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="currentPassword">Senha Atual:</label>
+                <input type="password" id="currentPassword" placeholder="Sua senha atual">
+                <div class="error-message" id="currentPasswordError"></div>
+            </div>
+            <div class="input-group">
+                <label for="newPassword">Nova Senha:</label>
+                <input type="password" id="newPassword" placeholder="Nova senha (mínimo 6 caracteres)">
+                <div class="error-message" id="newPasswordError"></div>
+            </div>
+            <div class="input-group">
+                <label for="confirmPassword">Confirmar Nova Senha:</label>
+                <input type="password" id="confirmPassword" placeholder="Confirme a nova senha">
+                <div class="error-message" id="confirmPasswordError"></div>
+            </div>
+            <div class="modal-actions">
+                <button onclick="changePassword()">Salvar Alterações</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- Edit Modal -->
-<div id="editModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 class="modal-title">Editar Registro</h3>
-      <button class="close-modal" onclick="closeModal()">&times;</button>
+    <div id="userManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Gerenciamento de Usuários</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="userCpf">CPF (somente números):</label>
+                <input type="text" id="userCpf" placeholder="00000000000" maxlength="11">
+                <div class="error-message" id="userCpfError"></div>
+            </div>
+            <div class="input-group">
+                <label for="userName">Nome Completo:</label>
+                <input type="text" id="userName" placeholder="Nome completo do usuário">
+                <div class="error-message" id="userNameError"></div>
+            </div>
+            <div class="input-group">
+                <label for="userEmail">E-mail:</label>
+                <input type="email" id="userEmail" placeholder="E-mail do usuário">
+                <div class="error-message" id="userEmailError"></div>
+            </div>
+            <div class="input-group">
+                <label for="userPassword">Senha Inicial:</label>
+                <input type="password" id="userPassword" placeholder="Senha inicial (mínimo 6 caracteres)">
+                <div class="error-message" id="userPasswordError"></div>
+            </div>
+            <div class="checkbox-container">
+                <input type="checkbox" id="isManagerCheckbox">
+                <label for="isManagerCheckbox">É Gestor?</label>
+            </div>
+            <div class="input-group" id="managerSectorGroup" style="display: none;">
+                <label for="managerSectorSelect">Setor do Gestor:</label>
+                <select id="managerSectorSelect"></select>
+            </div>
+            <div class="modal-actions">
+                <button onclick="createUser()">Cadastrar Usuário</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+
+            <div class="pagination-controls">
+                <div>
+                    <label for="usersPerPageSelect">Mostrar:</label>
+                    <select id="usersPerPageSelect" onchange="changeUsersPerPage()">
+                        <option value="10">10</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="all">Todos</option>
+                    </select>
+                </div>
+                <div class="pagination-info-buttons">
+                    <button id="prevPageBtn" onclick="changeUserPage(-1)" class="secondary">Anterior</button>
+                    <span id="pageInfo" class="pagination-info">Página 1 de 1</span>
+                    <button id="nextPageBtn" onclick="changeUserPage(1)" class="secondary">Próxima</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Tipo</th>
+                        <th>Setor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable"></tbody>
+            </table>
+        </div>
     </div>
-    <div class="input-group">
-      <label for="editSetor">Setor:</label>
-      <select id="editSetor" onchange="carregarFuncionariosEdicao()"></select>
+
+    <div id="employeeManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Gerenciamento de Funcionários</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="employeeName">Nome Completo:</label>
+                <input type="text" id="employeeName" placeholder="Nome completo do funcionário">
+            </div>
+            <div class="input-group">
+                <label for="employeeCpf">CPF (somente números):</label>
+                <input type="text" id="employeeCpf" placeholder="00000000000" maxlength="11">
+            </div>
+            <div class="input-group">
+                <label for="employeeEmail">E-mail:</label>
+                <input type="email" id="employeeEmail" placeholder="E-mail do funcionário">
+            </div>
+            <div class="input-group">
+                <label for="employeeSectorSelect">Setor:</label>
+                <select id="employeeSectorSelect"></select>
+            </div>
+            <div class="modal-actions">
+                <button onclick="createEmployee()">Adicionar Funcionário</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>CPF</th>
+                        <th>E-mail</th>
+                        <th>Setor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="employeesTable"></tbody>
+            </table>
+        </div>
     </div>
-    <div class="input-group">
-      <label for="editFuncionario">Funcionário:</label>
-      <select id="editFuncionario"></select>
+
+    <div id="sectorManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Gerenciamento de Setores</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="sectorName">Nome do Setor:</label>
+                <input type="text" id="sectorName" placeholder="Nome do setor">
+            </div>
+            <div class="modal-actions">
+                <button onclick="createSector()">Adicionar Setor</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="sectorsTable"></tbody>
+            </table>
+        </div>
     </div>
-    <div class="input-group">
-      <label for="editEvento">Evento:</label>
-      <input type="text" id="editEvento">
+
+    <div id="eventManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Gerenciamento de Eventos</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="eventName">Nome do Evento:</label>
+                <input type="text" id="eventName" placeholder="Nome do evento">
+            </div>
+            <div class="input-group">
+                <label for="eventDescription">Descrição:</label>
+                <input type="text" id="eventDescription" placeholder="Descrição do evento (opcional)">
+            </div>
+            <div class="input-group">
+                <label for="eventBaseValuePerHour">Valor Base por Hora (R$):</label>
+                <input type="number" id="eventBaseValuePerHour" step="0.01" placeholder="0.00">
+            </div>
+            <div class="modal-actions">
+                <button onclick="createEvent()">Adicionar Evento</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Valor Base/Hora</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="eventsTable"></tbody>
+            </table>
+        </div>
     </div>
-    <div class="input-group">
-      <label for="editData">Data:</label>
-      <input type="date" id="editData">
+
+    <div id="categoryManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Gerenciamento de Categorias QM</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="categoryName">Nome da Categoria (ex: A, B, C, D):</label>
+                <input type="text" id="categoryName" placeholder="Nome da Categoria">
+            </div>
+            <div class="input-group">
+                <label for="categoryMultiplier">Multiplicador:</label>
+                <input type="number" id="categoryMultiplier" step="0.01" placeholder="0.00">
+            </div>
+            <div class="input-group">
+                <label for="categoryDescription">Descrição:</label>
+                <input type="text" id="categoryDescription" placeholder="Descrição da Categoria">
+            </div>
+            <div class="modal-actions">
+                <button onclick="createCategory()">Adicionar Categoria</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Multiplicador</th>
+                        <th>Descrição</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="categoriesTable"></tbody>
+            </table>
+        </div>
     </div>
-    <div class="input-group">
-      <label for="editCategoria">Categoria:</label>
-      <select id="editCategoria">
-        <option value="A">Categoria A</option>
-        <option value="B">Categoria B</option>
-        <option value="C">Categoria C</option>
-        <option value="D">Categoria D</option>
-      </select>
+
+    <div id="qmEntryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Registrar QM</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="qmEmployeeSelect">Funcionário:</label>
+                <select id="qmEmployeeSelect"></select>
+            </div>
+            <div class="input-group">
+                <label for="qmEventSelect">Evento:</label>
+                <select id="qmEventSelect"></select>
+            </div>
+            <div class="input-group">
+                <label for="qmCategorySelect">Categoria QM:</label>
+                <select id="qmCategorySelect"></select>
+            </div>
+            <div class="input-group">
+                <label for="qmWorkDate">Data do Trabalho:</label>
+                <input type="date" id="qmWorkDate">
+            </div>
+            <div class="input-group">
+                <label for="qmHoursWorked">Horas Trabalhadas:</label>
+                <input type="number" id="qmHoursWorked" step="0.5" min="0.5">
+            </div>
+            <div class="modal-actions">
+                <button onclick="addQmEntry()">Registrar QM</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+        </div>
     </div>
-    <div class="modal-actions">
-      <button onclick="salvarEdicao()" style="flex: 1;">Salvar</button>
-      <button onclick="closeModal()" class="secondary" style="flex: 1;">Cancelar</button>
+
+    <div id="editQmEntryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Editar Registro de QM</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="editQmEmployeeSelect">Funcionário:</label>
+                <select id="editQmEmployeeSelect" disabled></select>
+            </div>
+            <div class="input-group">
+                <label for="editQmEventSelect">Evento:</label>
+                <select id="editQmEventSelect"></select>
+            </div>
+            <div class="input-group">
+                <label for="editQmCategorySelect">Categoria QM:</label>
+                <select id="editQmCategorySelect"></select>
+            </div>
+            <div class="input-group">
+                <label for="editQmWorkDate">Data do Trabalho:</label>
+                <input type="date" id="editQmWorkDate">
+            </div>
+            <div class="input-group">
+                <label for="editQmHoursWorked">Horas Trabalhadas:</label>
+                <input type="number" id="editQmHoursWorked" step="0.5" min="0.5">
+            </div>
+            <div class="modal-actions">
+                <button onclick="saveQmEntryChanges()">Salvar Alterações</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- Edit Setor Modal -->
-<div id="editSetorModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 class="modal-title">Editar Setor</h3>
-      <button class="close-modal" onclick="closeEditSetorModal()">&times;</button>
+    <div id="exportDataModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Exportar Dados de QM</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="input-group">
+                <label for="exportStartDate">Data de Início:</label>
+                <input type="date" id="exportStartDate">
+            </div>
+            <div class="input-group">
+                <label for="exportEndDate">Data de Fim:</label>
+                <input type="date" id="exportEndDate">
+            </div>
+            <div class="modal-actions">
+                <button onclick="exportQmData()">Exportar para CSV</button>
+                <button onclick="closeModal()" class="secondary">Cancelar</button>
+            </div>
+        </div>
     </div>
-    <div class="input-group">
-      <label for="editSetorNome">Nome do Setor:</label>
-      <input type="text" id="editSetorNome">
+
+
+    <div class="button-group" id="authButtons" style="display: none;">
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+            </svg>
+            <span id="theme-text">Modo Escuro</span>
+        </button>
+
+        <button class="change-password-btn" onclick="openChangePassword()"> <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+            </svg>
+            Alterar Senha
+        </button>
+
+        <button class="manager-link" onclick="openQmEntryModal()" id="managerButton" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <line x1="10" y1="9" x2="8" y2="9"></line>
+            </svg>
+            Registrar QM
+        </button>
+
+        <button class="admin-link" onclick="acessarAdmin()" id="adminButton" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Área Admin
+        </button>
+
+        <button class="logout-btn" onclick="logoutUser()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Sair
+        </button>
     </div>
-    <div class="modal-actions">
-      <button onclick="salvarEdicaoSetor()" style="flex: 1;">Salvar</button>
-      <button onclick="closeEditSetorModal()" class="secondary" style="flex: 1;">Cancelar</button>
+
+    <div class="container" id="mainContainer" style="display: none;">
+        <div class="logo-container">
+            <img id="logo-image" src="https://placehold.co/220x80/000/FFF?text=QM+Logo" class="logo" alt="Logo QM">
+            <h2>Gestão de Quadro Móvel (QM)</h2>
+            <div class="user-watermark" id="userWatermark"></div>
+        </div>
+
+        <div class="section" id="employee-dashboard-view">
+            <h3>Registros de QM do meu Setor</h3>
+            <p>Aqui você pode visualizar os registros de Quadro Móvel para o seu setor.</p>
+            <div class="qm-entries-container" id="sector-qm-entries">
+                </div>
+            <p id="noQmEntriesMessage" style="text-align: center; color: var(--text-secondary); margin-top: 20px; display: none;">Nenhum registro de QM encontrado para o seu setor.</p>
+        </div>
+
+
+        <div id="admin-area" style="display: none">
+            <div class="section">
+                <button onclick="voltarParaUsuario()" class="secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                    </svg>
+                    Voltar para usuário
+                </button>
+
+                <button onclick="openUserManagement()" style="margin-top: 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Gerenciar Usuários
+                </button>
+
+                <button onclick="openEmployeeManagement()" style="margin-top: 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Gerenciar Funcionários
+                </button>
+
+                <button onclick="openSectorManagement()" style="margin-top: 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    Gerenciar Setores
+                </button>
+
+                <button onclick="openEventManagement()" style="margin-top: 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Gerenciar Eventos
+                </button>
+
+                <button onclick="openCategoryManagement()" style="margin-top: 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 17l6-6 6 6"></path>
+                        <path d="M4 7l6 6 6-6"></path>
+                        <path d="M18 10h3v4"></path>
+                        <path d="M18 14h3v4"></path>
+                    </svg>
+                    Gerenciar Categorias QM
+                </button>
+
+                <button onclick="openExportDataModal()" style="margin-top: 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Exportar Dados QM
+                </button>
+            </div>
+
+            <div class="section">
+                <h3>Todos os Registros de QM</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Funcionário</th>
+                            <th>Setor</th>
+                            <th>Evento</th>
+                            <th>Categoria</th>
+                            <th>Data</th>
+                            <th>Horas</th>
+                            <th>Valor QM Calculado</th>
+                            <th>Registrado Por</th>
+                            <th>Data Inclusão</th>
+                            <th>Data Alteração</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allQmEntriesTable"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- Edit Funcionário Modal -->
-<div id="editFuncionarioModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 class="modal-title">Editar Funcionário</h3>
-      <button class="close-modal" onclick="closeEditFuncionarioModal()">&times;</button>
-    </div>
-    <div class="input-group">
-      <label for="editFuncSetor">Setor:</label>
-      <select id="editFuncSetor"></select>
-    </div>
-    <div class="input-group">
-      <label for="editFuncNome">Nome do Funcionário:</label>
-      <input type="text" id="editFuncNome">
-    </div>
-    <div class="modal-actions">
-      <button onclick="salvarEdicaoFuncionario()" style="flex: 1;">Salvar</button>
-      <button onclick="closeEditFuncionarioModal()" class="secondary" style="flex: 1;">Cancelar</button>
-    </div>
-  </div>
-</div>
+    <script>
+        // Firebase configuration (updated with new credentials)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDkRi6GWPiVawTe607frndhUbfB77yfVOw",
+            authDomain: "qmsafbotafogo.firebaseapp.com",
+            databaseURL: "https://qmsafbotafogo-default-rtdb.firebaseio.com",
+            projectId: "qmsafbotafogo",
+            storageBucket: "qmsafbotafogo.firebasestorage.app",
+            messagingSenderId: "447753167474",
+            appId: "1:447753167474:web:7706e7a5c78b4127a058eb"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDkRi6GWPiVawTe607frndhUbfB77yfVOw",
-  authDomain: "qmsafbotafogo.firebaseapp.com",
-  databaseURL: "https://qmsafbotafogo-default-rtdb.firebaseio.com",
-  projectId: "qmsafbotafogo",
-  storageBucket: "qmsafbotafogo.firebasestorage.app",
-  messagingSenderId: "447753167474",
-  appId: "1:447753167474:web:7706e7a5c78b4127a058eb"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+        // Global variables
+        let currentEditingQmEntryId = null;
+        let currentEditingEmployeeId = null;
+        let currentEditingSectorId = null;
+        let currentEditingEventId = null;
+        let currentEditingCategoryId = null; // New variable for category editing
+        let currentUser = null;
+        let isAdmin = false;
+        let isManager = false;
+        let currentManagerSectorId = null;
 
-let currentEditingId = null;
-let currentEditingSetorId = null;
-let currentEditingFuncionarioId = null;
-let selectedFuncionarioId = null;
+        let allUsersData = [];
+        let allEmployeesData = [];
+        let allSectorsData = {}; // Store as object for easy lookup by ID
+        let allEventsData = {}; // Store as object for easy lookup by ID
+        let allCategoriesData = {}; // New: Store categories from Firebase
+        let allQmEntriesData = {}; // Store as object for easy lookup by ID
 
-// Função para alternar entre dark e light theme
-function toggleTheme() {
-  const body = document.body;
-  const themeText = document.getElementById('theme-text');
-  
-  if (body.classList.contains('dark-theme')) {
-    body.classList.remove('dark-theme');
-    localStorage.setItem('theme', 'light');
-    themeText.textContent = 'Modo Escuro';
-  } else {
-    body.classList.add('dark-theme');
-    localStorage.setItem('theme', 'dark');
-    themeText.textContent = 'Modo Claro';
-  }
-}
+        let currentPage = 1;
+        let usersPerPage = 10;
 
-// Verificar preferência de tema salva
-function checkSavedTheme() {
-  const savedTheme = localStorage.getItem('theme');
-  const themeText = document.getElementById('theme-text');
-  
-  if (savedTheme === 'dark') {
-    document.body.classList.add('dark-theme');
-    themeText.textContent = 'Modo Claro';
-  } else {
-    document.body.classList.remove('dark-theme');
-    themeText.textContent = 'Modo Escuro';
-  }
-}
+        /**
+         * Sets up security measures to prevent printing and screenshots.
+         */
+        function setupSecurity() {
+            window.addEventListener('beforeprint', (e) => {
+                e.preventDefault();
+                console.warn('Tentativa de impressão bloqueada.');
+            });
+            document.addEventListener('keydown', (e) => {
+                const isPrintScreen = e.key === 'PrintScreen';
+                const isCtrlShiftS = e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's');
+                const isCmdShift3 = e.metaKey && e.shiftKey && e.key === '3';
+                const isCmdShift4 = e.metaKey && e.shiftKey && e.key === '4';
 
-// Verificar preferência do sistema
-function checkSystemPreference() {
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !localStorage.getItem('theme')) {
-    document.body.classList.add('dark-theme');
-    document.getElementById('theme-text').textContent = 'Modo Claro';
-  }
-}
+                if (isPrintScreen || isCtrlShiftS || isCmdShift3 || isCmdShift4) {
+                    const noScreenshotOverlay = document.createElement('div');
+                    noScreenshotOverlay.style.position = 'fixed';
+                    noScreenshotOverlay.style.top = '0';
+                    noScreenshotOverlay.style.left = '0';
+                    noScreenshotOverlay.style.width = '100vw';
+                    noScreenshotOverlay.style.height = '100vh';
+                    noScreenshotOverlay.style.backgroundColor = 'black';
+                    noScreenshotOverlay.style.zIndex = '99999';
+                    document.body.appendChild(noScreenshotOverlay);
+                    
+                    setTimeout(() => {
+                        if (document.body.contains(noScreenshotOverlay)) {
+                            document.body.removeChild(noScreenshotOverlay);
+                        }
+                    }, 150);
+                }
+            });
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
 
-// Inicializar verificação de tema
-window.addEventListener('DOMContentLoaded', () => {
-  checkSystemPreference();
-  checkSavedTheme();
-  carregarSetores();
-});
+        /**
+         * Toggles between light and dark themes.
+         */
+        function toggleTheme() {
+            const body = document.body;
+            const themeText = document.getElementById('theme-text');
+            const logoImage = document.getElementById('logo-image');
 
-function voltarParaUsuario() {
-  document.getElementById("admin-area").style.display = "none";
-  document.getElementById("usuario-final").style.display = "block";
-}
+            if (body.classList.contains('dark-theme')) {
+                body.classList.remove('dark-theme');
+                localStorage.setItem('theme', 'light');
+                themeText.textContent = 'Modo Escuro';
+                logoImage.src = 'https://placehold.co/220x80/000/FFF?text=QM+Logo'; // Placeholder for light theme
+            } else {
+                body.classList.add('dark-theme');
+                localStorage.setItem('theme', 'dark');
+                themeText.textContent = 'Modo Claro';
+                logoImage.src = 'https://placehold.co/220x80/FFF/000?text=QM+Logo'; // Placeholder for dark theme
+            }
+            checkAdminAndManagerStatus(); // Recalculate watermark based on theme
+        }
 
-function formatarData(dataISO) {
-  if (!dataISO) return "";
-  const [ano, mes, dia] = dataISO.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
+        /**
+         * Checks and applies the saved theme from local storage.
+         */
+        function checkSavedTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeText = document.getElementById('theme-text');
+            const logoImage = document.getElementById('logo-image');
 
-function acessarAdmin() {
-  const senha = prompt("Digite a senha de administrador:");
-  if (senha === "botafogo2025") {
-    document.getElementById("admin-area").style.display = "block";
-    document.getElementById("usuario-final").style.display = "none";
-    carregarSetores();
-    carregarFuncionariosAdmin();
-    carregarTodosRegistros();
-  } else {
-    alert("Senha incorreta!");
-  }
-}
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                themeText.textContent = 'Modo Claro';
+                logoImage.src = 'https://placehold.co/220x80/FFF/000?text=QM+Logo';
+            } else {
+                document.body.classList.remove('dark-theme');
+                themeText.textContent = 'Modo Escuro';
+                logoImage.src = 'https://placehold.co/220x80/000/FFF?text=QM+Logo';
+            }
+        }
 
-// Carregar setores no select
-function carregarSetores() {
-  const selectSetor = document.getElementById("setor");
-  const selectSetorFuncionario = document.getElementById("setorFuncionario");
-  const selectEditSetor = document.getElementById("editSetor");
-  const selectEditFuncSetor = document.getElementById("editFuncSetor");
-  const tabelaSetores = document.getElementById("tabelaSetores");
-  
-  // Limpar os selects
-  if (selectSetor) selectSetor.innerHTML = '<option value="">Selecione um setor</option>';
-  if (selectSetorFuncionario) selectSetorFuncionario.innerHTML = '<option value="">Selecione um setor</option>';
-  if (selectEditSetor) selectEditSetor.innerHTML = '<option value="">Selecione um setor</option>';
-  if (selectEditFuncSetor) selectEditFuncSetor.innerHTML = '
+        /**
+         * Checks and applies the system's preferred color scheme if no theme is saved.
+         */
+        function checkSystemPreference() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !localStorage.getItem('theme')) {
+                document.body.classList.add('dark-theme');
+                document.getElementById('theme-text').textContent = 'Modo Claro';
+                document.getElementById('logo-image').src = 'https://placehold.co/220x80/FFF/000?text=QM+Logo';
+            }
+        }
 
-  // Editar setor
-function editarSetor(id, nomeAtual) {
-  const novoNome = prompt("Editar nome do setor:", nomeAtual);
-  if (novoNome && novoNome.trim() !== "") {
-    db.ref("setores/" + id).update({ nome: novoNome.trim() }).then(carregarSetores);
-  }
-}
+        /**
+         * Formats an ISO date string to DD/MM/YYYY.
+         * @param {string} dataISO - The date string in YYYY-MM-DD format.
+         * @returns {string} The formatted date string.
+         */
+        function formatarData(dataISO) {
+            if (!dataISO) return "";
+            const [ano, mes, dia] = dataISO.split("-");
+            return `${dia}/${mes}/${ano}`;
+        }
 
-// Excluir setor
-function excluirSetor(id) {
-  if (confirm("Tem certeza que deseja excluir este setor? Todos os funcionários e registros vinculados serão removidos.")) {
-    // Primeiro verificar se há funcionários neste setor
-    db.ref("funcionarios").orderByChild("setorId").equalTo(id).once("value", snapshot => {
-      const funcionarios = snapshot.val();
-      if (funcionarios) {
-        // Excluir todos os funcionários do setor
-        const updates = {};
-        Object.keys(funcionarios).forEach(funcId => {
-          updates[`funcionarios/${funcId}`] = null;
-        });
-        db.ref().update(updates);
-      }
-      
-      // Agora excluir o setor
-      db.ref("setores/" + id).remove().then(() => {
-        carregarSetores();
-        carregarFuncionariosAdmin();
-      });
-    });
-  }
-}
-
-// Editar funcionário
-function editarFuncionario(id, nomeAtual, setorIdAtual) {
-  const novoNome = prompt("Editar nome do funcionário:", nomeAtual);
-  if (novoNome && novoNome.trim() !== "") {
-    db.ref("funcionarios/" + id).update({ nome: novoNome.trim() }).then(carregarFuncionariosAdmin);
-  }
-}
-
-// Excluir funcionário
-function excluirFuncionario(id) {
-  if (confirm("Tem certeza que deseja excluir este funcionário?")) {
-    db.ref("funcionarios/" + id).remove().then(carregarFuncionariosAdmin);
-  }
-}
-
-// Abrir modal de edição
-function abrirModalEdicao(id, registro) {
-  currentEditingId = id;
-  
-  // Preencher os campos do modal
-  document.getElementById("editEvento").value = registro.evento;
-  document.getElementById("editData").value = registro.data;
-  document.getElementById("editCategoria").value = registro.categoria;
-  
-  // Carregar setores e selecionar o correto
-  const selectEditSetor = document.getElementById("editSetor");
-  selectEditSetor.value = registro.setorId;
-  
-  // Carregar funcionários do setor selecionado
-  carregarFuncionariosParaEdicao(registro.setorId, registro.funcionarioId);
-  
-  // Mostrar modal
-  document.getElementById("editModal").style.display = "flex";
-}
-
-// Carregar funcionários para o modal de edição
-function carregarFuncionariosParaEdicao(setorId, funcionarioIdSelecionado) {
-  const selectEditFuncionario = document.getElementById("editFuncionario");
-  selectEditFuncionario.innerHTML = '<option value="">Selecione um funcionário</option>';
-  
-  if (!setorId) return;
-  
-  db.ref("funcionarios").orderByChild("setorId").equalTo(setorId).once("value", snapshot => {
-    const dados = snapshot.val();
-    if (dados) {
-      Object.entries(dados).forEach(([id, funcionario]) => {
-        const selected = id === funcionarioIdSelecionado ? "selected" : "";
-        selectEditFuncionario.innerHTML += `<option value="${id}" ${selected}>${funcionario.nome}</option>`;
-      });
-    }
-  });
-}
-
-// Fechar modal
-function closeModal() {
-  document.getElementById("editModal").style.display = "none";
-  currentEditingId = null;
-}
-
-// Salvar edição do registro
-function salvarEdicao() {
-  const setorId = document.getElementById("editSetor").value;
-  const funcionarioId = document.getElementById("editFuncionario").value;
-  const evento = document.getElementById("editEvento").value.trim();
-  const data = document.getElementById("editData").value;
-  const categoria = document.getElementById("editCategoria").value;
-  
-  if (!setorId || !funcionarioId || !evento || !data) {
-    alert("Preencha todos os campos corretamente!");
-    return;
-  }
-  
-  // Obter nomes atualizados do setor e funcionário
-  db.ref(`setores/${setorId}`).once("value", snapshotSetor => {
-    const setor = snapshotSetor.val();
-    if (!setor) return alert("Setor não encontrado.");
-    
-    db.ref(`funcionarios/${funcionarioId}`).once("value", snapshotFuncionario => {
-      const funcionario = snapshotFuncionario.val();
-      if (!funcionario) return alert("Funcionário não encontrado.");
-      
-      const dadosAtualizados = {
-        setorId,
-        setorNome: setor.nome,
-        funcionarioId,
-        funcionarioNome: funcionario.nome,
-        evento,
-        data,
-        categoria,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-      };
-      
-      db.ref("quadrosMoveis/" + currentEditingId).update(dadosAtualizados).then(() => {
-        alert("Registro atualizado com sucesso!");
-        closeModal();
-        carregarTodosRegistros();
+        /**
+         * Formats a number to Brazilian currency format.
+         * @param {number} valor - The number to format.
+         * @returns {string} The formatted currency string.
+         */
+        function formatarMoeda(valor) {
+            if (typeof valor !== 'number' || isNaN(valor)) {
+                valor = 0;
+            }
+            return valor.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
         
-        // Se estiver editando um registro do usuário atual, recarregar também
-        const funcionarioAtual = document.getElementById("funcionario").value;
-        if (funcionarioId === funcionarioAtual) {
-          carregarMeusRegistros(funcionarioAtual);
+        /**
+         * Extracts the numeric value from the formatted salary input.
+         * @returns {number} The parsed salary value.
+         */
+        function getSalarioValue() {
+            // This function is no longer used in the current QM tool as salary input is removed.
+            // Keeping it for reference if needed in future iterations.
+            const salarioInput = document.getElementById('employeeSalary');
+            let value = salarioInput.value
+                .replace('R$', '')
+                .replace(/\./g, '')
+                .replace(',', '.')
+                .trim();
+            return parseFloat(value) || 0;
         }
-      });
-    });
-  });
-}
 
-// Excluir registro
-function excluirRegistro(id) {
-  if (confirm("Tem certeza que deseja excluir este registro?")) {
-    db.ref("quadrosMoveis/" + id).remove().then(() => {
-      carregarTodosRegistros();
-      
-      // Verificar se é um registro do usuário atual e recarregar se necessário
-      const funcionarioAtual = document.getElementById("funcionario").value;
-      db.ref("quadrosMoveis/" + id).once("value", snapshot => {
-        const registro = snapshot.val();
-        if (registro && registro.funcionarioId === funcionarioAtual) {
-          carregarMeusRegistros(funcionarioAtual);
+        /**
+         * Logs an action to the 'logs' collection in Firebase.
+         * @param {string} action - Description of the action performed.
+         * @param {object} details - Object containing relevant details for the log.
+         */
+        function logAction(action, details = {}) {
+            if (!currentUser) {
+                console.warn("Attempted to log action without authenticated user.");
+                return;
+            }
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                action: action,
+                userId: currentUser.uid,
+                userName: currentUser.displayName || currentUser.email,
+                details: details
+            };
+            db.ref('logs').push(logEntry).catch(error => {
+                console.error("Error logging action:", error);
+            });
         }
-      });
-    });
-  }
-}
 
-// Event listener para carregar funcionários quando o setor for alterado no modal
-document.getElementById("editSetor").addEventListener("change", function() {
-  carregarFuncionariosParaEdicao(this.value);
-});
+        /**
+         * Switches back to the employee/manager dashboard view from the admin area.
+         */
+        function voltarParaUsuario() {
+            document.getElementById("admin-area").style.display = "none";
+            document.getElementById("employee-dashboard-view").style.display = "block";
+            loadSectorQmEntries(); // Reload QM entries for the manager's sector
+        }
 
-// Event listener para carregar os registros quando um funcionário é selecionado
-document.getElementById("funcionario").addEventListener("change", function() {
-  if (this.value) {
-    carregarMeusRegistros(this.value);
-  }
-});
+        /**
+         * Opens the modal for user management.
+         */
+        function openUserManagement() {
+            if (!isAdmin) {
+                alert("Acesso restrito a administradores!");
+                return;
+            }
+            closeModal();
+            document.getElementById("userManagementModal").style.display = "flex";
+            populateManagerSectorSelect(); // Populate sector dropdown for new user creation
+            fetchAllUsersAndPreparePagination();
+        }
 
-// Inicializar o sistema
-window.onload = function() {
-  carregarSetores();
-  checkSavedTheme();
-  checkSystemPreference();
-  
-  // Verificar se há um funcionário selecionado na URL (para compartilhamento)
-  const urlParams = new URLSearchParams(window.location.search);
-  const funcionarioId = urlParams.get('funcionario');
-  if (funcionarioId) {
-    // Carregar dados do funcionário e setor
-    db.ref(`funcionarios/${funcionarioId}`).once("value", snapshot => {
-      const funcionario = snapshot.val();
-      if (funcionario) {
-        db.ref(`setores/${funcionario.setorId}`).once("value", snapshotSetor => {
-          const setor = snapshotSetor.val();
-          if (setor) {
-            document.getElementById("setor").value = funcionario.setorId;
-            carregarFuncionarios();
+        /**
+         * Opens the modal for employee management.
+         */
+        function openEmployeeManagement() {
+            if (!isAdmin) {
+                alert("Acesso restrito a administradores!");
+                return;
+            }
+            closeModal();
+            document.getElementById("employeeManagementModal").style.display = "flex";
+            populateEmployeeSectorSelect();
+            loadEmployees();
+        }
+
+        /**
+         * Opens the modal for sector management.
+         */
+        function openSectorManagement() {
+            if (!isAdmin) {
+                alert("Acesso restrito a administradores!");
+                return;
+            }
+            closeModal();
+            document.getElementById("sectorManagementModal").style.display = "flex";
+            loadSectors();
+        }
+
+        /**
+         * Opens the modal for event management.
+         */
+        function openEventManagement() {
+            if (!isAdmin) {
+                alert("Acesso restrito a administradores!");
+                return;
+            }
+            closeModal();
+            document.getElementById("eventManagementModal").style.display = "flex";
+            loadEvents();
+        }
+
+        /**
+         * Opens the modal for category management.
+         */
+        function openCategoryManagement() {
+            if (!isAdmin) {
+                alert("Acesso restrito a administradores!");
+                return;
+            }
+            closeModal();
+            document.getElementById("categoryManagementModal").style.display = "flex";
+            loadCategories();
+        }
+
+        /**
+         * Opens the modal for adding QM entries.
+         */
+        function openQmEntryModal() {
+            // This button is only visible to managers, so no isAdmin/isManager check needed here.
+            closeModal();
+            document.getElementById("qmEntryModal").style.display = "flex";
+            populateQmEntryDropdowns();
+        }
+
+        /**
+         * Opens the modal for exporting QM data.
+         */
+        function openExportDataModal() {
+            if (!isAdmin) {
+                alert("Acesso restrito a administradores!");
+                return;
+            }
+            closeModal();
+            document.getElementById("exportDataModal").style.display = "flex";
+        }
+
+        /**
+         * Creates a new sector.
+         */
+        function createSector() {
+            const name = document.getElementById("sectorName").value.trim();
+            if (!name) return alert("Preencha o nome do setor.");
+
+            db.ref("sectors").push({ name }).then(() => {
+                alert("Setor adicionado com sucesso!");
+                document.getElementById("sectorName").value = "";
+                loadSectors();
+                logAction("create_sector", { sectorName: name });
+            }).catch(error => {
+                console.error("Erro ao criar setor:", error);
+                alert("Erro ao adicionar setor. Tente novamente.");
+            });
+        }
+
+        /**
+         * Adds a new event.
+         */
+        function createEvent() {
+            const name = document.getElementById("eventName").value.trim();
+            const description = document.getElementById("eventDescription").value.trim();
+            const baseValuePerHour = parseFloat(document.getElementById("eventBaseValuePerHour").value);
+
+            if (!name || isNaN(baseValuePerHour) || baseValuePerHour <= 0) {
+                alert("Preencha o nome do evento e um valor base por hora válido.");
+                return;
+            }
+
+            db.ref("events").push({ name, description, baseValuePerHour }).then(() => {
+                alert("Evento adicionado com sucesso!");
+                document.getElementById("eventName").value = "";
+                document.getElementById("eventDescription").value = "";
+                document.getElementById("eventBaseValuePerHour").value = "";
+                loadEvents();
+                logAction("create_event", { eventName: name, baseValuePerHour });
+            }).catch(error => {
+                console.error("Erro ao adicionar evento:", error);
+                alert("Erro ao adicionar evento. Tente novamente.");
+            });
+        }
+
+        /**
+         * Creates a new category.
+         */
+        function createCategory() {
+            const name = document.getElementById("categoryName").value.trim();
+            const multiplier = parseFloat(document.getElementById("categoryMultiplier").value);
+            const description = document.getElementById("categoryDescription").value.trim();
+
+            if (!name || isNaN(multiplier) || multiplier <= 0 || !description) {
+                alert("Preencha todos os campos da categoria corretamente.");
+                return;
+            }
+
+            db.ref("categories").push({ name, multiplier, description }).then(() => {
+                alert("Categoria adicionada com sucesso!");
+                document.getElementById("categoryName").value = "";
+                document.getElementById("categoryMultiplier").value = "";
+                document.getElementById("categoryDescription").value = "";
+                loadCategories();
+                logAction("create_category", { categoryName: name, multiplier, description });
+            }).catch(error => {
+                console.error("Erro ao adicionar categoria:", error);
+                alert("Erro ao adicionar categoria. Tente novamente.");
+            });
+        }
+
+        /**
+         * Creates a new employee.
+         */
+        function createEmployee() {
+            const name = document.getElementById("employeeName").value.trim();
+            const cpf = document.getElementById("employeeCpf").value.replace(/\D/g, '');
+            const email = document.getElementById("employeeEmail").value.trim();
+            const sectorId = document.getElementById("employeeSectorSelect").value;
+
+            if (!name || !cpf || cpf.length !== 11 || !email || !sectorId) {
+                alert("Preencha todos os campos obrigatórios (Nome, CPF, E-mail, Setor).");
+                return;
+            }
+
+            db.ref("employees").push({ name, cpf, email, sectorId }).then(() => {
+                alert("Funcionário adicionado com sucesso!");
+                document.getElementById("employeeName").value = "";
+                document.getElementById("employeeCpf").value = "";
+                document.getElementById("employeeEmail").value = "";
+                document.getElementById("employeeSectorSelect").value = "";
+                loadEmployees();
+                logAction("create_employee", { employeeName: name, employeeCpf: cpf, employeeEmail: email, sectorId });
+            }).catch(error => {
+                console.error("Erro ao adicionar funcionário:", error);
+                alert("Erro ao adicionar funcionário. Tente novamente.");
+            });
+        }
+
+        /**
+         * Adds a new QM entry.
+         */
+        function addQmEntry() {
+            const employeeId = document.getElementById("qmEmployeeSelect").value;
+            const eventId = document.getElementById("qmEventSelect").value;
+            const qmCategory = document.getElementById("qmCategorySelect").value;
+            const workDate = document.getElementById("qmWorkDate").value;
+            const hoursWorked = parseFloat(document.getElementById("qmHoursWorked").value);
+
+            if (!employeeId || !eventId || !qmCategory || !workDate || isNaN(hoursWorked) || hoursWorked <= 0) {
+                alert("Preencha todos os campos corretamente.");
+                return;
+            }
+
+            const eventData = allEventsData[eventId];
+            const categoryData = allCategoriesData[qmCategory]; // Get category data from loaded data
+            const categoryMultiplier = categoryData ? categoryData.multiplier : 1.0; // Default to 1.0 if not found
+            const calculatedQmValue = eventData.baseValuePerHour * categoryMultiplier * hoursWorked;
+
+            const newEntry = {
+                employeeId,
+                eventId,
+                qmCategory,
+                workDate,
+                hoursWorked,
+                calculatedQmValue,
+                managerId: currentUser.uid,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            db.ref("qm_entries").push(newEntry).then(() => {
+                alert("Registro de QM adicionado com sucesso!");
+                document.getElementById("qmEmployeeSelect").value = "";
+                document.getElementById("qmEventSelect").value = "";
+                document.getElementById("qmCategorySelect").value = "";
+                document.getElementById("qmWorkDate").value = "";
+                document.getElementById("qmHoursWorked").value = "";
+                loadAllQmEntries(); // Refresh admin table
+                loadSectorQmEntries(); // Refresh manager dashboard
+                logAction("add_qm_entry", newEntry);
+                closeModal();
+            }).catch(error => {
+                console.error("Erro ao adicionar registro de QM:", error);
+                alert("Erro ao adicionar registro de QM. Tente novamente.");
+            });
+        }
+
+        /**
+         * Loads all sectors into dropdowns and the admin table.
+         */
+        function loadSectors() {
+            const sectorSelects = document.querySelectorAll("#sectorSelect, #managerSectorSelect, #employeeSectorSelect, #editSectorSelect");
+            const sectorsTable = document.getElementById("sectorsTable");
             
-            // Esperar um pouco para garantir que os funcionários foram carregados
-            setTimeout(() => {
-              document.getElementById("funcionario").value = funcionarioId;
-              carregarMeusRegistros(funcionarioId);
-            }, 500);
-          }
+            sectorSelects.forEach(select => select.innerHTML = '<option value="">Selecione</option>');
+            sectorsTable.innerHTML = "";
+            allSectorsData = {}; // Clear previous data
+
+            db.ref("sectors").once("value", snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    Object.entries(data).forEach(([id, sector]) => {
+                        allSectorsData[id] = sector; // Store for lookup
+                        const optionHTML = `<option value="${id}">${sector.name}</option>`;
+                        sectorSelects.forEach(select => select.innerHTML += optionHTML);
+
+                        sectorsTable.innerHTML += `
+                        <tr>
+                            <td>${sector.name}</td>
+                            <td>
+                                <button onclick='editSector("${id}", "${sector.name}")' class="secondary" style="padding: 6px 12px; font-size: 13px; margin-right: 6px; width: auto;">Editar</button>
+                                <button onclick='deleteSector("${id}")' class="secondary" style="padding: 6px 12px; font-size: 13px; width: auto;">Excluir</button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+            }).catch(error => console.error("Erro ao carregar setores:", error));
+        }
+
+        /**
+         * Loads all events into dropdowns and the admin table.
+         */
+        function loadEvents() {
+            const eventSelects = document.querySelectorAll("#qmEventSelect, #editQmEventSelect");
+            const eventsTable = document.getElementById("eventsTable");
+            
+            eventSelects.forEach(select => select.innerHTML = '<option value="">Selecione</option>');
+            eventsTable.innerHTML = "";
+            allEventsData = {}; // Clear previous data
+
+            db.ref("events").once("value", snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    Object.entries(data).forEach(([id, event]) => {
+                        allEventsData[id] = event; // Store for lookup
+                        const optionHTML = `<option value="${id}">${event.name} (R$ ${formatarMoeda(event.baseValuePerHour)}/h)</option>`;
+                        eventSelects.forEach(select => select.innerHTML += optionHTML);
+
+                        eventsTable.innerHTML += `
+                        <tr>
+                            <td>${event.name}</td>
+                            <td>${event.description || '-'}</td>
+                            <td>R$ ${formatarMoeda(event.baseValuePerHour)}</td>
+                            <td>
+                                <button onclick='editEvent("${id}", ${JSON.stringify(event)})' class="secondary" style="padding: 6px 12px; font-size: 13px; margin-right: 6px; width: auto;">Editar</button>
+                                <button onclick='deleteEvent("${id}")' class="secondary" style="padding: 6px 12px; font-size: 13px; width: auto;">Excluir</button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+            }).catch(error => console.error("Erro ao carregar eventos:", error));
+        }
+
+        /**
+         * Loads all categories into dropdowns and the admin table.
+         */
+        function loadCategories() {
+            const categorySelects = document.querySelectorAll("#qmCategorySelect, #editQmCategorySelect");
+            const categoriesTable = document.getElementById("categoriesTable");
+            
+            categorySelects.forEach(select => select.innerHTML = '<option value="">Selecione</option>');
+            categoriesTable.innerHTML = "";
+            allCategoriesData = {}; // Clear previous data
+
+            db.ref("categories").once("value", snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    Object.entries(data).forEach(([id, category]) => {
+                        allCategoriesData[id] = category; // Store for lookup
+                        const optionHTML = `<option value="${id}">${category.name} (${category.description})</option>`;
+                        categorySelects.forEach(select => select.innerHTML += optionHTML);
+
+                        categoriesTable.innerHTML += `
+                        <tr>
+                            <td>${category.name}</td>
+                            <td>${category.multiplier}</td>
+                            <td>${category.description}</td>
+                            <td>
+                                <button onclick='editCategory("${id}", ${JSON.stringify(category)})' class="secondary" style="padding: 6px 12px; font-size: 13px; margin-right: 6px; width: auto;">Editar</button>
+                                <button onclick='deleteCategory("${id}")' class="secondary" style="padding: 6px 12px; font-size: 13px; width: auto;">Excluir</button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+            }).catch(error => console.error("Erro ao carregar categorias:", error));
+        }
+
+        /**
+         * Loads all employees into dropdowns and the admin table.
+         */
+        function loadEmployees() {
+            const employeeSelects = document.querySelectorAll("#qmEmployeeSelect, #editQmEmployeeSelect");
+            const employeesTable = document.getElementById("employeesTable");
+            
+            employeeSelects.forEach(select => select.innerHTML = '<option value="">Selecione</option>');
+            employeesTable.innerHTML = "";
+            allEmployeesData = []; // Clear previous data
+
+            db.ref("employees").once("value", snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    allEmployeesData = Object.entries(data).map(([id, emp]) => ({ id, ...emp }));
+                    
+                    // Filter employees for manager's sector if current user is a manager
+                    const employeesToDisplayInDropdown = isManager && currentManagerSectorId 
+                        ? allEmployeesData.filter(emp => emp.sectorId === currentManagerSectorId)
+                        : allEmployeesData; // Admins see all, managers see their sector
+
+                    employeesToDisplayInDropdown.forEach(employee => {
+                        const optionHTML = `<option value="${employee.id}">${employee.name} (${allSectorsData[employee.sectorId]?.name || 'Setor Desconhecido'})</option>`;
+                        employeeSelects.forEach(select => select.innerHTML += optionHTML);
+                    });
+
+                    // Populate admin table with all employees
+                    allEmployeesData.forEach(employee => {
+                        employeesTable.innerHTML += `
+                        <tr>
+                            <td>${employee.name}</td>
+                            <td>${employee.cpf}</td>
+                            <td>${employee.email}</td>
+                            <td>${allSectorsData[employee.sectorId]?.name || 'Setor Desconhecido'}</td>
+                            <td>
+                                <button onclick='editEmployee("${employee.id}", ${JSON.stringify(employee)})' class="secondary" style="padding: 6px 12px; font-size: 13px; margin-right: 6px; width: auto;">Editar</button>
+                                <button onclick='deleteEmployee("${employee.id}")' class="secondary" style="padding: 6px 12px; font-size: 13px; width: auto;">Excluir</button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+            }).catch(error => console.error("Erro ao carregar funcionários:", error));
+        }
+
+        /**
+         * Populates all dropdowns required for QM entry (employees, events, categories).
+         */
+        function populateQmEntryDropdowns() {
+            loadEmployees(); // Filtered by manager's sector if applicable
+            loadEvents();
+            loadCategories();
+        }
+
+        /**
+         * Loads all QM entries for the admin table and manager dashboard.
+         */
+        function loadAllQmEntries() {
+            const allQmEntriesTable = document.getElementById("allQmEntriesTable");
+            allQmEntriesTable.innerHTML = "";
+            allQmEntriesData = {}; // Clear previous data
+
+            db.ref("qm_entries").once("value", snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    const qmEntriesArray = Object.entries(data).map(([id, entry]) => ({ id, ...entry }));
+                    qmEntriesArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by most recent
+
+                    qmEntriesArray.forEach(entry => {
+                        allQmEntriesData[entry.id] = entry; // Store for lookup
+                        const employee = allEmployeesData.find(emp => emp.id === entry.employeeId);
+                        const sectorName = employee ? (allSectorsData[employee.sectorId]?.name || 'Setor Desconhecido') : 'Funcionário Desconhecido';
+                        const eventName = allEventsData[entry.eventId]?.name || 'Evento Desconhecido';
+                        const managerName = allUsersData.find(user => user.uid === entry.managerId)?.name || 'Desconhecido';
+
+                        allQmEntriesTable.innerHTML += `
+                        <tr>
+                            <td>${employee?.name || 'Desconhecido'}</td>
+                            <td>${sectorName}</td>
+                            <td>${eventName}</td>
+                            <td>${entry.qmCategory}</td>
+                            <td>${formatarData(entry.workDate)}</td>
+                            <td>${entry.hoursWorked}</td>
+                            <td>R$ ${formatarMoeda(entry.calculatedQmValue)}</td>
+                            <td>${managerName}</td>
+                            <td>${formatarData(entry.createdAt.substring(0,10))} ${entry.createdAt.substring(11,16)}</td>
+                            <td>${entry.updatedAt ? formatarData(entry.updatedAt.substring(0,10)) + ' ' + entry.updatedAt.substring(11,16) : '-'}</td>
+                            <td>
+                                <button onclick='openEditQmEntryModal("${entry.id}", ${JSON.stringify(entry)})' class="secondary" style="padding: 6px 12px; font-size: 13px; margin-right: 6px; width: auto;">Editar</button>
+                                <button onclick='deleteQmEntry("${entry.id}")' class="danger" style="padding: 6px 12px; font-size: 13px; width: auto;">Excluir</button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                loadSectorQmEntries(); // Also update the manager's dashboard
+            }).catch(error => console.error("Erro ao carregar registros de QM:", error));
+        }
+
+        /**
+         * Loads and displays QM entries relevant to the current manager's sector.
+         */
+        function loadSectorQmEntries() {
+            const sectorQmEntriesContainer = document.getElementById("sector-qm-entries");
+            const noQmEntriesMessage = document.getElementById("noQmEntriesMessage");
+            sectorQmEntriesContainer.innerHTML = "";
+            noQmEntriesMessage.style.display = "none";
+
+            if (!isManager && !isAdmin) { // Only show for managers or admins
+                sectorQmEntriesContainer.innerHTML = "<p style='text-align: center; color: var(--text-secondary);'>Você não tem permissão para visualizar registros de QM.</p>";
+                return;
+            }
+
+            let qmEntriesForSector;
+            if (isAdmin) {
+                // Admins see all entries
+                qmEntriesForSector = Object.values(allQmEntriesData);
+            } else { // It's a manager
+                if (!currentManagerSectorId) {
+                    sectorQmEntriesContainer.innerHTML = "<p style='text-align: center; color: var(--text-secondary);'>Seu setor não está atribuído. Por favor, contate o administrador.</p>";
+                    return;
+                }
+                const employeesInManagerSector = allEmployeesData.filter(emp => emp.sectorId === currentManagerSectorId);
+                const employeeIdsInSector = employeesInManagerSector.map(emp => emp.id);
+
+                qmEntriesForSector = Object.values(allQmEntriesData)
+                    .filter(entry => employeeIdsInSector.includes(entry.employeeId));
+            }
+            
+            qmEntriesForSector.sort((a, b) => new Date(b.workDate) - new Date(a.workDate)); // Sort by most recent work date
+
+            if (qmEntriesForSector.length === 0) {
+                noQmEntriesMessage.style.display = "block";
+                return;
+            }
+
+            qmEntriesForSector.forEach(entry => {
+                const employee = allEmployeesData.find(emp => emp.id === entry.employeeId);
+                const event = allEventsData[entry.eventId];
+                const category = allCategoriesData[entry.qmCategory];
+
+                sectorQmEntriesContainer.innerHTML += `
+                <div class='card'>
+                    <div class="card-content">
+                        <span class="qm-category-tag">${entry.qmCategory}</span>
+                        <h4>${employee?.name || 'Funcionário Desconhecido'}</h4>
+                        <p>Evento: ${event?.name || 'Evento Desconhecido'}</p>
+                        <p>Data: ${formatarData(entry.workDate)}</p>
+                        <p>Horas Trabalhadas: ${entry.hoursWorked}</p>
+                        <p>Valor Calculado: R$ ${formatarMoeda(entry.calculatedQmValue)}</p>
+                        <p>Registrado Por: ${allUsersData.find(user => user.uid === entry.managerId)?.name || 'Desconhecido'}</p>
+                        <div class="card-footer">
+                            <button onclick='openEditQmEntryModal("${entry.id}", ${JSON.stringify(entry)})' class="secondary" style="padding: 6px 12px; font-size: 13px; margin-right: 6px; width: auto;">Editar</button>
+                            <button onclick='deleteQmEntry("${entry.id}")' class="danger" style="padding: 6px 12px; font-size: 13px; width: auto;">Excluir</button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+
+        /**
+         * Opens the modal for editing a QM entry.
+         * @param {string} id - The ID of the QM entry to edit.
+         * @param {object} entry - The QM entry data.
+         */
+        function openEditQmEntryModal(id, entry) {
+            currentEditingQmEntryId = id;
+            document.getElementById("editQmEmployeeSelect").innerHTML = `<option value="${entry.employeeId}">${allEmployeesData.find(e => e.id === entry.employeeId)?.name || 'Funcionário Desconhecido'}</option>`;
+            document.getElementById("editQmEventSelect").value = entry.eventId;
+            document.getElementById("editQmCategorySelect").value = entry.qmCategory;
+            document.getElementById("editQmWorkDate").value = entry.workDate;
+            document.getElementById("editQmHoursWorked").value = entry.hoursWorked;
+            
+            // Populate dropdowns for editing
+            loadEvents();
+            loadCategories();
+
+            document.getElementById("editQmEntryModal").style.display = "flex";
+        }
+
+        /**
+         * Saves changes to an existing QM entry.
+         */
+        function saveQmEntryChanges() {
+            if (!currentEditingQmEntryId) return;
+
+            const eventId = document.getElementById("editQmEventSelect").value;
+            const qmCategory = document.getElementById("editQmCategorySelect").value;
+            const workDate = document.getElementById("editQmWorkDate").value;
+            const hoursWorked = parseFloat(document.getElementById("editQmHoursWorked").value);
+
+            if (!eventId || !qmCategory || !workDate || isNaN(hoursWorked) || hoursWorked <= 0) {
+                alert("Preencha todos os campos corretamente.");
+                return;
+            }
+
+            const eventData = allEventsData[eventId];
+            const categoryData = allCategoriesData[qmCategory];
+            const categoryMultiplier = categoryData ? categoryData.multiplier : 1.0;
+            const calculatedQmValue = eventData.baseValuePerHour * categoryMultiplier * hoursWorked;
+
+            const updatedData = {
+                eventId,
+                qmCategory,
+                workDate,
+                hoursWorked,
+                calculatedQmValue,
+                updatedAt: new Date().toISOString()
+            };
+
+            db.ref("qm_entries/" + currentEditingQmEntryId).update(updatedData).then(() => {
+                alert("Registro de QM atualizado com sucesso!");
+                loadAllQmEntries(); // Refresh admin table
+                loadSectorQmEntries(); // Refresh manager dashboard
+                logAction("update_qm_entry", { entryId: currentEditingQmEntryId, newData: updatedData });
+                closeModal();
+            }).catch(error => {
+                console.error("Erro ao atualizar registro de QM:", error);
+                alert("Erro ao atualizar registro de QM. Tente novamente.");
+            });
+        }
+
+        /**
+         * Edits an existing sector.
+         * @param {string} id - The ID of the sector to edit.
+         * @param {string} currentName - The current name of the sector.
+         */
+        function editSector(id, currentName) {
+            const newName = prompt("Editar nome do setor:", currentName);
+            if (newName && newName.trim() !== "") {
+                db.ref("sectors/" + id).update({ name: newName.trim() })
+                .then(() => {
+                    loadSectors();
+                    logAction("edit_sector", { sectorId: id, oldName: currentName, newName: newName.trim() });
+                })
+                .catch(error => console.error("Erro ao editar setor:", error));
+            } else if (newName === "") {
+                alert("O nome do setor não pode ser vazio.");
+            }
+        }
+
+        /**
+         * Edits an existing event.
+         * @param {string} id - The ID of the event to edit.
+         * @param {object} currentEvent - The current event data.
+         */
+        function editEvent(id, currentEvent) {
+            currentEditingEventId = id;
+            document.getElementById("eventName").value = currentEvent.name;
+            document.getElementById("eventDescription").value = currentEvent.description || '';
+            document.getElementById("eventBaseValuePerHour").value = currentEvent.baseValuePerHour;
+            
+            // Change "Adicionar Evento" button to "Salvar Alterações"
+            const addEventButton = document.querySelector("#eventManagementModal button");
+            addEventButton.textContent = "Salvar Alterações";
+            addEventButton.onclick = saveEventChanges;
+
+            // Show modal
+            document.getElementById("eventManagementModal").style.display = "flex";
+        }
+
+        /**
+         * Saves changes to an existing event.
+         */
+        function saveEventChanges() {
+            if (!currentEditingEventId) return;
+
+            const name = document.getElementById("eventName").value.trim();
+            const description = document.getElementById("eventDescription").value.trim();
+            const baseValuePerHour = parseFloat(document.getElementById("eventBaseValuePerHour").value);
+
+            if (!name || isNaN(baseValuePerHour) || baseValuePerHour <= 0) {
+                alert("Preencha o nome do evento e um valor base por hora válido.");
+                return;
+            }
+
+            db.ref("events/" + currentEditingEventId).update({ name, description, baseValuePerHour }).then(() => {
+                alert("Evento atualizado com sucesso!");
+                document.getElementById("eventName").value = "";
+                document.getElementById("eventDescription").value = "";
+                document.getElementById("eventBaseValuePerHour").value = "";
+                loadEvents();
+                logAction("update_event", { eventId: currentEditingEventId, newName: name, newBaseValuePerHour: baseValuePerHour });
+                closeModal();
+                // Reset button text and function
+                const addEventButton = document.querySelector("#eventManagementModal button");
+                addEventButton.textContent = "Adicionar Evento";
+                addEventButton.onclick = createEvent;
+                currentEditingEventId = null;
+            }).catch(error => {
+                console.error("Erro ao atualizar evento:", error);
+                alert("Erro ao atualizar evento. Tente novamente.");
+            });
+        }
+
+        /**
+         * Edits an existing category.
+         * @param {string} id - The ID of the category to edit.
+         * @param {object} currentCategory - The current category data.
+         */
+        function editCategory(id, currentCategory) {
+            currentEditingCategoryId = id;
+            document.getElementById("categoryName").value = currentCategory.name;
+            document.getElementById("categoryMultiplier").value = currentCategory.multiplier;
+            document.getElementById("categoryDescription").value = currentCategory.description || '';
+            
+            // Change "Adicionar Categoria" button to "Salvar Alterações"
+            const addCategoryButton = document.querySelector("#categoryManagementModal button");
+            addCategoryButton.textContent = "Salvar Alterações";
+            addCategoryButton.onclick = saveCategoryChanges;
+
+            // Show modal
+            document.getElementById("categoryManagementModal").style.display = "flex";
+        }
+
+        /**
+         * Saves changes to an existing category.
+         */
+        function saveCategoryChanges() {
+            if (!currentEditingCategoryId) return;
+
+            const name = document.getElementById("categoryName").value.trim();
+            const multiplier = parseFloat(document.getElementById("categoryMultiplier").value);
+            const description = document.getElementById("categoryDescription").value.trim();
+
+            if (!name || isNaN(multiplier) || multiplier <= 0 || !description) {
+                alert("Preencha todos os campos da categoria corretamente.");
+                return;
+            }
+
+            db.ref("categories/" + currentEditingCategoryId).update({ name, multiplier, description }).then(() => {
+                alert("Categoria atualizada com sucesso!");
+                document.getElementById("categoryName").value = "";
+                document.getElementById("categoryMultiplier").value = "";
+                document.getElementById("categoryDescription").value = "";
+                loadCategories();
+                logAction("update_category", { categoryId: currentEditingCategoryId, newName: name, newMultiplier: multiplier });
+                closeModal();
+                // Reset button text and function
+                const addCategoryButton = document.querySelector("#categoryManagementModal button");
+                addCategoryButton.textContent = "Adicionar Categoria";
+                addCategoryButton.onclick = createCategory;
+                currentEditingCategoryId = null;
+            }).catch(error => {
+                console.error("Erro ao atualizar categoria:", error);
+                alert("Erro ao atualizar categoria. Tente novamente.");
+            });
+        }
+
+        /**
+         * Edits an existing employee.
+         * @param {string} id - The ID of the employee to edit.
+         * @param {object} currentEmployee - The current employee data.
+         */
+        function editEmployee(id, currentEmployee) {
+            currentEditingEmployeeId = id;
+            document.getElementById("employeeName").value = currentEmployee.name;
+            document.getElementById("employeeCpf").value = currentEmployee.cpf;
+            document.getElementById("employeeEmail").value = currentEmployee.email;
+            document.getElementById("employeeSectorSelect").value = currentEmployee.sectorId;
+
+            // Change "Adicionar Funcionário" button to "Salvar Alterações"
+            const addEmployeeButton = document.querySelector("#employeeManagementModal button");
+            addEmployeeButton.textContent = "Salvar Alterações";
+            addEmployeeButton.onclick = saveEmployeeChanges;
+
+            // Show modal
+            document.getElementById("employeeManagementModal").style.display = "flex";
+        }
+
+        /**
+         * Saves changes to an existing employee.
+         */
+        function saveEmployeeChanges() {
+            if (!currentEditingEmployeeId) return;
+
+            const name = document.getElementById("employeeName").value.trim();
+            const cpf = document.getElementById("employeeCpf").value.replace(/\D/g, '');
+            const email = document.getElementById("employeeEmail").value.trim();
+            const sectorId = document.getElementById("employeeSectorSelect").value;
+
+            if (!name || !cpf || cpf.length !== 11 || !email || !sectorId) {
+                alert("Preencha todos os campos obrigatórios (Nome, CPF, E-mail, Setor).");
+                return;
+            }
+
+            db.ref("employees/" + currentEditingEmployeeId).update({ name, cpf, email, sectorId }).then(() => {
+                alert("Funcionário atualizado com sucesso!");
+                document.getElementById("employeeName").value = "";
+                document.getElementById("employeeCpf").value = "";
+                document.getElementById("employeeEmail").value = "";
+                document.getElementById("employeeSectorSelect").value = "";
+                loadEmployees();
+                logAction("update_employee", { employeeId: currentEditingEmployeeId, newName: name, newSectorId: sectorId });
+                closeModal();
+                // Reset button text and function
+                const addEmployeeButton = document.querySelector("#employeeManagementModal button");
+                addEmployeeButton.textContent = "Adicionar Funcionário";
+                addEmployeeButton.onclick = createEmployee;
+                currentEditingEmployeeId = null;
+            }).catch(error => {
+                console.error("Erro ao atualizar funcionário:", error);
+                alert("Erro ao atualizar funcionário. Tente novamente.");
+            });
+        }
+
+        /**
+         * Deletes a sector.
+         * @param {string} id - The ID of the sector to delete.
+         */
+        function deleteSector(id) {
+            if (confirm("Tem certeza que deseja excluir este setor? Todos os funcionários e registros de QM associados a ele perderão esta referência.")) {
+                db.ref("sectors/" + id).remove()
+                .then(() => {
+                    loadSectors();
+                    logAction("delete_sector", { sectorId: id });
+                })
+                .catch(error => console.error("Erro ao excluir setor:", error));
+            }
+        }
+
+        /**
+         * Deletes an event.
+         * @param {string} id - The ID of the event to delete.
+         */
+        function deleteEvent(id) {
+            if (confirm("Tem certeza que deseja excluir este evento? Todos os registros de QM associados a ele perderão esta referência.")) {
+                db.ref("events/" + id).remove()
+                .then(() => {
+                    loadEvents();
+                    logAction("delete_event", { eventId: id });
+                })
+                .catch(error => console.error("Erro ao excluir evento:", error));
+            }
+        }
+
+        /**
+         * Deletes a category.
+         * @param {string} id - The ID of the category to delete.
+         */
+        function deleteCategory(id) {
+            if (confirm("Tem certeza que deseja excluir esta categoria? Todos os registros de QM associados a ela perderão esta referência.")) {
+                db.ref("categories/" + id).remove()
+                .then(() => {
+                    loadCategories();
+                    logAction("delete_category", { categoryId: id });
+                })
+                .catch(error => console.error("Erro ao excluir categoria:", error));
+            }
+        }
+
+        /**
+         * Deletes an employee.
+         * @param {string} id - The ID of the employee to delete.
+         */
+        function deleteEmployee(id) {
+            if (confirm("Tem certeza que deseja excluir este funcionário? Todos os registros de QM associados a ele perderão esta referência.")) {
+                db.ref("employees/" + id).remove()
+                .then(() => {
+                    loadEmployees();
+                    logAction("delete_employee", { employeeId: id });
+                })
+                .catch(error => console.error("Erro ao excluir funcionário:", error));
+            }
+        }
+
+        /**
+         * Deletes a QM entry.
+         * @param {string} id - The ID of the QM entry to delete.
+         */
+        function deleteQmEntry(id) {
+            if (confirm("Tem certeza que deseja excluir este registro de QM?")) {
+                db.ref("qm_entries/" + id).remove()
+                .then(() => {
+                    loadAllQmEntries(); // Refresh admin table
+                    loadSectorQmEntries(); // Refresh manager dashboard
+                    logAction("delete_qm_entry", { entryId: id });
+                })
+                .catch(error => console.error("Erro ao excluir registro de QM:", error));
+            }
+        }
+
+        /**
+         * Closes all modals.
+         */
+        function closeModal() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => modal.style.display = "none");
+            currentEditingQmEntryId = null;
+            currentEditingEmployeeId = null;
+            currentEditingSectorId = null;
+            currentEditingEventId = null;
+            currentEditingCategoryId = null;
+
+            // Reset add/save buttons in modals
+            const addEventButton = document.querySelector("#eventManagementModal button");
+            if (addEventButton) {
+                addEventButton.textContent = "Adicionar Evento";
+                addEventButton.onclick = createEvent;
+            }
+            const addEmployeeButton = document.querySelector("#employeeManagementModal button");
+            if (addEmployeeButton) {
+                addEmployeeButton.textContent = "Adicionar Funcionário";
+                addEmployeeButton.onclick = createEmployee;
+            }
+            const addCategoryButton = document.querySelector("#categoryManagementModal button");
+            if (addCategoryButton) {
+                addCategoryButton.textContent = "Adicionar Categoria";
+                addCategoryButton.onclick = createCategory;
+            }
+        }
+
+        /**
+         * Shows the login modal.
+         */
+        function showLogin() {
+            closeModal();
+            document.getElementById("loginModal").style.display = "flex";
+        }
+
+        /**
+         * Shows the forgot password modal.
+         */
+        function showForgotPassword() {
+            closeModal();
+            document.getElementById("forgotPasswordModal").style.display = "flex";
+        }
+
+        /**
+         * Opens the change password modal.
+         */
+        function openChangePassword() {
+            closeModal();
+            document.getElementById("currentPassword").value = "";
+            document.getElementById("newPassword").value = "";
+            document.getElementById("confirmPassword").value = "";
+            document.getElementById("currentPasswordError").style.display = "none";
+            document.getElementById("newPasswordError").style.display = "none";
+            document.getElementById("confirmPasswordError").style.display = "none";
+            document.getElementById("changePasswordModal").style.display = "flex";
+        }
+
+        /**
+         * Handles user login.
+         */
+        function loginUser() {
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+            document.getElementById("loginEmailError").style.display = "none";
+            document.getElementById("loginPasswordError").style.display = "none";
+
+            if (!email) {
+                document.getElementById("loginEmailError").textContent = "E-mail é obrigatório";
+                document.getElementById("loginEmailError").style.display = "block"; return;
+            }
+            if (!password) {
+                document.getElementById("loginPasswordError").textContent = "Senha é obrigatória";
+                document.getElementById("loginPasswordError").style.display = "block"; return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    currentUser = userCredential.user;
+                    closeModal();
+                    document.getElementById("loginEmail").value = "";
+                    document.getElementById("loginPassword").value = "";
+                })
+                .catch((error) => {
+                    if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+                        document.getElementById("loginPasswordError").textContent = "E-mail ou senha inválidos.";
+                    } else if (error.code === "auth/invalid-email") {
+                        document.getElementById("loginEmailError").textContent = "Formato de e-mail inválido.";
+                    } else {
+                        document.getElementById("loginPasswordError").textContent = "Erro ao fazer login. Tente novamente.";
+                    }
+                    document.getElementById("loginPasswordError").style.display = "block";
+                    console.error("Erro de login:", error);
+                });
+        }
+
+        /**
+         * Sends a password reset email.
+         */
+        function sendPasswordReset() {
+            const email = document.getElementById("resetEmail").value;
+            document.getElementById("resetEmailError").style.display = "none";
+            if (!email) {
+                document.getElementById("resetEmailError").textContent = "E-mail é obrigatório";
+                document.getElementById("resetEmailError").style.display = "block"; return;
+            }
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    alert("E-mail de redefinição de senha enviado com sucesso! Verifique sua caixa de entrada.");
+                    showLogin();
+                    document.getElementById("resetEmail").value = "";
+                })
+                .catch((error) => {
+                    let errorMessage = "Erro ao enviar e-mail de redefinição.";
+                    if (error.code === "auth/user-not-found") errorMessage = "E-mail não cadastrado.";
+                    else if (error.code === "auth/invalid-email") errorMessage = "Formato de e-mail inválido.";
+                    document.getElementById("resetEmailError").textContent = errorMessage;
+                    document.getElementById("resetEmailError").style.display = "block";
+                    console.error("Erro ao redefinir senha:", error);
+                });
+        }
+
+        /**
+         * Changes the current user's password.
+         */
+        function changePassword() {
+            const currentPassword = document.getElementById("currentPassword").value;
+            const newPassword = document.getElementById("newPassword").value;
+            const confirmPassword = document.getElementById("confirmPassword").value;
+            document.getElementById("currentPasswordError").style.display = "none";
+            document.getElementById("newPasswordError").style.display = "none";
+            document.getElementById("confirmPasswordError").style.display = "none";
+
+            if (!currentPassword) {
+                document.getElementById("currentPasswordError").textContent = "Senha atual é obrigatória";
+                document.getElementById("currentPasswordError").style.display = "block"; return;
+            }
+            if (!newPassword || newPassword.length < 6) {
+                document.getElementById("newPasswordError").textContent = "Nova senha deve ter no mínimo 6 caracteres";
+                document.getElementById("newPasswordError").style.display = "block"; return;
+            }
+            if (newPassword !== confirmPassword) {
+                document.getElementById("confirmPasswordError").textContent = "As senhas não coincidem";
+                document.getElementById("confirmPasswordError").style.display = "block"; return;
+            }
+            if (!currentUser) { alert("Usuário não autenticado."); showLogin(); return; }
+
+            const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, currentPassword);
+            currentUser.reauthenticateWithCredential(credential)
+                .then(() => currentUser.updatePassword(newPassword))
+                .then(() => { alert("Senha alterada com sucesso!"); closeModal(); })
+                .catch((error) => {
+                    if (error.code === "auth/wrong-password") {
+                        document.getElementById("currentPasswordError").textContent = "Senha atual incorreta";
+                        document.getElementById("currentPasswordError").style.display = "block";
+                    } else { alert("Erro ao alterar senha: " + error.message); }
+                    console.error("Erro ao alterar senha:", error);
+                });
+        }
+
+        /**
+         * Creates a new user (admin functionality).
+         */
+        function createUser() {
+            const cpf = document.getElementById("userCpf").value.replace(/\D/g, '');
+            const name = document.getElementById("userName").value.trim();
+            const email = document.getElementById("userEmail").value.trim();
+            const password = document.getElementById("userPassword").value;
+            const isManagerChecked = document.getElementById("isManagerCheckbox").checked;
+            const managerSectorId = isManagerChecked ? document.getElementById("managerSectorSelect").value : '';
+
+            document.getElementById("userCpfError").style.display = "none";
+            document.getElementById("userNameError").style.display = "none";
+            document.getElementById("userEmailError").style.display = "none";
+            document.getElementById("userPasswordError").style.display = "none";
+
+            if (!cpf || cpf.length !== 11) {
+                document.getElementById("userCpfError").textContent = "CPF inválido (11 dígitos)";
+                document.getElementById("userCpfError").style.display = "block"; return;
+            }
+            if (!name) {
+                document.getElementById("userNameError").textContent = "Nome é obrigatório";
+                document.getElementById("userNameError").style.display = "block"; return;
+            }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                document.getElementById("userEmailError").textContent = "E-mail inválido";
+                document.getElementById("userEmailError").style.display = "block"; return;
+            }
+            if (!password || password.length < 6) {
+                document.getElementById("userPasswordError").textContent = "Senha (mínimo 6 caracteres)";
+                document.getElementById("userPasswordError").style.display = "block"; return;
+            }
+            if (isManagerChecked && !managerSectorId) {
+                alert("Selecione o setor para o gestor.");
+                return;
+            }
+
+            const tempApp = firebase.initializeApp(firebaseConfig, `tempApp_${Date.now()}`);
+            const tempAuth = tempApp.auth();
+            tempAuth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const userData = { 
+                        cpf, 
+                        name, 
+                        email, 
+                        isAdmin: false, // New users are not admin by default
+                        isManager: isManagerChecked,
+                        sectorId: managerSectorId || null // Store sectorId if manager
+                    };
+                    return db.ref('users/' + userCredential.user.uid).set(userData);
+                })
+                .then(() => {
+                    alert(`Usuário ${name} (${email}) cadastrado!`);
+                    document.getElementById("userCpf").value = "";
+                    document.getElementById("userName").value = "";
+                    document.getElementById("userEmail").value = "";
+                    document.getElementById("userPassword").value = "";
+                    document.getElementById("isManagerCheckbox").checked = false;
+                    document.getElementById("managerSectorGroup").style.display = "none";
+                    document.getElementById("managerSectorSelect").value = "";
+                    fetchAllUsersAndPreparePagination();
+                    logAction("create_user", { userName: name, userEmail: email, isManager: isManagerChecked, sectorId: managerSectorId });
+                })
+                .catch((error) => {
+                    let msg = "Erro ao cadastrar: ";
+                    if (error.code === "auth/email-already-in-use") msg += "E-mail já cadastrado.";
+                    else if (error.code === "auth/invalid-email") msg += "E-mail inválido.";
+                    else msg += error.message;
+                    document.getElementById("userEmailError").textContent = msg;
+                    document.getElementById("userEmailError").style.display = "block";
+                    console.error("Erro createUser:", error);
+                })
+                .finally(() => {
+                    tempAuth.signOut().then(() => tempApp.delete());
+                });
+        }
+
+        /**
+         * Fetches all users and prepares for pagination display.
+         */
+        function fetchAllUsersAndPreparePagination() {
+            db.ref('users').once('value', (snapshot) => {
+                const users = snapshot.val();
+                allUsersData = [];
+                if (users) {
+                    allUsersData = Object.entries(users).map(([userId, userData]) => ({
+                        uid: userId, ...userData
+                    })); // Do not filter out current user for admin view
+                }
+                currentPage = 1;
+                const usersPerPageSelect = document.getElementById("usersPerPageSelect");
+                if (usersPerPageSelect.value === 'all') {
+                    usersPerPage = 'all';
+                } else {
+                    usersPerPage = parseInt(usersPerPageSelect.value) || 10;
+                }
+                displayUsersPage();
+            }).catch(error => console.error("Erro ao buscar todos os usuários:", error));
+        }
+
+        /**
+         * Displays users for the current page in the user management table.
+         */
+        function displayUsersPage() {
+            const usersTableBody = document.getElementById("usersTable");
+            usersTableBody.innerHTML = "";
+
+            // Filter out the current user for display in the table
+            const usersForDisplay = allUsersData.filter(user => currentUser && user.uid !== currentUser.uid);
+
+            const startIndex = (currentPage - 1) * usersPerPage;
+            const endIndex = usersPerPage === 'all' ? usersForDisplay.length : startIndex + usersPerPage;
+            const paginatedUsers = usersPerPage === 'all' ? usersForDisplay : usersForDisplay.slice(startIndex, endIndex);
+
+            paginatedUsers.forEach(userData => {
+                const userType = userData.isAdmin ? "Admin" : (userData.isManager ? "Gestor" : "Usuário");
+                const userSector = userData.isManager && userData.sectorId ? (allSectorsData[userData.sectorId]?.name || 'Setor Desconhecido') : '-';
+                usersTableBody.innerHTML += `
+                <tr>
+                    <td>${userData.name}</td>
+                    <td>${userData.email}</td>
+                    <td>${userType}</td>
+                    <td>${userSector}</td>
+                    <td>
+                        <button onclick="deleteUser('${userData.uid}', '${userData.email}')" class="danger" style="padding: 6px 12px; font-size: 13px; width: auto;">Excluir</button>
+                        ${!userData.isAdmin ? `
+                            <button onclick="toggleAdminStatus('${userData.uid}', '${userData.email}', true)" style="padding: 6px 12px; font-size: 13px; margin-left: 6px; width: auto;">Tornar Admin</button>
+                        ` : `
+                            <button onclick="toggleAdminStatus('${userData.uid}', '${userData.email}', false)" class="secondary" style="padding: 6px 12px; font-size: 13px; margin-left: 6px; width: auto;">Remover Admin</button>
+                        `}
+                        ${!userData.isManager ? `
+                            <button onclick="toggleManagerStatus('${userData.uid}', '${userData.email}', true)" style="padding: 6px 12px; font-size: 13px; margin-left: 6px; width: auto;">Tornar Gestor</button>
+                        ` : `
+                            <button onclick="toggleManagerStatus('${userData.uid}', '${userData.email}', false)" class="secondary" style="padding: 6px 12px; font-size: 13px; margin-left: 6px; width: auto;">Remover Gestor</button>
+                        `}
+                    </td>
+                </tr>`;
+            });
+            updatePaginationControls();
+        }
+
+        /**
+         * Updates the pagination controls for the user management table.
+         */
+        function updatePaginationControls() {
+            const pageInfo = document.getElementById("pageInfo");
+            const prevPageBtn = document.getElementById("prevPageBtn");
+            const nextPageBtn = document.getElementById("nextPageBtn");
+            const usersPerPageSelected = document.getElementById("usersPerPageSelect").value;
+            
+            const usersForPagination = allUsersData.filter(user => currentUser && user.uid !== currentUser.uid); // Exclude current user for pagination count
+
+            if (usersPerPageSelected === 'all' || usersForPagination.length === 0) {
+                pageInfo.textContent = usersPerPageSelected === 'all' ? `Mostrando todos (${usersForPagination.length})` : "Nenhum usuário";
+                prevPageBtn.disabled = true;
+                nextPageBtn.disabled = true;
+                return;
+            }
+            
+            const totalPages = Math.ceil(usersForPagination.length / usersPerPage);
+            pageInfo.textContent = `Página ${currentPage} de ${totalPages || 1}`;
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        /**
+         * Changes the number of users displayed per page.
+         */
+        function changeUsersPerPage() {
+            const selectedValue = document.getElementById("usersPerPageSelect").value;
+            usersPerPage = selectedValue === 'all' ? 'all' : parseInt(selectedValue);
+            currentPage = 1;
+            displayUsersPage();
+        }
+
+        /**
+         * Changes the current page in the user management table.
+         * @param {number} direction - -1 for previous page, 1 for next page.
+         */
+        function changeUserPage(direction) {
+            const usersForPagination = allUsersData.filter(user => currentUser && user.uid !== currentUser.uid);
+            const totalPages = usersPerPage === 'all' ? 1 : Math.ceil(usersForPagination.length / usersPerPage);
+            currentPage += direction;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+            else if (totalPages === 0) currentPage = 1;
+            displayUsersPage();
+        }
+
+        /**
+         * Toggles a user's admin status.
+         * @param {string} userId - The UID of the user.
+         * @param {string} email - The email of the user.
+         * @param {boolean} makeAdmin - True to make admin, false to remove admin.
+         */
+        function toggleAdminStatus(userId, email, makeAdmin) {
+            const actionText = makeAdmin ? "tornar" : "remover como";
+            if (!confirm(`Tem certeza que deseja ${actionText} ${email} administrador?`)) return;
+
+            db.ref('users/' + userId).update({ isAdmin: makeAdmin })
+                .then(() => {
+                    alert(`Usuário ${email} ${makeAdmin ? "promovido a" : "removido de"} administrador com sucesso!`);
+                    fetchAllUsersAndPreparePagination();
+                    logAction("toggle_admin_status", { targetUserId: userId, targetUserEmail: email, newAdminStatus: makeAdmin });
+                })
+                .catch((error) => alert("Erro ao atualizar status de admin: " + error.message));
+        }
+
+        /**
+         * Toggles a user's manager status and associated sector.
+         * @param {string} userId - The UID of the user.
+         * @param {string} email - The email of the user.
+         * @param {boolean} makeManager - True to make manager, false to remove manager.
+         */
+        function toggleManagerStatus(userId, email, makeManager) {
+            const actionText = makeManager ? "tornar" : "remover como";
+            let sectorId = null;
+
+            if (makeManager) {
+                const selectedSector = prompt(`Para tornar ${email} gestor, digite o ID do setor (ou o nome para que eu tente encontrar):`);
+                if (!selectedSector) {
+                    alert("Operação cancelada. Setor é obrigatório para gestores.");
+                    return;
+                }
+                // Try to find sector by name or assume it's an ID
+                const foundSector = Object.entries(allSectorsData).find(([id, sector]) => sector.name.toLowerCase() === selectedSector.toLowerCase() || id === selectedSector);
+                if (foundSector) {
+                    sectorId = foundSector[0];
+                } else {
+                    alert("Setor não encontrado. Operação cancelada.");
+                    return;
+                }
+            }
+
+            if (!confirm(`Tem certeza que deseja ${actionText} ${email} gestor ${makeManager && sectorId ? `do setor ${allSectorsData[sectorId]?.name}` : ''}?`)) return;
+
+            db.ref('users/' + userId).update({ isManager: makeManager, sectorId: sectorId })
+                .then(() => {
+                    alert(`Usuário ${email} ${makeManager ? "promovido a" : "removido de"} gestor com sucesso!`);
+                    fetchAllUsersAndPreparePagination();
+                    logAction("toggle_manager_status", { targetUserId: userId, targetUserEmail: email, newManagerStatus: makeManager, newSectorId: sectorId });
+                })
+                .catch((error) => alert("Erro ao atualizar status de gestor: " + error.message));
+        }
+
+        /**
+         * Deletes a user (admin functionality).
+         * @param {string} userId - The UID of the user to delete.
+         * @param {string} email - The email of the user to delete.
+         */
+        function deleteUser(userId, email) {
+            if (!confirm(`Tem certeza que deseja excluir o usuário ${email}? Esta ação é irreversível.`)) {
+                return;
+            }
+            // Note: Firebase Realtime Database rules should prevent non-admins from deleting users.
+            // Actual Firebase Authentication user deletion must be done via Firebase Admin SDK or Console.
+            db.ref('users/' + userId).remove()
+                .then(() => {
+                    alert(`Dados do usuário ${email} removidos do banco de dados. A remoção da autenticação deve ser feita via Firebase Console.`);
+                    fetchAllUsersAndPreparePagination();
+                    logAction("delete_user_data", { deletedUserId: userId, deletedUserEmail: email });
+                })
+                .catch((error) => {
+                    alert("Erro ao excluir dados do usuário: " + error.message);
+                    console.error("Erro ao deletar do DB:", error);
+                });
+        }
+
+        /**
+         * Populates the sector select dropdown for manager assignment.
+         */
+        function populateManagerSectorSelect() {
+            const managerSectorSelect = document.getElementById("managerSectorSelect");
+            managerSectorSelect.innerHTML = '<option value="">Selecione</option>';
+            Object.entries(allSectorsData).forEach(([id, sector]) => {
+                managerSectorSelect.innerHTML += `<option value="${id}">${sector.name}</option>`;
+            });
+        }
+
+        /**
+         * Populates the employee sector select dropdown.
+         */
+        function populateEmployeeSectorSelect() {
+            const employeeSectorSelect = document.getElementById("employeeSectorSelect");
+            employeeSectorSelect.innerHTML = '<option value="">Selecione</option>';
+            Object.entries(allSectorsData).forEach(([id, sector]) => {
+                employeeSectorSelect.innerHTML += `<option value="${id}">${sector.name}</option>`;
+            });
+        }
+
+        /**
+         * Exports QM data to a CSV file.
+         */
+        function exportQmData() {
+            const startDate = document.getElementById("exportStartDate").value;
+            const endDate = document.getElementById("exportEndDate").value;
+
+            if (!startDate || !endDate) {
+                alert("Por favor, selecione uma data de início e fim para a exportação.");
+                return;
+            }
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999); // Include the whole end day
+
+            db.ref("qm_entries").once("value", snapshot => {
+                const qmEntries = snapshot.val();
+                let dataToExport = [];
+
+                if (qmEntries) {
+                    Object.values(qmEntries).forEach(entry => {
+                        const entryDate = new Date(entry.workDate);
+                        if (entryDate >= start && entryDate <= end) {
+                            const employee = allEmployeesData.find(emp => emp.id === entry.employeeId);
+                            const sectorName = employee ? (allSectorsData[employee.sectorId]?.name || 'Setor Desconhecido') : 'Funcionário Desconhecido';
+                            const eventName = allEventsData[entry.eventId]?.name || 'Evento Desconhecido';
+                            const managerName = allUsersData.find(user => user.uid === entry.managerId)?.name || 'Desconhecido';
+
+                            dataToExport.push({
+                                "Data do Trabalho": formatarData(entry.workDate),
+                                "Funcionário": employee?.name || 'Desconhecido',
+                                "CPF Funcionário": employee?.cpf || 'Desconhecido',
+                                "Setor": sectorName,
+                                "Evento": eventName,
+                                "Categoria QM": entry.qmCategory,
+                                "Horas Trabalhadas": entry.hoursWorked,
+                                "Valor QM Calculado": formatarMoeda(entry.calculatedQmValue),
+                                "Registrado Por": managerName,
+                                "Data Inclusão": `${formatarData(entry.createdAt.substring(0,10))} ${entry.createdAt.substring(11,16)}`,
+                                "Data Última Alteração": entry.updatedAt ? `${formatarData(entry.updatedAt.substring(0,10))} ${entry.updatedAt.substring(11,16)}` : '-'
+                            });
+                        }
+                    });
+                }
+
+                if (dataToExport.length === 0) {
+                    alert("Nenhum registro de QM encontrado para o período selecionado.");
+                    return;
+                }
+
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Registros QM");
+                XLSX.writeFile(wb, `Registros_QM_${startDate}_a_${endDate}.xlsx`);
+                logAction("export_qm_data", { startDate, endDate, recordCount: dataToExport.length });
+                closeModal();
+            }).catch(error => {
+                console.error("Erro ao exportar dados:", error);
+                alert("Erro ao exportar dados. Tente novamente.");
+            });
+        }
+
+        /**
+         * Checks the current user's admin and manager status and updates UI accordingly.
+         */
+        function checkAdminAndManagerStatus() {
+            const watermarkElement = document.getElementById("fullPageWatermark");
+            watermarkElement.innerHTML = ''; // Clear to redraw
+
+            if (!currentUser) {
+                isAdmin = false;
+                isManager = false;
+                document.getElementById("adminButton").style.display = "none";
+                document.getElementById("managerButton").style.display = "none";
+                document.getElementById("userWatermark").textContent = "";
+                watermarkElement.style.display = 'none';
+                return;
+            }
+
+            db.ref('users/' + currentUser.uid).once('value', (snapshot) => {
+                const userData = snapshot.val();
+                isAdmin = userData && userData.isAdmin === true;
+                isManager = userData && userData.isManager === true;
+                currentManagerSectorId = userData?.sectorId || null;
+
+                document.getElementById("adminButton").style.display = isAdmin ? "flex" : "none";
+                document.getElementById("managerButton").style.display = isManager ? "flex" : "none";
+
+                // Show/hide main sections based on roles
+                // Always show the main container
+                document.getElementById("mainContainer").style.display = "block";
+                document.getElementById("admin-area").style.display = "none"; // Hidden by default
+
+                // Show manager dashboard if manager or if not admin (regular user)
+                document.getElementById("employee-dashboard-view").style.display = (isManager || (!isAdmin && !isManager)) ? "block" : "none";
+                
+                // Load QM entries for the manager's sector if manager or for all if admin
+                if (isManager || isAdmin) {
+                    loadSectorQmEntries(); // This function now handles both manager and admin views
+                }
+
+                if (userData && userData.name) {
+                    document.getElementById("userWatermark").textContent = `Acesso: ${userData.name} ${isAdmin ? '(Admin)' : ''} ${isManager ? '(Gestor)' : ''}`;
+                    const watermarkText = userData.name.toUpperCase();
+                    
+                    const containerWidth = document.body.offsetWidth;
+                    const containerHeight = document.body.offsetHeight;
+                    
+                    const itemWidthApproximation = watermarkText.length * 30;
+                    const itemHeightApproximation = 40;
+
+                    const numColumns = Math.floor(containerWidth / (itemWidthApproximation * 0.8));
+                    const numRows = Math.floor(containerHeight / (itemHeightApproximation * 2.2));
+
+                    const opacity = document.body.classList.contains('dark-theme') ? 0.05 : 0.08;
+                    let fontSize = '3vw';
+                    const color = 'var(--text-secondary)';
+                    const rotation = -30;
+
+                    if (window.innerWidth <= 1024) fontSize = '3.5vw';
+                    if (window.innerWidth <= 768) fontSize = '4.5vw';
+                    if (window.innerWidth <= 480) fontSize = '6vw';
+
+
+                    for (let i = 0; i < numRows; i++) {
+                        for (let j = 0; j < numColumns; j++) {
+                            const span = document.createElement('span');
+                            span.textContent = watermarkText;
+                            span.style.position = 'absolute';
+                            
+                            const xOffset = (containerWidth / numColumns) * (j + 0.5);
+                            const yOffset = (containerHeight / numRows) * (i + 0.5);
+                            
+                            const randomXShift = (Math.random() - 0.5) * 30;
+                            const randomYShift = (Math.random() - 0.5) * 30;
+
+                            span.style.left = `${xOffset + randomXShift}px`;
+                            span.style.top = `${yOffset + randomYShift}px`;
+                            
+                            span.style.opacity = opacity;
+                            span.style.color = color;
+                            span.style.fontSize = fontSize;
+                            span.style.fontWeight = '500';
+                            span.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+                            span.style.userSelect = 'none';
+                            span.style.pointerEvents = 'none';
+                            span.style.whiteSpace = 'nowrap';
+                            
+                            watermarkElement.appendChild(span);
+                        }
+                    }
+                    watermarkElement.style.display = 'block';
+                } else {
+                    document.getElementById("userWatermark").textContent = `Acesso: ${currentUser.email}`;
+                    watermarkElement.style.display = 'none';
+                }
+            }).catch(error => {
+                console.error("Erro ao verificar status de admin/gestor:", error);
+                isAdmin = false;
+                isManager = false;
+                document.getElementById("adminButton").style.display = "none";
+                document.getElementById("managerButton").style.display = "none";
+                document.getElementById("userWatermark").textContent = "";
+                watermarkElement.style.display = 'none';
+            });
+        }
+
+        /**
+         * Handles user logout.
+         */
+        function logoutUser() {
+            auth.signOut().then(() => {
+                // Clear any specific employee/manager view data
+                document.getElementById("sector-qm-entries").innerHTML = "";
+                document.getElementById("noQmEntriesMessage").style.display = "none";
+
+                // Hide all main sections
+                document.getElementById("admin-area").style.display = "none";
+                document.getElementById("employee-dashboard-view").style.display = "none";
+                document.getElementById("mainContainer").style.display = "none";
+
+                // Show login modal
+                document.getElementById("loginModal").style.display = "flex";
+                document.getElementById("userWatermark").textContent = "";
+                document.getElementById("fullPageWatermark").style.display = 'none';
+            }).catch(error => console.error("Erro no logout:", error));
+        }
+
+        /**
+         * Listener for authentication state changes.
+         */
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                checkAdminAndManagerStatus();
+                document.getElementById("authButtons").style.display = "flex";
+                document.getElementById("mainContainer").style.display = "block";
+                document.getElementById("loginModal").style.display = "none";
+                // Load all necessary base data
+                loadSectors();
+                loadEvents();
+                loadCategories(); // Load categories on auth change
+                loadEmployees(); // This will filter based on manager status
+                loadAllQmEntries(); // For admin view and manager dashboard
+            } else {
+                currentUser = null;
+                isAdmin = false;
+                isManager = false;
+                currentManagerSectorId = null;
+                allUsersData = [];
+                allEmployeesData = [];
+                allSectorsData = {};
+                allEventsData = {};
+                allCategoriesData = {}; // Clear categories
+                allQmEntriesData = {};
+                currentPage = 1;
+                document.getElementById("authButtons").style.display = "none";
+                document.getElementById("mainContainer").style.display = "none";
+                document.getElementById("admin-area").style.display = "none";
+                document.getElementById("employee-dashboard-view").style.display = "none";
+                document.getElementById("loginModal").style.display = "flex";
+                document.getElementById("userWatermark").textContent = "";
+                document.getElementById("fullPageWatermark").style.display = 'none';
+            }
         });
-      }
-    });
-  }
-};
-</script>
+
+        /**
+         * Initializes the application when the window loads.
+         */
+        window.onload = function () {
+            checkSavedTheme();
+            checkSystemPreference();
+            setupSecurity();
+            document.getElementById("usersPerPageSelect").value = usersPerPage;
+
+            // Toggle manager sector select visibility
+            document.getElementById("isManagerCheckbox").addEventListener('change', function() {
+                document.getElementById("managerSectorGroup").style.display = this.checked ? "block" : "none";
+            });
+        };
+
+        /**
+         * Closes modals when clicking outside of them.
+         */
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target == modal) {
+                    closeModal();
+                }
+            });
+        }
+    </script>
 </body>
 </html>
