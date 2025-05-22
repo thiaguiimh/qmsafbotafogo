@@ -79,10 +79,10 @@
             @apply flex flex-col;
         }
         .filter-label {
-            @apply text-xs font-medium text-gray-500 mb-1; /* Fonte um pouco mais escura para contraste, margem ajustada */
+            @apply text-xxs font-medium text-gray-500 mb-0.5; /* Fonte menor e margem ajustada */
         }
         .filter-input {
-            @apply w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-md text-gray-800 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors shadow-sm; /* Fundo branco, padding e fonte ajustados */
+            @apply w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-300; /* Padding ajustado, borda mais clara */
         }
     </style>
 </head>
@@ -777,8 +777,8 @@
             currentFilteredRecordsForExport = [...recordsToDisplay]; 
 
             const adminFiltersHtml = userProfile.isAdmin ? `
-                <div class="mb-6 border-b border-gray-100 pb-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-4 items-end">
+                <div class="mb-6 pt-2 pb-4 border-b border-gray-200"> {/* Removido bg-gray-50 e border */}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 items-end"> {/* Grid mais compacto */}
                         <div class="filter-group">
                             <label for="filter-search" class="filter-label">Termo Geral:</label>
                             <input type="text" id="filter-search" class="filter-input" placeholder="Nome, matrícula, evento...">
@@ -823,13 +823,9 @@
                             <label for="filter-date-end" class="filter-label">Data Final (Criação):</label>
                             <input type="date" id="filter-date-end" class="filter-input">
                         </div>
-                        <div class="filter-group xl:col-start-3"> 
-                            <label class="filter-label">&nbsp;</label>
-                            <button id="btn-clear-filters" class="px-4 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md shadow-sm w-full">Limpar Filtros</button>
-                        </div>
-                        <div class="filter-group"> 
-                            <label class="filter-label">&nbsp;</label>
-                            <button id="btn-apply-filters" class="px-4 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm w-full">Aplicar Filtros</button>
+                         <div class="filter-group md:col-start-2 lg:col-start-auto flex items-end space-x-2"> {/* Ajuste para alinhamento dos botões */}
+                            <button id="btn-clear-filters" class="w-full px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md shadow-sm">Limpar</button>
+                            <button id="btn-apply-filters" class="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm">Aplicar</button>
                         </div>
                     </div>
                 </div>
@@ -862,14 +858,14 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data Criação</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Evento (Data)</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Funcionário</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Setor</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Gestor</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Obs.</th>
-                                    ${(userProfile.isManager && !userProfile.isAdmin) || userProfile.isAdmin ? '<th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Criação</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evento (Data)</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funcionário</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gestor</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs.</th>
+                                    ${(userProfile.isManager && !userProfile.isAdmin) || userProfile.isAdmin ? '<th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
@@ -927,13 +923,13 @@
                 if (eventNameFilter) filtered = filtered.filter(r => r.eventName && r.eventName.toLowerCase() === eventNameFilter);
 
                 if (dateStartStr) {
-                    const startDate = new Date(dateStartStr); // Considera a data local do input
-                    startDate.setHours(0,0,0,0); // Zera a hora para comparar o dia inteiro
+                    const startDate = new Date(dateStartStr); 
+                    startDate.setHours(0,0,0,0); 
                     filtered = filtered.filter(r => r.createdAt && r.createdAt.toDate() >= startDate);
                 }
                 if (dateEndStr) {
-                    const endDate = new Date(dateEndStr); // Considera a data local
-                    endDate.setHours(23,59,59,999); // Define para o final do dia
+                    const endDate = new Date(dateEndStr); 
+                    endDate.setHours(23,59,59,999); 
                     filtered = filtered.filter(r => r.createdAt && r.createdAt.toDate() <= endDate);
                 }
                 
@@ -1031,7 +1027,7 @@
             const cdn = collectionDisplayName(collectionKey); 
             const inputBaseClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
 
-            const tableHeaders = fields.map(f => `<th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">${f.label}</th>`).join('');
+            const tableHeaders = fields.map(f => `<th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${f.label}</th>`).join('');
             const tableRows = items.map(item => `
                 <tr class="hover:bg-gray-50 transition-colors">
                     ${fields.map(field => `<td class="px-5 py-3 text-xs text-gray-700 whitespace-nowrap">${field.type === 'date' && item[field.name] ? new Date(item[field.name] + 'T00:00:00').toLocaleDateString('pt-BR') : (item[field.name] || '-')}</td>`).join('')}
@@ -1063,7 +1059,7 @@
                         `<div class="text-center py-10"><p class="text-gray-500 text-sm">Nenhum item em "${cdn.plural}" cadastrado.</p></div>` :
                         `<div class="overflow-x-auto border border-gray-200 rounded-lg">
                             <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50"><tr>${tableHeaders}<th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Criado Em</th><th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th></tr></thead>
+                                <thead class="bg-gray-50"><tr>${tableHeaders}<th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criado Em</th><th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th></tr></thead>
                                 <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
                             </table>
                         </div>`
@@ -1244,8 +1240,8 @@
                         `<div class="overflow-x-auto border border-gray-200 rounded-lg">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50"><tr>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nome</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                     <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Setor</th>
                                     <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Gestor?</th>
                                     <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Admin?</th>
