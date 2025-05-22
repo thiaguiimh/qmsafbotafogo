@@ -5,62 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Quadro Móvel - Botafogo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            background-color: #f8f9fa; /* Um branco levemente acinzentado para o fundo geral */
         }
-        .font_inter { /* Classe para garantir a fonte Inter onde necessário */
+        .font_inter { 
             font-family: 'Inter', sans-serif;
         }
-        /* Estilo para animação de fade-in */
         .animate-fadeIn {
-            animation: fadeIn 0.5s ease-in-out;
+            animation: fadeIn 0.3s ease-in-out;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* Custom scrollbar (opcional, para consistência visual) */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #1f2937; /* gray-800 */
+            background: #e9ecef; 
         }
         ::-webkit-scrollbar-thumb {
-            background: #facc15; /* yellow-400 */
-            border-radius: 4px;
+            background: #adb5bd; 
+            border-radius: 3px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #eab308; /* yellow-500 */
+            background: #6c757d; 
         }
         .loader {
-            border: 4px solid #374151; /* gray-700 */
-            border-top: 4px solid #facc15; /* yellow-400 */
+            border: 3px solid #dee2e6; 
+            border-top: 3px solid #007bff; /* Um azul primário para o loader */
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+            width: 30px;
+            height: 30px;
+            animation: spin 0.8s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Ajustes finos para inputs e selects para um look mais clean */
+        select, input[type="text"], input[type="email"], input[type="password"], input[type="date"], textarea {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: none; /* Remove setas padrão em alguns navegadores */
+        }
+        /* Adiciona uma seta customizada para selects se desejado, mas para um look Apple/Google, muitas vezes é omitida ou muito sutil */
+         select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236c757d'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.25em 1.25em;
+            padding-right: 2.5rem; /* Espaço para a seta */
+        }
+        textarea {
+            resize: vertical; /* Permite apenas redimensionamento vertical */
+        }
     </style>
 </head>
-<body class="bg-gray-900">
+<body class="bg-gray-50 text-gray-800">
 
-    <div id="app-container" class="min-h-screen text-gray-100 font_inter flex flex-col">
-        <header id="app-header" class="bg-black bg-opacity-80 shadow-2xl p-4 hidden sticky top-0 z-40">
+    <div id="app-container" class="min-h-screen font_inter flex flex-col">
+        <header id="app-header" class="bg-white shadow-sm border-b border-gray-200 p-4 hidden sticky top-0 z-40">
             <div class="container mx-auto flex justify-between items-center">
                 <div class="flex items-center space-x-3">
-                    <img src="https://placehold.co/50x50/FFFFFF/000000?text=BFR" alt="Logo Botafogo" class="h-10 w-10 rounded-full border-2 border-yellow-400">
-                    <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wider">
-                        Portal <span class="text-yellow-400">Quadro Móvel</span>
+                    <img src="https://placehold.co/40x40/000000/FFFFFF?text=BFR&font=inter" alt="Logo Botafogo" class="h-8 w-8 rounded-md">
+                    <h1 class="text-xl font-semibold text-gray-800">
+                        Portal <span class="text-blue-600">Quadro Móvel</span>
                     </h1>
                 </div>
                 <div id="user-info-header" class="flex items-center space-x-4">
@@ -68,34 +85,33 @@
             </div>
         </header>
 
-        <main id="app-content" class="container mx-auto p-4 md:p-8 flex-grow">
-            <div id="initial-loading" class="flex flex-col items-center justify-center h-full p-8 text-white">
-                <div class="loader mb-4"></div>
-                <p class="text-lg">Inicializando aplicação...</p>
+        <main id="app-content" class="container mx-auto p-4 md:p-6 lg:p-8 flex-grow">
+            <div id="initial-loading" class="flex flex-col items-center justify-center h-full p-8">
+                <div class="loader mb-3"></div>
+                <p class="text-gray-600">Inicializando aplicação...</p>
             </div>
         </main>
 
-        <footer id="app-footer" class="text-center p-6 border-t border-gray-700 text-gray-500 text-sm hidden">
+        <footer id="app-footer" class="text-center p-5 border-t border-gray-200 text-gray-500 text-xs hidden">
             </footer>
 
-        <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 hidden animate-fadeIn">
-            <div id="modal-content" class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md transform transition-all">
+        <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4 hidden animate-fadeIn">
+            <div id="modal-content" class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
                 </div>
         </div>
 
-        <div id="notification-container" class="fixed top-5 right-5 z-[100] space-y-3">
+        <div id="notification-container" class="fixed top-6 right-6 z-[100] space-y-3 w-full max-w-sm sm:max-w-md">
             </div>
     </div>
 
     <script type="module">
-        // Importações do Firebase SDK v9
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { 
             getAuth, 
             signInWithEmailAndPassword, 
             signOut, 
             onAuthStateChanged,
-            signInAnonymously, // Adicionado para o caso de __initial_auth_token não estar definido
+            signInAnonymously,
             signInWithCustomToken
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { 
@@ -112,18 +128,15 @@
             deleteDoc,
             updateDoc,
             onSnapshot,
-            orderBy // Lembre-se que orderBy pode exigir índices
+            orderBy
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuração do Firebase (substitua pelos seus dados ou use variáveis de ambiente no Netlify se possível)
-        // Para este exemplo HTML simples, a configuração está no código.
-        // Em um cenário de build (como React), você usaria process.env.
         const firebaseConfigFromUser = {
             apiKey: "AIzaSyDkRi6GWPiVawTe607frndhUbfB77yfVOw",
             authDomain: "qmsafbotafogo.firebaseapp.com",
-            databaseURL: "https://qmsafbotafogo-default-rtdb.firebaseio.com", // Não usado pelo Firestore, mas parte da config
+            databaseURL: "https://qmsafbotafogo-default-rtdb.firebaseio.com",
             projectId: "qmsafbotafogo",
-            storageBucket: "qmsafbotafogo.firebasestorage.app", // Corrigido: firebasestorage.app
+            storageBucket: "qmsafbotafogo.firebasestorage.app",
             messagingSenderId: "447753167474",
             appId: "1:447753167474:web:7706e7a5c78b4127a058eb"
         };
@@ -131,13 +144,10 @@
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfigFromUser;
         const currentAppId = (typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId) || 'default-app-id';
 
-
-        // Inicializa Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Elementos da UI
         const appHeader = document.getElementById('app-header');
         const appContent = document.getElementById('app-content');
         const appFooter = document.getElementById('app-footer');
@@ -147,36 +157,47 @@
         const modalContent = document.getElementById('modal-content');
         const notificationContainer = document.getElementById('notification-container');
 
-        // Estado da aplicação (simplificado)
         let currentUser = null;
         let userProfile = null;
-        let currentView = 'login'; // login, managerDashboard, adminDashboard, etc.
+        let currentView = 'login';
         let globalData = {
-            events: [],
-            categories: [],
-            sectors: [],
-            employees: [],
-            records: [],
-            allUsers: []
+            events: [], categories: [], sectors: [], employees: [], records: [], allUsers: []
         };
-        let unsubscribers = []; // Para limpar listeners do onSnapshot
+        let unsubscribers = [];
 
-        // --- FUNÇÕES AUXILIARES ---
         const showElement = (el) => el.classList.remove('hidden');
         const hideElement = (el) => el.classList.add('hidden');
 
         function showNotification(message, type = 'info', duration = 4000) {
             const id = `notif-${Date.now()}`;
-            const bgColor = type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : 'bg-blue-600';
-            const icon = type === 'error' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+            let bgColor, textColor, iconColor, iconSvg;
+
+            switch (type) {
+                case 'error':
+                    bgColor = 'bg-red-50'; textColor = 'text-red-700'; iconColor = 'text-red-500';
+                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zm-1-5a1 1 0 102 0v-2a1 1 0 10-2 0v2zm0 3a1 1 0 102 0 1 1 0 10-2 0z" clip-rule="evenodd" /></svg>`;
+                    break;
+                case 'success':
+                    bgColor = 'bg-green-50'; textColor = 'text-green-700'; iconColor = 'text-green-500';
+                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-.707-4.293a1 1 0 00-1.414-1.414l-2-2a1 1 0 00-1.414 1.414L6.586 13H5a1 1 0 000 2h1.586l1.707 1.707a1 1 0 001.414-1.414l-2-2 1.293-1.293zM14.5 11a1 1 0 01-1-1V7a1 1 0 112 0v3a1 1 0 01-1 1z" clip-rule="evenodd" /></svg>`;
+                    break;
+                default: // info
+                    bgColor = 'bg-blue-50'; textColor = 'text-blue-700'; iconColor = 'text-blue-500';
+                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zm-1-5a1 1 0 102 0V8a1 1 0 10-2 0v3zm0 3a1 1 0 102 0 1 1 0 10-2 0z" clip-rule="evenodd" /></svg>`;
+            }
             
             const notificationDiv = document.createElement('div');
             notificationDiv.id = id;
-            notificationDiv.className = `animate-fadeIn p-4 rounded-lg shadow-lg text-white ${bgColor} flex items-center`;
+            notificationDiv.className = `animate-fadeIn p-4 rounded-lg shadow-lg ${bgColor} ${textColor} flex items-start space-x-3 border border-${type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue'}-200`;
             notificationDiv.innerHTML = `
-                <span class="mr-2 text-xl">${icon}</span>
-                <span>${message}</span>
-                <button class="ml-4 text-xl font-bold hover:text-gray-200" onclick="document.getElementById('${id}').remove()">&times;</button>
+                <div class="${iconColor} mt-0.5">${iconSvg}</div>
+                <div class="flex-1">
+                    <p class="font-medium">${type.charAt(0).toUpperCase() + type.slice(1)}</p>
+                    <p class="text-sm">${message}</p>
+                </div>
+                <button class="text-gray-400 hover:text-gray-600" onclick="document.getElementById('${id}').remove()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
+                </button>
             `;
             notificationContainer.appendChild(notificationDiv);
 
@@ -188,16 +209,16 @@
         
         function openModal(title, contentHtml, onConfirm = null, confirmText = 'Confirmar', onCancel = null, cancelText = 'Cancelar') {
             modalContent.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-2xl font-semibold text-white">${title}</h3>
-                    <button id="modal-close-btn" class="text-gray-400 hover:text-white transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-xl font-semibold text-gray-800">${title}</h3>
+                    <button id="modal-close-btn" class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
-                <div class="text-gray-300">${contentHtml}</div>
-                <div class="flex justify-end space-x-3 mt-6">
-                    ${onCancel ? `<button id="modal-cancel-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md text-white transition-colors">${cancelText}</button>` : ''}
-                    ${onConfirm ? `<button id="modal-confirm-btn" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-md transition-colors">${confirmText}</button>` : ''}
+                <div class="text-gray-600 text-sm">${contentHtml}</div>
+                <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                    ${onCancel ? `<button id="modal-cancel-btn" class="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300">${cancelText}</button>` : ''}
+                    ${onConfirm ? `<button id="modal-confirm-btn" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">${confirmText}</button>` : ''}
                 </div>
             `;
             showElement(modalContainer);
@@ -215,9 +236,8 @@
             openModal(title, `<p>${message}</p>`, onConfirm, 'Confirmar', () => {}, 'Cancelar');
         }
 
-        // --- LÓGICA DE AUTENTICAÇÃO E PERFIL ---
         onAuthStateChanged(auth, async (firebaseUser) => {
-            hideElement(initialLoadingDiv); // Esconde o loading inicial
+            hideElement(initialLoadingDiv); 
             currentUser = firebaseUser;
             if (firebaseUser) {
                 try {
@@ -228,19 +248,17 @@
                         updateHeaderUI();
                         showElement(appHeader);
                         showElement(appFooter);
-                        if (userProfile.isAdmin) {
-                            currentView = 'adminDashboard';
-                        } else if (userProfile.isManager) {
-                            currentView = 'managerDashboard';
-                        } else {
+                        if (userProfile.isAdmin) currentView = 'adminDashboard';
+                        else if (userProfile.isManager) currentView = 'managerDashboard';
+                        else {
                             showNotification("Usuário não possui perfil de gestor ou admin.", "error");
-                            currentView = 'login'; // Ou uma view de 'acesso negado'
-                            await handleLogout(); // Desloga se não tem perfil adequado
+                            currentView = 'login'; 
+                            await handleLogout(); 
                         }
-                        loadAllData(); // Carrega dados após perfil estar definido
+                        loadAllData(); 
                     } else {
                         showNotification("Perfil do usuário não encontrado. Contacte o administrador.", "error");
-                        await handleLogout(); // Desloga se não tem perfil
+                        await handleLogout(); 
                     }
                 } catch (error) {
                     console.error("Erro ao buscar perfil:", error);
@@ -261,42 +279,32 @@
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
-                    // onAuthStateChanged irá lidar com o resto
                 } else {
-                    // Se não houver token customizado, e a aplicação exigir login,
-                    // o onAuthStateChanged irá direcionar para a tela de login se não houver user.
-                    // Se for uma app pública que permite anônimos para certas coisas:
-                    // await signInAnonymously(auth);
-                    // Mas para este portal, o login é obrigatório.
                     console.log("Nenhum token de autenticação inicial. Aguardando login do usuário.");
                 }
             } catch (error) {
-                console.error("Erro no signInWithCustomToken ou signInAnonymously:", error);
+                console.error("Erro no signInWithCustomToken:", error);
                 showNotification("Falha na autenticação inicial.", "error");
-                // onAuthStateChanged deve levar para o login.
             }
         }
 
-
         async function handleLogin(email, password) {
-            appContent.innerHTML = `<div class="flex justify-center items-center h-64"><div class="loader"></div><p class="ml-4 text-lg">Entrando...</p></div>`;
+            appContent.innerHTML = `<div class="flex flex-col justify-center items-center h-64"><div class="loader"></div><p class="ml-3 text-gray-600 mt-3">Entrando...</p></div>`;
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged irá lidar com a navegação e carregamento do perfil
                 showNotification("Login bem-sucedido!", "success");
             } catch (error) {
                 console.error("Erro no login:", error);
                 showNotification(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
                     ? "Email ou senha inválidos."
                     : "Erro ao fazer login.", "error");
-                renderApp(); // Re-renderiza a tela de login em caso de erro
+                renderApp(); 
             }
         }
 
         async function handleLogout() {
             try {
                 await signOut(auth);
-                // onAuthStateChanged irá limpar currentUser, userProfile e chamar renderApp()
                 showNotification("Logout realizado com sucesso!", "success");
             } catch (error) {
                 console.error("Erro no logout:", error);
@@ -307,53 +315,48 @@
         function updateHeaderUI() {
             if (userProfile) {
                 userInfoHeader.innerHTML = `
-                    <span class="text-sm md:text-base text-gray-300 hidden sm:block">
-                        Olá, <span class="font-semibold text-yellow-400">${userProfile.name}</span> 
-                        (${userProfile.isAdmin ? 'Admin' : userProfile.isManager ? `Gestor - ${userProfile.sector}` : 'Usuário'})
+                    <span class="text-sm text-gray-600 hidden sm:block">
+                        Olá, <span class="font-medium text-gray-800">${userProfile.name}</span> 
+                        <span class="text-gray-400">(${userProfile.isAdmin ? 'Admin' : userProfile.isManager ? `Gestor - ${userProfile.sector}` : 'Usuário'})</span>
                     </span>
-                    <button id="logout-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg flex items-center space-x-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                        <span class="hidden md:inline">Sair</span>
+                    <button id="logout-btn" class="text-sm font-medium text-blue-600 hover:text-blue-700 py-2 px-3 rounded-lg hover:bg-blue-50 transition-colors duration-150 flex items-center space-x-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        <span>Sair</span>
                     </button>
                 `;
                 document.getElementById('logout-btn').addEventListener('click', handleLogout);
-                appFooter.innerHTML = `© ${new Date().getFullYear()} SAF Botafogo - Sistema de Quadro Móvel. Todos os direitos reservados. User ID: ${currentUser?.uid}`;
+                appFooter.innerHTML = `© ${new Date().getFullYear()} SAF Botafogo. Todos os direitos reservados. <span class="text-gray-400">UID: ${currentUser?.uid}</span>`;
             } else {
                 userInfoHeader.innerHTML = '';
             }
         }
         
-        // --- CARREGAMENTO DE DADOS (FIRESTORE) ---
         function getCollectionRef(collectionName, isPublic = true) {
             if (isPublic) {
                 return collection(db, 'artifacts', currentAppId, 'public', 'data', collectionName);
             }
-            // Para 'records' e 'users_profile' que não estão em 'public/data'
             return collection(db, 'artifacts', currentAppId, collectionName);
         }
 
         async function fetchDataWithListener(collectionName, dataKey, queryConstraints = [], isPublic = true, targetCollectionRef = null) {
-            if (!userProfile) return; // Só carrega se autenticado e perfil carregado
+            if (!userProfile) return; 
 
             const collRef = targetCollectionRef || getCollectionRef(collectionName, isPublic);
             let q = query(collRef, ...queryConstraints);
 
-            // Filtro específico para registros de gestores
             if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin) {
                 q = query(collRef, where("sector", "==", userProfile.sector));
             }
-            // Adicionar orderBy para consistência, se necessário (lembre-se dos índices)
-            // q = query(q, orderBy("createdAt", "desc"));
-
-
+            
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                 // Ordenação em memória se orderBy do Firestore não for usado ou for complexo
                 if (dataKey === 'records' || dataKey === 'events') {
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
                 }
                 globalData[dataKey] = items;
-                renderApp(); // Re-renderiza a view atual com os novos dados
+                if (document.getElementById('app-content')) { // Garante que o container existe antes de tentar renderizar
+                    renderApp(); 
+                }
             }, (error) => {
                 console.error(`Erro ao carregar ${collectionName}:`, error);
                 showNotification(`Falha ao carregar ${collectionName}.`, "error");
@@ -362,13 +365,13 @@
         }
 
         function loadAllData() {
-            clearAllDataAndUnsubscribe(); // Limpa listeners anteriores
+            clearAllDataAndUnsubscribe(); 
             if (userProfile) {
                 fetchDataWithListener('events', 'events');
                 fetchDataWithListener('categories', 'categories');
                 fetchDataWithListener('sectors', 'sectors');
                 fetchDataWithListener('employees', 'employees');
-                fetchDataWithListener('records', 'records', [], false, getCollectionRef('records', false)); // 'records' não é public
+                fetchDataWithListener('records', 'records', [], false, getCollectionRef('records', false));
 
                 if (userProfile.isAdmin) {
                     fetchDataWithListener('users_profile', 'allUsers', [], false, getCollectionRef('users_profile', false));
@@ -382,14 +385,12 @@
             globalData = { events: [], categories: [], sectors: [], employees: [], records: [], allUsers: [] };
         }
 
-
-        // --- OPERAÇÕES CRUD ---
         async function addRecordToFirestore(recordData) {
             if (!userProfile || !userProfile.isManager) {
                 showNotification("Apenas gestores podem adicionar registros.", "error");
                 return;
             }
-            appContent.innerHTML = `<div class="flex justify-center items-center h-64"><div class="loader"></div><p class="ml-4 text-lg">Salvando registro...</p></div>`;
+            appContent.innerHTML = `<div class="flex flex-col justify-center items-center h-64"><div class="loader"></div><p class="ml-3 text-gray-600 mt-3">Salvando registro...</p></div>`;
             try {
                 const recordsCollectionRef = getCollectionRef('records', false);
                 await addDoc(recordsCollectionRef, {
@@ -401,20 +402,19 @@
                 });
                 showNotification("Registro adicionado com sucesso!", "success");
                 currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
-                renderApp();
             } catch (error) {
                 console.error("Erro ao adicionar registro:", error);
                 showNotification("Falha ao adicionar registro.", "error");
-                renderApp(); // Volta para o form em caso de erro
             }
+            renderApp();
         }
         
         async function addItemToFirestore(collectionName, data, isPublic = true) {
             if (!userProfile?.isAdmin) return showNotification("Acesso negado.", "error");
             try {
                 await addDoc(getCollectionRef(collectionName, isPublic), { ...data, createdAt: Timestamp.now(), createdBy: currentUser.uid });
-                showNotification(`${collectionName.slice(0,-1)} adicionado com sucesso!`, "success");
-            } catch (e) { showNotification(`Erro ao adicionar ${collectionName.slice(0,-1)}.`, "error"); console.error(e); }
+                showNotification(`${collectionDisplayName(collectionName).singular} adicionado com sucesso!`, "success");
+            } catch (e) { showNotification(`Erro ao adicionar ${collectionDisplayName(collectionName).singular}.`, "error"); console.error(e); }
         }
 
         async function updateItemInFirestore(collectionName, id, data, isPublic = true, targetCollectionRef = null) {
@@ -422,75 +422,77 @@
             try {
                 const itemDocRef = doc(targetCollectionRef || getCollectionRef(collectionName, isPublic), id);
                 await updateDoc(itemDocRef, { ...data, updatedAt: Timestamp.now() });
-                showNotification(`${collectionName.slice(0,-1)} atualizado com sucesso!`, "success");
-            } catch (e) { showNotification(`Erro ao atualizar ${collectionName.slice(0,-1)}.`, "error"); console.error(e); }
+                showNotification(`${collectionDisplayName(collectionName).singular} atualizado com sucesso!`, "success");
+            } catch (e) { showNotification(`Erro ao atualizar ${collectionDisplayName(collectionName).singular}.`, "error"); console.error(e); }
         }
         
         async function deleteItemFromFirestore(collectionName, id, isPublic = true, targetCollectionRef = null) {
             if (!userProfile?.isAdmin) return showNotification("Acesso negado.", "error");
             confirmAction(
                 `Confirmar Exclusão`, 
-                `Tem certeza que deseja excluir este item de ${collectionName}? Esta ação não pode ser desfeita.`,
+                `Tem certeza que deseja excluir este item de ${collectionDisplayName(collectionName).plural}? Esta ação não pode ser desfeita.`,
                 async () => {
                     try {
                         await deleteDoc(doc(targetCollectionRef || getCollectionRef(collectionName, isPublic), id));
-                        showNotification(`${collectionName.slice(0,-1)} excluído com sucesso!`, "success");
-                    } catch (e) { showNotification(`Erro ao excluir ${collectionName.slice(0,-1)}.`, "error"); console.error(e); }
+                        showNotification(`${collectionDisplayName(collectionName).singular} excluído com sucesso!`, "success");
+                    } catch (e) { showNotification(`Erro ao excluir ${collectionDisplayName(collectionName).singular}.`, "error"); console.error(e); }
                 }
             );
         }
+        
+        function collectionDisplayName(key) {
+            const names = {
+                events: { singular: "Evento", plural: "Eventos" },
+                categories: { singular: "Categoria", plural: "Categorias" },
+                sectors: { singular: "Setor", plural: "Setores" },
+                employees: { singular: "Funcionário", plural: "Funcionários" },
+                users_profile: { singular: "Usuário", plural: "Usuários" }
+            };
+            return names[key] || { singular: key.slice(0,-1), plural: key };
+        }
 
-        // --- RENDERIZAÇÃO DA UI ---
+
         function renderApp() {
-            if (!currentUser && currentView !== 'login') { // Força login se não autenticado
+            if (!currentUser && currentView !== 'login') { 
                  currentView = 'login';
             }
             
-            appContent.innerHTML = ''; // Limpa o conteúdo anterior
-            hideElement(initialLoadingDiv); // Garante que o loading inicial está escondido
+            if (!appContent) {
+                console.error("Elemento #app-content não encontrado no DOM.");
+                return;
+            }
+            appContent.innerHTML = ''; 
+            hideElement(initialLoadingDiv); 
 
             switch (currentView) {
-                case 'login':
-                    renderLoginPage();
-                    break;
-                case 'managerDashboard':
-                    renderManagerDashboard();
-                    break;
-                case 'newRecord':
-                    renderNewRecordForm();
-                    break;
-                case 'history':
-                    renderRecordHistory();
-                    break;
-                case 'adminDashboard':
-                    renderAdminDashboard();
-                    break;
+                case 'login': renderLoginPage(); break;
+                case 'managerDashboard': renderManagerDashboard(); break;
+                case 'newRecord': renderNewRecordForm(); break;
+                case 'history': renderRecordHistory(); break;
+                case 'adminDashboard': renderAdminDashboard(); break;
                 case 'adminManageEvents':
-                    renderAdminManageGenericPage('eventos', globalData.events, 
+                    renderAdminManageGenericPage('events', globalData.events, 
                         [{ name: 'name', label: 'Nome do Evento', type: 'text' }, { name: 'date', label: 'Data', type: 'date' }],
                         (data) => addItemToFirestore('events', data),
                         (id, data) => updateItemInFirestore('events', id, data),
                         (id) => deleteItemFromFirestore('events', id)
-                    );
-                    break;
+                    ); break;
                 case 'adminManageCategories':
-                    renderAdminManageGenericPage('categorias', globalData.categories,
+                    renderAdminManageGenericPage('categories', globalData.categories,
                         [{ name: 'name', label: 'Nome da Categoria (A, B, C, D)', type: 'text' }, { name: 'description', label: 'Descrição', type: 'text' }],
                         (data) => addItemToFirestore('categories', data),
                         (id, data) => updateItemInFirestore('categories', id, data),
                         (id) => deleteItemFromFirestore('categories', id)
-                    );
-                    break;
+                    ); break;
                 case 'adminManageSectors':
-                    renderAdminManageGenericPage('setores', globalData.sectors,
+                    renderAdminManageGenericPage('sectors', globalData.sectors,
                         [{ name: 'name', label: 'Nome do Setor', type: 'text' }],
                         (data) => addItemToFirestore('sectors', data),
                         (id, data) => updateItemInFirestore('sectors', id, data),
                         (id) => deleteItemFromFirestore('sectors', id)
-                    );
-                    break;
+                    ); break;
                 case 'adminManageEmployees':
-                    renderAdminManageGenericPage('funcionários', globalData.employees,
+                    renderAdminManageGenericPage('employees', globalData.employees,
                         [
                             { name: 'name', label: 'Nome do Funcionário', type: 'text' },
                             { name: 'registration', label: 'Matrícula', type: 'text' },
@@ -499,41 +501,37 @@
                         (data) => addItemToFirestore('employees', data),
                         (id, data) => updateItemInFirestore('employees', id, data),
                         (id) => deleteItemFromFirestore('employees', id)
-                    );
-                    break;
-                case 'adminManageUsers':
-                    renderAdminManageUsersPage();
-                    break;
-                default:
-                    renderLoginPage();
+                    ); break;
+                case 'adminManageUsers': renderAdminManageUsersPage(); break;
+                default: renderLoginPage();
             }
         }
 
         function renderLoginPage() {
             appContent.innerHTML = `
-                <div class="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] bg-gradient-to-br from-black via-gray-900 to-gray-800 p-4 animate-fadeIn">
-                    <div class="w-full max-w-md bg-gray-800 bg-opacity-80 backdrop-blur-md shadow-2xl rounded-xl p-8 border border-gray-700">
-                        <div class="flex flex-col items-center mb-8">
-                            <img src="https://placehold.co/100x100/FFFFFF/000000?text=BFR" alt="Logo Botafogo" class="h-24 w-24 rounded-full border-4 border-yellow-400 mb-4">
-                            <h2 class="text-4xl font-extrabold text-white text-center">Portal <span class="text-yellow-400">Quadro Móvel</span></h2>
-                            <p class="text-gray-400 mt-2 text-center">Acesso exclusivo para gestores e administradores.</p>
+                <div class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-4 animate-fadeIn">
+                    <div class="w-full max-w-sm bg-white shadow-xl rounded-xl p-8 border border-gray-200">
+                        <div class="flex flex-col items-center mb-6">
+                            <img src="https://placehold.co/80x80/000000/FFFFFF?text=BFR&font=inter" alt="Logo Botafogo" class="h-16 w-16 rounded-lg mb-5">
+                            <h2 class="text-2xl font-semibold text-gray-800 text-center">Portal Quadro Móvel</h2>
+                            <p class="text-gray-500 mt-1 text-sm text-center">Acesso para gestores e administradores.</p>
                         </div>
-                        <form id="login-form" class="space-y-6">
+                        <form id="login-form" class="space-y-5">
                             <div>
-                                <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
-                                <input id="email" type="email" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition-all" placeholder="seu.email@safbfr.com.br">
+                                <label for="email" class="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                                <input id="email" type="email" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="seu.email@safbfr.com.br">
                             </div>
                             <div>
-                                <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Senha</label>
-                                <input id="password" type="password" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition-all" placeholder="••••••••">
+                                <label for="password" class="block text-xs font-medium text-gray-600 mb-1">Senha</label>
+                                <input id="password" type="password" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="••••••••">
                             </div>
-                            <button type="submit" class="w-full flex items-center justify-center text-lg bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-all duration-300 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                            <button type="submit" class="w-full flex items-center justify-center text-sm bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-150 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
                                 Entrar
                             </button>
                         </form>
                     </div>
-                    <footer class="text-center p-6 mt-10 text-gray-500 text-sm">
+                    <footer class="text-center p-6 mt-8 text-gray-500 text-xs">
                         © ${new Date().getFullYear()} SAF Botafogo. Todos os direitos reservados.
                     </footer>
                 </div>
@@ -548,16 +546,16 @@
 
         function renderManagerDashboard() {
             appContent.innerHTML = `
-                <div class="animate-fadeIn">
-                    <h2 class="text-3xl font-bold text-white mb-2">Bem-vindo, Gestor <span class="text-yellow-400">${userProfile.name}</span>!</h2>
-                    <p class="text-gray-400 mb-8 text-lg">Setor: <span class="font-semibold">${userProfile.sector}</span>. Utilize as opções abaixo.</p>
-                    <div class="flex flex-col md:flex-row justify-center items-center space-y-6 md:space-y-0 md:space-x-8 mt-12">
-                        <button id="btn-new-record" class="w-full md:w-auto flex-grow md:flex-grow-0 flex items-center justify-center text-lg bg-gray-700 hover:bg-yellow-500 hover:text-gray-900 text-white font-semibold py-4 px-8 rounded-lg transition-all duration-300 ease-in-out shadow-xl hover:shadow-2xl transform hover:-translate-y-1 border-2 border-transparent hover:border-yellow-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><path d="M12 5v14M5 12h14"></path></svg>
+                <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-1">Bem-vindo, Gestor <span class="text-blue-600">${userProfile.name}</span>!</h2>
+                    <p class="text-gray-500 mb-6 text-sm">Setor: <span class="font-medium text-gray-700">${userProfile.sector}</span>. Utilize as opções abaixo.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                        <button id="btn-new-record" class="flex flex-col items-center justify-center text-center p-6 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded-lg transition-all duration-150 ease-in-out border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2 text-blue-600"><path d="M12 5v14M5 12h14"></path></svg>
                             Incluir Novo Registro
                         </button>
-                        <button id="btn-history" class="w-full md:w-auto flex-grow md:flex-grow-0 flex items-center justify-center text-lg bg-gray-700 hover:bg-yellow-500 hover:text-gray-900 text-white font-semibold py-4 px-8 rounded-lg transition-all duration-300 ease-in-out shadow-xl hover:shadow-2xl transform hover:-translate-y-1 border-2 border-transparent hover:border-yellow-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><path d="M1 4v6h6M23 20v-6h-6"></path><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+                        <button id="btn-history" class="flex flex-col items-center justify-center text-center p-6 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded-lg transition-all duration-150 ease-in-out border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2 text-blue-600"><path d="M1 4v6h6M23 20v-6h-6"></path><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
                             Histórico de Registros
                         </button>
                     </div>
@@ -571,37 +569,32 @@
             const eventsOptions = globalData.events.sort((a,b) => new Date(b.date) - new Date(a.date)).map(event => `<option value="${event.id}">${event.name} (${new Date(event.date + 'T00:00:00').toLocaleDateString()})</option>`).join('');
             const categoriesOptions = globalData.categories.map(cat => `<option value="${cat.id}">${cat.name} - ${cat.description}</option>`).join('');
             const employeesOptions = globalData.employees.map(emp => `<option value="${emp.id}">${emp.name} (${emp.registration}) - ${emp.sector}</option>`).join('');
+            const inputBaseClass = "w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
 
             appContent.innerHTML = `
-                <div class="max-w-2xl mx-auto bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700 animate-fadeIn">
-                    <h2 class="text-3xl font-bold text-white mb-8 text-center">Incluir Novo Registro de Quadro Móvel</h2>
-                    <form id="new-record-form" class="space-y-6">
+                <div class="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 animate-fadeIn">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Incluir Novo Registro de Quadro Móvel</h2>
+                    <form id="new-record-form" class="space-y-5">
                         <div>
-                            <label for="event" class="block text-sm font-medium text-gray-300 mb-1">Evento:</label>
-                            <select id="event" required class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition-colors">
-                                <option value="">Selecione o Evento</option>${eventsOptions}
-                            </select>
+                            <label for="event" class="block text-xs font-medium text-gray-600 mb-1">Evento:</label>
+                            <select id="event" required class="${inputBaseClass}">${eventsOptions ? `<option value="">Selecione o Evento</option>${eventsOptions}` : `<option value="">Nenhum evento cadastrado</option>`}</select>
                         </div>
                         <div>
-                            <label for="category" class="block text-sm font-medium text-gray-300 mb-1">Classificação (Quadro Móvel):</label>
-                            <select id="category" required class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition-colors">
-                                <option value="">Selecione a Classificação</option>${categoriesOptions}
-                            </select>
+                            <label for="category" class="block text-xs font-medium text-gray-600 mb-1">Classificação (Quadro Móvel):</label>
+                            <select id="category" required class="${inputBaseClass}">${categoriesOptions ? `<option value="">Selecione a Classificação</option>${categoriesOptions}` : `<option value="">Nenhuma categoria cadastrada</option>`}</select>
                         </div>
                         <div>
-                            <label for="employee" class="block text-sm font-medium text-gray-300 mb-1">Funcionário:</label>
-                            <select id="employee" required class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition-colors">
-                                <option value="">Selecione o Funcionário</option>${employeesOptions}
-                            </select>
+                            <label for="employee" class="block text-xs font-medium text-gray-600 mb-1">Funcionário:</label>
+                            <select id="employee" required class="${inputBaseClass}">${employeesOptions ? `<option value="">Selecione o Funcionário</option>${employeesOptions}` : `<option value="">Nenhum funcionário cadastrado</option>`}</select>
                         </div>
                         <div>
-                            <label for="notes" class="block text-sm font-medium text-gray-300 mb-1">Observações (Opcional):</label>
-                            <textarea id="notes" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition-colors h-24" placeholder="Detalhes adicionais..."></textarea>
+                            <label for="notes" class="block text-xs font-medium text-gray-600 mb-1">Observações (Opcional):</label>
+                            <textarea id="notes" class="${inputBaseClass} h-24" placeholder="Detalhes adicionais..."></textarea>
                         </div>
-                        <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-4">
-                            <button type="button" id="cancel-new-record" class="w-full sm:w-auto px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors duration-300">Cancelar</button>
-                            <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-lg transition-colors duration-300 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M12 5v14M5 12h14"></path></svg>
+                        <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+                            <button type="button" id="cancel-new-record" class="w-full sm:w-auto px-4 py-2.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300">Cancelar</button>
+                            <button type="submit" class="w-full sm:w-auto px-4 py-2.5 text-sm bg-gray-800 hover:bg-gray-900 text-white font-medium rounded-lg transition-colors duration-150 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M12 5v14M5 12h14"></path></svg>
                                 Salvar Registro
                             </button>
                         </div>
@@ -620,16 +613,12 @@
                 const notes = document.getElementById('notes').value;
 
                 if (!eventId || !categoryId || !employeeId) {
-                    showNotification("Evento, Categoria e Funcionário são obrigatórios.", "error");
-                    return;
+                    showNotification("Evento, Categoria e Funcionário são obrigatórios.", "error"); return;
                 }
                 addRecordToFirestore({
-                    eventId,
-                    eventName: globalData.events.find(ev => ev.id === eventId)?.name,
-                    categoryId,
-                    categoryName: globalData.categories.find(cat => cat.id === categoryId)?.name,
-                    employeeId,
-                    employeeName: globalData.employees.find(emp => emp.id === employeeId)?.name,
+                    eventId, eventName: globalData.events.find(ev => ev.id === eventId)?.name,
+                    categoryId, categoryName: globalData.categories.find(cat => cat.id === categoryId)?.name,
+                    employeeId, employeeName: globalData.employees.find(emp => emp.id === employeeId)?.name,
                     notes
                 });
             });
@@ -640,43 +629,46 @@
             if (userProfile.isManager && !userProfile.isAdmin) {
                 recordsToDisplay = globalData.records.filter(r => r.sector === userProfile.sector);
             }
-            // Adicionar filtros e busca aqui se necessário
+            
             const tableRows = recordsToDisplay.map(record => `
-                <tr class="hover:bg-gray-700 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${record.createdAt?.toDate?.().toLocaleString() || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${record.eventName || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${record.categoryName || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${record.employeeName || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${record.sector}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${record.managerName}</td>
-                    <td class="px-6 py-4 text-sm text-gray-300 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.createdAt?.toDate?.().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) || 'N/A'}</td>
+                    <td class="px-5 py-3.5 text-xs text-gray-700 font-medium whitespace-nowrap">${record.eventName || 'N/A'}</td>
+                    <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.categoryName || 'N/A'}</td>
+                    <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.employeeName || 'N/A'}</td>
+                    <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.sector}</td>
+                    <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.managerName}</td>
+                    <td class="px-5 py-3.5 text-xs text-gray-500 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
                 </tr>
             `).join('');
 
             appContent.innerHTML = `
-                <div class="animate-fadeIn">
-                    <div class="flex flex-col md:flex-row justify-between items-center mb-8">
-                        <h2 class="text-3xl font-bold text-white mb-4 md:mb-0">Histórico de Registros ${userProfile.isManager && !userProfile.isAdmin ? `(${userProfile.sector})` : ''}</h2>
-                        <button id="btn-back-dashboard" class="px-6 py-3 bg-gray-700 hover:bg-yellow-500 hover:text-gray-900 text-white font-semibold rounded-lg transition-all duration-300">
+                <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800">Histórico de Registros</h2>
+                            ${userProfile.isManager && !userProfile.isAdmin ? `<p class="text-xs text-gray-500 mt-0.5">Setor: ${userProfile.sector}</p>` : ''}
+                        </div>
+                        <button id="btn-back-dashboard" class="mt-3 md:mt-0 px-4 py-2 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300">
                             Voltar ao Dashboard
                         </button>
                     </div>
                     ${recordsToDisplay.length === 0 ? 
-                        `<p class="text-gray-400 text-center text-xl py-10">Nenhum registro encontrado.</p>` :
-                        `<div class="overflow-x-auto bg-gray-800 shadow-2xl rounded-lg border border-gray-700">
-                            <table class="min-w-full divide-y divide-gray-700">
-                                <thead class="bg-gray-750">
+                        `<div class="text-center py-10"><p class="text-gray-500 text-sm">Nenhum registro encontrado.</p></div>` :
+                        `<div class="overflow-x-auto border border-gray-200 rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-4 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Data</th>
-                                        <th class="px-6 py-4 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Evento</th>
-                                        <th class="px-6 py-4 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Categoria</th>
-                                        <th class="px-6 py-4 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Funcionário</th>
-                                        <th class="px-6 py-4 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Setor</th>
-                                        <th class="px-6 py-4 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Gestor Lançador</th>
-                                        <th class="px-6 py-4 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Obs.</th>
+                                        <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                                        <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Evento</th>
+                                        <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
+                                        <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Funcionário</th>
+                                        <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Setor</th>
+                                        <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Gestor</th>
+                                        <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Obs.</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-gray-800 divide-y divide-gray-700">${tableRows}</tbody>
+                                <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
                             </table>
                         </div>`
                     }
@@ -689,46 +681,48 @@
         }
         
         function renderAdminDashboard() {
-            const adminButtonClass = "flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-yellow-500 hover:text-gray-900 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-2 border-transparent hover:border-yellow-300";
-            const iconSize = "w-10 h-10 mb-3"; // Tailwind classes for size
+            const adminButtonBaseClass = "flex flex-col items-center justify-center text-center p-5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-all duration-150 ease-in-out border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-lg";
+            const iconBaseClass = "w-8 h-8 mb-2 text-blue-600"; 
 
             appContent.innerHTML = `
                 <div class="animate-fadeIn">
-                    <h2 class="text-4xl font-bold text-white mb-2">Painel Administrativo</h2>
-                    <p class="text-gray-400 mb-10 text-lg">Bem-vindo, <span class="font-semibold text-yellow-400">${userProfile.name}</span>. Gerencie o sistema.</p>
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 mb-8">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-1">Painel Administrativo</h2>
+                        <p class="text-gray-500 text-sm">Bem-vindo, <span class="font-medium text-gray-700">${userProfile.name}</span>. Gerencie todos os aspectos do sistema.</p>
+                    </div>
                     
-                    <div class="mb-12">
-                        <h3 class="text-2xl font-semibold text-yellow-400 mb-6 border-b-2 border-gray-700 pb-2">Ações de Gestor</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <button id="admin-btn-new-record" class="${adminButtonClass} bg-blue-600 hover:bg-blue-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                                <span class="text-lg font-semibold">Incluir Novo Registro</span>
+                    <div class="mb-8">
+                        <h3 class="text-base font-semibold text-gray-500 mb-3 px-1">Ações Rápidas de Gestor</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button id="admin-btn-new-record" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                <span class="text-xs font-medium">Incluir Novo Registro</span>
                             </button>
-                            <button id="admin-btn-history" class="${adminButtonClass} bg-indigo-600 hover:bg-indigo-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6M23 20v-6h-6"></path><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
-                                <span class="text-lg font-semibold">Ver Histórico Completo</span>
+                            <button id="admin-btn-history" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4v6h6M23 20v-6h-6"></path><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+                                <span class="text-xs font-medium">Ver Histórico Completo</span>
                             </button>
                         </div>
                     </div>
 
                     <div>
-                        <h3 class="text-2xl font-semibold text-yellow-400 mb-6 border-b-2 border-gray-700 pb-2">Gerenciamento do Sistema</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <button id="admin-manage-events" class="${adminButtonClass}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                                <span class="text-lg font-semibold">Gerenciar Eventos</span></button>
-                            <button id="admin-manage-categories" class="${adminButtonClass}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                                <span class="text-lg font-semibold">Gerenciar Categorias</span></button>
-                            <button id="admin-manage-sectors" class="${adminButtonClass}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                                <span class="text-lg font-semibold">Gerenciar Setores</span></button>
-                            <button id="admin-manage-employees" class="${adminButtonClass}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                                <span class="text-lg font-semibold">Gerenciar Funcionários</span></button>
-                            <button id="admin-manage-users" class="${adminButtonClass}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                                <span class="text-lg font-semibold">Gerenciar Usuários</span></button>
+                        <h3 class="text-base font-semibold text-gray-500 mb-3 px-1">Gerenciamento do Sistema</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <button id="admin-manage-events" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                <span class="text-xs font-medium">Gerenciar Eventos</span></button>
+                            <button id="admin-manage-categories" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                                <span class="text-xs font-medium">Gerenciar Categorias</span></button>
+                            <button id="admin-manage-sectors" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                                <span class="text-xs font-medium">Gerenciar Setores</span></button>
+                            <button id="admin-manage-employees" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                <span class="text-xs font-medium">Gerenciar Funcionários</span></button>
+                            <button id="admin-manage-users" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                <span class="text-xs font-medium">Gerenciar Usuários</span></button>
                         </div>
                     </div>
                 </div>
@@ -742,41 +736,44 @@
             document.getElementById('admin-manage-users').onclick = () => { currentView = 'adminManageUsers'; renderApp(); };
         }
 
-        function renderAdminManageGenericPage(collectionDisplayName, items, fields, onAdd, onUpdate, onDelete) {
-            const tableHeaders = fields.map(f => `<th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">${f.label}</th>`).join('');
+        function renderAdminManageGenericPage(collectionKey, items, fields, onAdd, onUpdate, onDelete) {
+            const cdn = collectionDisplayName(collectionKey); // cdn = collection display name
+            const inputBaseClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
+
+            const tableHeaders = fields.map(f => `<th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">${f.label}</th>`).join('');
             const tableRows = items.map(item => `
-                <tr class="hover:bg-gray-700 transition-colors">
-                    ${fields.map(field => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${field.type === 'date' && item[field.name] ? new Date(item[field.name] + 'T00:00:00').toLocaleDateString() : item[field.name] || '-'}</td>`).join('')}
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${item.createdAt?.toDate?.().toLocaleDateString() || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
-                        <button class="btn-edit-item text-blue-400 hover:text-blue-300" data-id="${item.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <tr class="hover:bg-gray-50 transition-colors">
+                    ${fields.map(field => `<td class="px-5 py-3 text-xs text-gray-700 whitespace-nowrap">${field.type === 'date' && item[field.name] ? new Date(item[field.name] + 'T00:00:00').toLocaleDateString('pt-BR') : (item[field.name] || '-')}</td>`).join('')}
+                    <td class="px-5 py-3 text-xs text-gray-500 whitespace-nowrap">${item.createdAt?.toDate?.().toLocaleDateString('pt-BR') || '-'}</td>
+                    <td class="px-5 py-3 text-xs font-medium space-x-2.5 whitespace-nowrap">
+                        <button class="btn-edit-item text-blue-600 hover:text-blue-700 p-1 hover:bg-blue-50 rounded-md" data-id="${item.id}" title="Editar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
-                        <button class="btn-delete-item text-red-500 hover:text-red-400" data-id="${item.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        <button class="btn-delete-item text-red-500 hover:text-red-600 p-1 hover:bg-red-50 rounded-md" data-id="${item.id}" title="Excluir">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                         </button>
                     </td>
                 </tr>
             `).join('');
 
             appContent.innerHTML = `
-                <div class="animate-fadeIn">
-                    <div class="flex justify-between items-center mb-8">
-                        <h2 class="text-3xl font-bold text-white">Gerenciar ${collectionDisplayName.charAt(0).toUpperCase() + collectionDisplayName.slice(1)}</h2>
-                        <div class="space-x-3">
-                            <button id="btn-add-new-item" class="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-lg transition-colors duration-300 flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                        <h2 class="text-xl font-semibold text-gray-800">Gerenciar ${cdn.plural}</h2>
+                        <div class="mt-3 sm:mt-0 flex space-x-2">
+                            <button id="btn-back-admin-dash" class="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar</button>
+                            <button id="btn-add-new-item" class="px-3 py-2 text-xs font-medium bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mr-1.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                 Adicionar Novo
                             </button>
-                            <button id="btn-back-admin-dash" class="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors duration-300">Voltar</button>
                         </div>
                     </div>
                     ${items.length === 0 ?
-                        `<p class="text-gray-400 text-center text-xl py-10">Nenhum item em "${collectionDisplayName}" cadastrado.</p>` :
-                        `<div class="overflow-x-auto bg-gray-800 shadow-2xl rounded-lg border border-gray-700">
-                            <table class="min-w-full divide-y divide-gray-700">
-                                <thead class="bg-gray-750"><tr>${tableHeaders}<th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Criado Em</th><th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Ações</th></tr></thead>
-                                <tbody class="bg-gray-800 divide-y divide-gray-700">${tableRows}</tbody>
+                        `<div class="text-center py-10"><p class="text-gray-500 text-sm">Nenhum item em "${cdn.plural}" cadastrado.</p></div>` :
+                        `<div class="overflow-x-auto border border-gray-200 rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50"><tr>${tableHeaders}<th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Criado Em</th><th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Ações</th></tr></thead>
+                                <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
                             </table>
                         </div>`
                     }
@@ -787,17 +784,18 @@
                 let formHtml = '';
                 fields.forEach(field => {
                     const value = itemToEdit ? (itemToEdit[field.name] || '') : '';
+                    const fieldId = `field-${field.name}`;
                     if (field.type === 'select') {
                         const optionsHtml = field.options.map(opt => `<option value="${opt.value}" ${value === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
-                        formHtml += `<div><label for="${field.name}" class="block text-sm font-medium text-gray-300 mb-1">${field.label}:</label><select id="${field.name}" name="${field.name}" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition-colors" required><option value="">Selecione</option>${optionsHtml}</select></div>`;
+                        formHtml += `<div class="mb-4"><label for="${fieldId}" class="block text-xs font-medium text-gray-600 mb-1">${field.label}:</label><select id="${fieldId}" name="${field.name}" class="${inputBaseClass}" required><option value="">Selecione</option>${optionsHtml}</select></div>`;
                     } else {
-                        formHtml += `<div><label for="${field.name}" class="block text-sm font-medium text-gray-300 mb-1">${field.label}:</label><input type="${field.type || 'text'}" id="${field.name}" name="${field.name}" value="${value}" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none transition-colors" required></div>`;
+                        formHtml += `<div class="mb-4"><label for="${fieldId}" class="block text-xs font-medium text-gray-600 mb-1">${field.label}:</label><input type="${field.type || 'text'}" id="${fieldId}" name="${field.name}" value="${value}" class="${inputBaseClass}" required></div>`;
                     }
                 });
-                const modalTitle = itemToEdit ? `Editar ${collectionDisplayName.slice(0,-1)}` : `Adicionar ${collectionDisplayName.slice(0,-1)}`;
-                openModal(modalTitle, `<form id="item-form" class="space-y-4">${formHtml}</form>`, async () => {
+                const modalTitle = itemToEdit ? `Editar ${cdn.singular}` : `Adicionar ${cdn.singular}`;
+                openModal(modalTitle, `<form id="item-form" class="space-y-1">${formHtml.replace(/class="mb-4"/g, '')}</form>`, async () => { // Remove mb-4 from last field for better spacing with buttons
                     const formData = {};
-                    fields.forEach(field => formData[field.name] = document.getElementById(field.name).value);
+                    fields.forEach(field => formData[field.name] = document.getElementById(`field-${field.name}`).value);
                     if (itemToEdit) {
                         await onUpdate(itemToEdit.id, formData);
                     } else {
@@ -821,42 +819,46 @@
 
         function renderAdminManageUsersPage() {
             const users = globalData.allUsers;
+            const cdn = collectionDisplayName('users_profile');
             const sectorsOptionsHtml = globalData.sectors.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            const inputBaseClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
+            const checkboxClass = "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500";
+
 
             const tableRows = users.map(user => `
-                <tr class="hover:bg-gray-700 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${user.name || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${user.email}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${user.sector || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${user.isManager ? '✅' : '❌'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${user.isAdmin ? '🛡️' : '❌'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button class="btn-edit-user text-blue-400 hover:text-blue-300" data-id="${user.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-5 py-3 text-xs text-gray-700 font-medium whitespace-nowrap">${user.name || 'N/A'}</td>
+                    <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.email}</td>
+                    <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.sector || 'N/A'}</td>
+                    <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.isManager ? '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sim</span>' : '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>'}</td>
+                    <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.isAdmin ? '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Sim</span>' : '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>'}</td>
+                    <td class="px-5 py-3 text-xs font-medium whitespace-nowrap">
+                        <button class="btn-edit-user text-blue-600 hover:text-blue-700 p-1 hover:bg-blue-50 rounded-md" data-id="${user.id}" title="Editar Usuário">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
                     </td>
                 </tr>
             `).join('');
 
             appContent.innerHTML = `
-                <div class="animate-fadeIn">
-                    <div class="flex justify-between items-center mb-8">
-                        <h2 class="text-3xl font-bold text-white">Gerenciar Usuários</h2>
-                        <button id="btn-back-admin-dash-users" class="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors duration-300">Voltar</button>
+                <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold text-gray-800">Gerenciar ${cdn.plural}</h2>
+                        <button id="btn-back-admin-dash-users" class="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar</button>
                     </div>
                     ${users.length === 0 ?
-                        `<p class="text-gray-400 text-center text-xl py-10">Nenhum usuário encontrado.</p>` :
-                        `<div class="overflow-x-auto bg-gray-800 shadow-2xl rounded-lg border border-gray-700">
-                            <table class="min-w-full divide-y divide-gray-700">
-                                <thead class="bg-gray-750"><tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Nome</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Setor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Gestor?</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Admin?</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-400 uppercase tracking-wider">Ações</th>
+                        `<div class="text-center py-10"><p class="text-gray-500 text-sm">Nenhum usuário encontrado.</p></div>` :
+                        `<div class="overflow-x-auto border border-gray-200 rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50"><tr>
+                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Nome</th>
+                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Setor</th>
+                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Gestor?</th>
+                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Admin?</th>
+                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
                                 </tr></thead>
-                                <tbody class="bg-gray-800 divide-y divide-gray-700">${tableRows}</tbody>
+                                <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
                             </table>
                         </div>`
                     }
@@ -866,33 +868,32 @@
             const openUserModal = (userToEdit) => {
                 const formHtml = `
                     <form id="user-form" class="space-y-4">
-                        <div><label for="userName" class="block text-sm font-medium text-gray-300 mb-1">Nome:</label>
-                             <input type="text" id="userName" value="${userToEdit.name || ''}" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" required></div>
-                        <div><label class="block text-sm font-medium text-gray-300 mb-1">Email: (Não editável)</label>
-                             <input type="email" value="${userToEdit.email}" class="w-full p-3 bg-gray-600 border border-gray-600 rounded-lg text-white cursor-not-allowed" readonly></div>
-                        <div><label for="userSector" class="block text-sm font-medium text-gray-300 mb-1">Setor:</label>
-                             <select id="userSector" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                        <div><label for="userNameModal" class="block text-xs font-medium text-gray-600 mb-1">Nome:</label>
+                             <input type="text" id="userNameModal" value="${userToEdit.name || ''}" class="${inputBaseClass}" required></div>
+                        <div><label class="block text-xs font-medium text-gray-600 mb-1">Email: (Não editável)</label>
+                             <input type="email" value="${userToEdit.email}" class="${inputBaseClass} bg-gray-100 cursor-not-allowed" readonly></div>
+                        <div><label for="userSectorModal" class="block text-xs font-medium text-gray-600 mb-1">Setor:</label>
+                             <select id="userSectorModal" class="${inputBaseClass}">
                                 <option value="" ${!userToEdit.sector ? 'selected': ''}>Nenhum</option>
-                                ${sectorsOptionsHtml.replace(`value="${userToEdit.sector}"`, `value="${userToEdit.sector}" selected`)}
+                                ${sectorsOptionsHtml.replace(new RegExp(`value="${userToEdit.sector}"`), `value="${userToEdit.sector}" selected`)}
                              </select></div>
-                        <div class="grid grid-cols-2 gap-4 pt-2">
-                            <label class="flex items-center space-x-2 text-gray-300"><input type="checkbox" id="userIsManager" ${userToEdit.isManager ? 'checked' : ''} class="h-5 w-5 text-yellow-500 bg-gray-700 border-gray-600 rounded focus:ring-yellow-400"><span>É Gestor?</span></label>
-                            <label class="flex items-center space-x-2 text-gray-300"><input type="checkbox" id="userIsAdmin" ${userToEdit.isAdmin ? 'checked' : ''} class="h-5 w-5 text-yellow-500 bg-gray-700 border-gray-600 rounded focus:ring-yellow-400"><span>É Admin?</span></label>
+                        <div class="grid grid-cols-2 gap-4 pt-1">
+                            <label class="flex items-center space-x-2 text-sm text-gray-700"><input type="checkbox" id="userIsManagerModal" ${userToEdit.isManager ? 'checked' : ''} class="${checkboxClass}"><span>É Gestor?</span></label>
+                            <label class="flex items-center space-x-2 text-sm text-gray-700"><input type="checkbox" id="userIsAdminModal" ${userToEdit.isAdmin ? 'checked' : ''} class="${checkboxClass}"><span>É Admin?</span></label>
                         </div>
                     </form>`;
                 openModal(`Editar Usuário: ${userToEdit.name}`, formHtml, async () => {
                     const updatedData = {
-                        name: document.getElementById('userName').value,
-                        sector: document.getElementById('userSector').value,
-                        isManager: document.getElementById('userIsManager').checked,
-                        isAdmin: document.getElementById('userIsAdmin').checked,
-                        email: userToEdit.email // Mantém email original
+                        name: document.getElementById('userNameModal').value,
+                        sector: document.getElementById('userSectorModal').value,
+                        isManager: document.getElementById('userIsManagerModal').checked,
+                        isAdmin: document.getElementById('userIsAdminModal').checked,
+                        email: userToEdit.email 
                     };
                     await updateItemInFirestore('users_profile', userToEdit.id, updatedData, false, getCollectionRef('users_profile', false));
-                     // Atualiza o perfil do usuário logado se ele mesmo for editado
                     if (currentUser.uid === userToEdit.id) {
                         userProfile = { ...userProfile, ...updatedData };
-                        updateHeaderUI(); // Atualiza o header com novas roles/setor
+                        updateHeaderUI(); 
                     }
                 }, 'Salvar Alterações');
             };
@@ -901,15 +902,12 @@
             document.querySelectorAll('.btn-edit-user').forEach(btn => btn.addEventListener('click', (e) => {
                 const userId = e.currentTarget.dataset.id;
                 const user = users.find(u => u.id === userId);
-                openUserModal(user);
+                if(user) openUserModal(user);
             }));
         }
 
-        // --- INICIALIZAÇÃO DA APLICAÇÃO ---
-        // Adiciona listeners globais ou inicializa a primeira view
         document.addEventListener('DOMContentLoaded', () => {
-            performInitialSignIn(); // Tenta o login com token customizado ou anônimo
-            // A primeira renderização efetiva ocorre dentro do onAuthStateChanged
+            performInitialSignIn(); 
         });
 
     </script>
