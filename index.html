@@ -79,10 +79,10 @@
             @apply flex flex-col;
         }
         .filter-label {
-            @apply text-xxs font-medium text-gray-500 mb-0.5; /* Fonte menor e margem ajustada */
+            @apply text-xs font-medium text-gray-500 mb-1; /* Ajustado para text-xs e mb-1 */
         }
         .filter-input {
-            @apply w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-300; /* Padding ajustado, borda mais clara */
+            @apply w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-300; 
         }
     </style>
 </head>
@@ -777,11 +777,11 @@
             currentFilteredRecordsForExport = [...recordsToDisplay]; 
 
             const adminFiltersHtml = userProfile.isAdmin ? `
-                <div class="mb-6 pt-2 pb-4 border-b border-gray-200"> {/* Removido bg-gray-50 e border */}
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 items-end"> {/* Grid mais compacto */}
+                <div class="mb-6 pt-2 pb-4 border-b border-gray-200">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-4 items-end"> {/* Ajustado gap-y */}
                         <div class="filter-group">
                             <label for="filter-search" class="filter-label">Termo Geral:</label>
-                            <input type="text" id="filter-search" class="filter-input" placeholder="Nome, matrícula, evento...">
+                            <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, etc.">
                         </div>
                         <div class="filter-group">
                             <label for="filter-sector" class="filter-label">Setor:</label>
@@ -794,14 +794,14 @@
                             <label for="filter-category" class="filter-label">Categoria:</label>
                             <select id="filter-category" class="filter-input">
                                 <option value="">Todas</option>
-                                ${globalData.categories.map(c => `<option value="${c.id}">${c.name} - ${c.description}</option>`).join('')}
+                                ${globalData.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
                             </select>
                         </div>
                         <div class="filter-group">
                             <label for="filter-employee" class="filter-label">Funcionário:</label>
                             <select id="filter-employee" class="filter-input">
                                 <option value="">Todos</option>
-                                ${globalData.employees.map(e => `<option value="${e.id}">${e.name} (${e.registration})</option>`).join('')}
+                                ${globalData.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
                             </select>
                         </div>
                          <div class="filter-group">
@@ -816,17 +816,17 @@
                             <input type="text" id="filter-event-name" class="filter-input" placeholder="Nome exato do evento">
                         </div>
                         <div class="filter-group">
-                            <label for="filter-date-start" class="filter-label">Data Inicial (Criação):</label>
+                            <label for="filter-date-start" class="filter-label">Criação (De):</label>
                             <input type="date" id="filter-date-start" class="filter-input">
                         </div>
                         <div class="filter-group">
-                            <label for="filter-date-end" class="filter-label">Data Final (Criação):</label>
+                            <label for="filter-date-end" class="filter-label">Criação (Até):</label>
                             <input type="date" id="filter-date-end" class="filter-input">
                         </div>
-                         <div class="filter-group md:col-start-2 lg:col-start-auto flex items-end space-x-2"> {/* Ajuste para alinhamento dos botões */}
-                            <button id="btn-clear-filters" class="w-full px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md shadow-sm">Limpar</button>
-                            <button id="btn-apply-filters" class="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm">Aplicar</button>
-                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2"> 
+                        <button id="btn-clear-filters" class="px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md shadow-sm">Limpar Filtros</button>
+                        <button id="btn-apply-filters" class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm">Aplicar Filtros</button>
                     </div>
                 </div>
             ` : '';
@@ -1242,10 +1242,10 @@
                                 <thead class="bg-gray-50"><tr>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Setor</th>
-                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Gestor?</th>
-                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Admin?</th>
-                                    <th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gestor?</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin?</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                                 </tr></thead>
                                 <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
                             </table>
