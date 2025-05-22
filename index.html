@@ -45,27 +45,42 @@
             height: 30px;
             animation: spin 0.8s linear infinite;
         }
+        /* Pequeno loader para botões */
+        .loader_small_blue {
+            border: 2px solid #cce5ff; /* Azul claro para contraste com botão azul */
+            border-top: 2px solid #ffffff; /* Branco */
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.8s linear infinite;
+        }
+         .loader_small_gray {
+            border: 2px solid #e9ecef; 
+            border-top: 2px solid #6c757d; 
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.8s linear infinite;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Ajustes finos para inputs e selects para um look mais clean */
         select, input[type="text"], input[type="email"], input[type="password"], input[type="date"], textarea {
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
-            background-image: none; /* Remove setas padrão em alguns navegadores */
+            background-image: none; 
         }
-        /* Adiciona uma seta customizada para selects se desejado, mas para um look Apple/Google, muitas vezes é omitida ou muito sutil */
          select {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236c757d'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
             background-size: 1.25em 1.25em;
-            padding-right: 2.5rem; /* Espaço para a seta */
+            padding-right: 2.5rem; 
         }
         textarea {
-            resize: vertical; /* Permite apenas redimensionamento vertical */
+            resize: vertical; 
         }
     </style>
 </head>
@@ -207,7 +222,7 @@
             }, duration);
         }
         
-        function openModal(title, contentHtml, onConfirm = null, confirmText = 'Confirmar', onCancel = null, cancelText = 'Cancelar') {
+        function openModal(title, contentHtml, onConfirmAsync = null, confirmText = 'Confirmar', onCancel = null, cancelText = 'Cancelar') {
             modalContent.innerHTML = `
                 <div class="flex justify-between items-center mb-5">
                     <h3 class="text-xl font-semibold text-gray-800">${title}</h3>
@@ -216,25 +231,53 @@
                     </button>
                 </div>
                 <div class="text-gray-600 text-sm">${contentHtml}</div>
-                <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                <div id="modal-actions" class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
                     ${onCancel ? `<button id="modal-cancel-btn" class="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300">${cancelText}</button>` : ''}
-                    ${onConfirm ? `<button id="modal-confirm-btn" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">${confirmText}</button>` : ''}
+                    ${onConfirmAsync ? `<button id="modal-confirm-btn" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 min-w-[120px] text-center">${confirmText}</button>` : ''}
                 </div>
             `;
             showElement(modalContainer);
             document.getElementById('modal-close-btn').onclick = closeModal;
-            if (onCancel) document.getElementById('modal-cancel-btn').onclick = () => { closeModal(); onCancel(); };
-            if (onConfirm) document.getElementById('modal-confirm-btn').onclick = () => { closeModal(); onConfirm(); };
+            
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+            if (cancelBtn && typeof onCancel === 'function') {
+                cancelBtn.onclick = () => { closeModal(); onCancel(); };
+            }
+            
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            if (confirmBtn && typeof onConfirmAsync === 'function') {
+                confirmBtn.onclick = async () => {
+                    const originalButtonText = confirmBtn.innerHTML;
+                    const cancelButton = document.getElementById('modal-cancel-btn');
+                    
+                    confirmBtn.disabled = true;
+                    if(cancelButton) cancelButton.disabled = true;
+                    confirmBtn.innerHTML = `<span class="flex items-center justify-center"><span class="loader_small_blue mr-2"></span>Processando...</span>`;
+
+                    try {
+                        await onConfirmAsync(); 
+                    } catch (e) {
+                        console.error("Error during modal confirm operation (caught in openModal):", e);
+                    } finally {
+                        // Only close modal if operation was meant to succeed without further user action in modal
+                        // Success/error notifications are handled by the onConfirmAsync function itself.
+                        // The onSnapshot listener will then re-render the list.
+                        closeModal(); 
+                        // Button state is reset when modal is closed and reopened.
+                    }
+                };
+            }
         }
 
         function closeModal() {
             hideElement(modalContainer);
-            modalContent.innerHTML = '';
+            modalContent.innerHTML = ''; // Clear content for next use
         }
 
-        function confirmAction(title, message, onConfirm) {
-            openModal(title, `<p>${message}</p>`, onConfirm, 'Confirmar', () => {}, 'Cancelar');
+        function confirmAction(title, message, onConfirmAsync) { // Renamed onConfirm to onConfirmAsync
+            openModal(title, `<p>${message}</p>`, onConfirmAsync, 'Confirmar', () => {}, 'Cancelar');
         }
+
 
         onAuthStateChanged(auth, async (firebaseUser) => {
             hideElement(initialLoadingDiv); 
@@ -354,7 +397,7 @@
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
                 }
                 globalData[dataKey] = items;
-                if (document.getElementById('app-content')) { // Garante que o container existe antes de tentar renderizar
+                if (document.getElementById('app-content')) { 
                     renderApp(); 
                 }
             }, (error) => {
@@ -390,7 +433,7 @@
                 showNotification("Apenas gestores podem adicionar registros.", "error");
                 return;
             }
-            appContent.innerHTML = `<div class="flex flex-col justify-center items-center h-64"><div class="loader"></div><p class="ml-3 text-gray-600 mt-3">Salvando registro...</p></div>`;
+            // O feedback de loading é gerenciado pelo modal agora
             try {
                 const recordsCollectionRef = getCollectionRef('records', false);
                 await addDoc(recordsCollectionRef, {
@@ -402,40 +445,75 @@
                 });
                 showNotification("Registro adicionado com sucesso!", "success");
                 currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                // renderApp() será chamado pelo onSnapshot ou após o modal fechar.
             } catch (error) {
                 console.error("Erro ao adicionar registro:", error);
                 showNotification("Falha ao adicionar registro.", "error");
             }
-            renderApp();
+            // Se o modal não fechar automaticamente em caso de erro, pode ser necessário re-renderizar
+            // Mas o modal agora fecha no 'finally' do seu manipulador de clique.
+            // A atualização da lista principal é feita pelo onSnapshot.
         }
         
-        async function addItemToFirestore(collectionName, data, isPublic = true) {
-            if (!userProfile?.isAdmin) return showNotification("Acesso negado.", "error");
+        async function addItemToFirestore(collectionNameKey, data, isPublic = true) {
+            if (!userProfile) { 
+                showNotification("Perfil de usuário não carregado. Tente recarregar a página.", "error");
+                return Promise.reject(new Error("Perfil não carregado")); // Retorna uma promessa rejeitada para o modal
+            }
+            if (!userProfile.isAdmin) { 
+                showNotification("Acesso negado. Apenas administradores podem adicionar itens.", "error");
+                return Promise.reject(new Error("Acesso negado")); // Retorna uma promessa rejeitada
+            }
+
             try {
-                await addDoc(getCollectionRef(collectionName, isPublic), { ...data, createdAt: Timestamp.now(), createdBy: currentUser.uid });
-                showNotification(`${collectionDisplayName(collectionName).singular} adicionado com sucesso!`, "success");
-            } catch (e) { showNotification(`Erro ao adicionar ${collectionDisplayName(collectionName).singular}.`, "error"); console.error(e); }
+                const collRef = getCollectionRef(collectionNameKey, isPublic);
+                await addDoc(collRef, { ...data, createdAt: Timestamp.now(), createdBy: currentUser.uid });
+                showNotification(`${collectionDisplayName(collectionNameKey).singular} adicionado com sucesso!`, "success");
+                // O onSnapshot listener irá lidar com a re-renderização da lista.
+            } catch (e) {
+                showNotification(`Erro ao adicionar ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error");
+                console.error(`Error adding to ${collectionNameKey}:`, e);
+                throw e; // Re-lança o erro para que o modal possa lidar com ele (embora o modal já feche)
+            }
         }
 
-        async function updateItemInFirestore(collectionName, id, data, isPublic = true, targetCollectionRef = null) {
-            if (!userProfile?.isAdmin) return showNotification("Acesso negado.", "error");
+        async function updateItemInFirestore(collectionNameKey, id, data, isPublic = true, targetCollectionRef = null) {
+            if (!userProfile) { 
+                showNotification("Perfil de usuário não carregado.", "error");
+                return Promise.reject(new Error("Perfil não carregado"));
+            }
+            if (!userProfile.isAdmin) { 
+                showNotification("Acesso negado.", "error");
+                return Promise.reject(new Error("Acesso negado"));
+            }
             try {
-                const itemDocRef = doc(targetCollectionRef || getCollectionRef(collectionName, isPublic), id);
+                const itemDocRef = doc(targetCollectionRef || getCollectionRef(collectionNameKey, isPublic), id);
                 await updateDoc(itemDocRef, { ...data, updatedAt: Timestamp.now() });
-                showNotification(`${collectionDisplayName(collectionName).singular} atualizado com sucesso!`, "success");
-            } catch (e) { showNotification(`Erro ao atualizar ${collectionDisplayName(collectionName).singular}.`, "error"); console.error(e); }
+                showNotification(`${collectionDisplayName(collectionNameKey).singular} atualizado com sucesso!`, "success");
+            } catch (e) { 
+                showNotification(`Erro ao atualizar ${collectionDisplayName(collectionNameKey).singular}.`, "error"); 
+                console.error(e);
+                throw e; 
+            }
         }
         
-        async function deleteItemFromFirestore(collectionName, id, isPublic = true, targetCollectionRef = null) {
+        async function deleteItemFromFirestore(collectionNameKey, id, isPublic = true, targetCollectionRef = null) {
             if (!userProfile?.isAdmin) return showNotification("Acesso negado.", "error");
+            
+            // A função confirmAction agora espera uma função async para o onConfirm
             confirmAction(
                 `Confirmar Exclusão`, 
-                `Tem certeza que deseja excluir este item de ${collectionDisplayName(collectionName).plural}? Esta ação não pode ser desfeita.`,
-                async () => {
+                `Tem certeza que deseja excluir este item de ${collectionDisplayName(collectionNameKey).plural}? Esta ação não pode ser desfeita.`,
+                async () => { // Esta é a função onConfirmAsync
                     try {
-                        await deleteDoc(doc(targetCollectionRef || getCollectionRef(collectionName, isPublic), id));
-                        showNotification(`${collectionDisplayName(collectionName).singular} excluído com sucesso!`, "success");
-                    } catch (e) { showNotification(`Erro ao excluir ${collectionDisplayName(collectionName).singular}.`, "error"); console.error(e); }
+                        await deleteDoc(doc(targetCollectionRef || getCollectionRef(collectionNameKey, isPublic), id));
+                        showNotification(`${collectionDisplayName(collectionNameKey).singular} excluído com sucesso!`, "success");
+                        // onSnapshot irá atualizar a UI
+                    } catch (e) { 
+                        showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}.`, "error"); 
+                        console.error(e); 
+                        // Não precisa re-lançar aqui, pois a notificação de erro já foi mostrada.
+                    }
                 }
             );
         }
@@ -737,7 +815,7 @@
         }
 
         function renderAdminManageGenericPage(collectionKey, items, fields, onAdd, onUpdate, onDelete) {
-            const cdn = collectionDisplayName(collectionKey); // cdn = collection display name
+            const cdn = collectionDisplayName(collectionKey); 
             const inputBaseClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
 
             const tableHeaders = fields.map(f => `<th class="px-5 py-2.5 text-left text-xxs font-semibold text-gray-500 uppercase tracking-wider">${f.label}</th>`).join('');
@@ -784,7 +862,7 @@
                 let formHtml = '';
                 fields.forEach(field => {
                     const value = itemToEdit ? (itemToEdit[field.name] || '') : '';
-                    const fieldId = `field-${field.name}`;
+                    const fieldId = `field-${field.name}`; // Unique ID for each field in the modal
                     if (field.type === 'select') {
                         const optionsHtml = field.options.map(opt => `<option value="${opt.value}" ${value === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
                         formHtml += `<div class="mb-4"><label for="${fieldId}" class="block text-xs font-medium text-gray-600 mb-1">${field.label}:</label><select id="${fieldId}" name="${field.name}" class="${inputBaseClass}" required><option value="">Selecione</option>${optionsHtml}</select></div>`;
@@ -793,15 +871,43 @@
                     }
                 });
                 const modalTitle = itemToEdit ? `Editar ${cdn.singular}` : `Adicionar ${cdn.singular}`;
-                openModal(modalTitle, `<form id="item-form" class="space-y-1">${formHtml.replace(/class="mb-4"/g, '')}</form>`, async () => { // Remove mb-4 from last field for better spacing with buttons
+                
+                // This is the async operation to be performed on confirm
+                const asyncOperation = async () => {
                     const formData = {};
-                    fields.forEach(field => formData[field.name] = document.getElementById(`field-${field.name}`).value);
+                    let formIsValid = true;
+                    const formElement = document.getElementById('item-form'); // Get the form to check validity
+                    if (formElement && !formElement.checkValidity()) {
+                         showNotification("Por favor, preencha todos os campos obrigatórios.", "error");
+                         formIsValid = false; // Prevent submission if form is invalid
+                         // Optionally, trigger browser's native validation UI
+                         // formElement.reportValidity();
+                         return Promise.reject(new Error("Formulário inválido")); // Stop execution
+                    }
+
+                    fields.forEach(field => {
+                        const inputElement = document.getElementById(`field-${field.name}`);
+                        if (inputElement) {
+                             formData[field.name] = inputElement.value;
+                        } else {
+                            console.warn(`Elemento do formulário não encontrado para o campo: field-${field.name}`);
+                        }
+                    });
+
+                    if (!formIsValid) return; // Double check
+
                     if (itemToEdit) {
                         await onUpdate(itemToEdit.id, formData);
                     } else {
                         await onAdd(formData);
                     }
-                }, itemToEdit ? 'Salvar Alterações' : 'Adicionar');
+                };
+
+                openModal(modalTitle, 
+                    `<form id="item-form" class="space-y-1">${formHtml.replace(/class="mb-4"(?![\s\S]*class="mb-4")/g, '')}</form>`, // Remove mb-4 from last field for better spacing with buttons
+                    asyncOperation, 
+                    itemToEdit ? 'Salvar Alterações' : 'Adicionar'
+                );
             };
 
             document.getElementById('btn-add-new-item').addEventListener('click', () => openItemModal());
@@ -809,11 +915,11 @@
             document.querySelectorAll('.btn-edit-item').forEach(btn => btn.addEventListener('click', (e) => {
                 const itemId = e.currentTarget.dataset.id;
                 const item = items.find(i => i.id === itemId);
-                openItemModal(item);
+                if (item) openItemModal(item);
             }));
             document.querySelectorAll('.btn-delete-item').forEach(btn => btn.addEventListener('click', (e) => {
                 const itemId = e.currentTarget.dataset.id;
-                onDelete(itemId);
+                deleteItemFromFirestore(collectionKey, itemId); // Pass the correct collectionKey
             }));
         }
 
@@ -882,7 +988,8 @@
                             <label class="flex items-center space-x-2 text-sm text-gray-700"><input type="checkbox" id="userIsAdminModal" ${userToEdit.isAdmin ? 'checked' : ''} class="${checkboxClass}"><span>É Admin?</span></label>
                         </div>
                     </form>`;
-                openModal(`Editar Usuário: ${userToEdit.name}`, formHtml, async () => {
+                
+                const asyncUserUpdate = async () => {
                     const updatedData = {
                         name: document.getElementById('userNameModal').value,
                         sector: document.getElementById('userSectorModal').value,
@@ -895,7 +1002,8 @@
                         userProfile = { ...userProfile, ...updatedData };
                         updateHeaderUI(); 
                     }
-                }, 'Salvar Alterações');
+                };
+                openModal(`Editar Usuário: ${userToEdit.name}`, formHtml, asyncUserUpdate, 'Salvar Alterações');
             };
 
             document.getElementById('btn-back-admin-dash-users').addEventListener('click', () => { currentView = 'adminDashboard'; renderApp(); });
