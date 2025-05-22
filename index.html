@@ -157,7 +157,13 @@
         };
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfigFromUser;
-        const currentAppId = (typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId) || 'default-app-id';
+        
+        // AJUSTE AQUI: Priorizar o projectId para consistência com a configuração manual de dados.
+        const currentAppId = firebaseConfig.projectId || 'default-app-id';
+        if (typeof __app_id !== 'undefined' && __app_id !== firebaseConfig.projectId) {
+            console.warn(`Variável __app_id ('${__app_id}') detectada e diferente do projectId ('${firebaseConfig.projectId}'). Usando firebaseConfig.projectId para caminhos do Firestore para consistência com a configuração manual de dados que utiliza o projectId.`);
+        }
+
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -258,7 +264,6 @@
                         await onConfirmAsync(); 
                     } catch (e) {
                         console.error("Error during modal confirm operation (caught in openModal):", e);
-                        // Error notification is handled by the onConfirmAsync function (e.g., addItemToFirestore)
                     } finally {
                         closeModal(); 
                     }
@@ -281,13 +286,12 @@
             currentUser = firebaseUser;
             if (firebaseUser) {
                 try {
-                    // Log para depuração do caminho do perfil
                     console.log(`Tentando buscar perfil em: artifacts/${currentAppId}/users_profile/${firebaseUser.uid}`);
                     const userDocRef = doc(db, 'artifacts', currentAppId, 'users_profile', firebaseUser.uid);
                     const userDocSnap = await getDoc(userDocRef);
                     if (userDocSnap.exists()) {
                         userProfile = { id: userDocSnap.id, ...userDocSnap.data() };
-                        console.log("Perfil do usuário encontrado:", userProfile); // Log do perfil
+                        console.log("Perfil do usuário encontrado:", userProfile); 
                         updateHeaderUI();
                         showElement(appHeader);
                         showElement(appFooter);
@@ -305,7 +309,7 @@
                         await handleLogout(); 
                     }
                 } catch (error) {
-                    console.error("Erro ao buscar perfil:", error); // O erro original é logado aqui
+                    console.error("Erro ao buscar perfil:", error); 
                     showNotification("Erro ao carregar perfil. Tente novamente.", "error");
                     await handleLogout();
                 }
@@ -341,7 +345,7 @@
                 console.error("Erro no login:", error);
                 showNotification(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
                     ? "Email ou senha inválidos."
-                    : "Erro ao fazer login.", "error");
+                    : `Erro ao fazer login: ${error.message} (código: ${error.code})`, "error"); // Mensagem de erro mais detalhada
                 renderApp(); 
             }
         }
@@ -731,8 +735,6 @@
                         submitButton.disabled = false;
                         submitButton.innerHTML = originalButtonContent;
                     }
-                    // Se a view mudar devido ao sucesso, o botão não existirá mais para ser resetado aqui.
-                    // A renderApp() chamada por addRecordToFirestore ou onSnapshot cuidará da UI.
                 }
             });
         }
@@ -1057,76 +1059,3 @@
     </script>
 </body>
 </html>
-```
-
-
-```firestore
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // Funções auxiliares agora recebem appId_wildcard como parâmetro
-    function getUserProfileData(userId, appIdFromPath) {
-      let path = /databases/$(database)/documents/artifacts/$(appIdFromPath)/users_profile/$(userId);
-      return exists(path) ? get(path).data : null;
-    }
-
-    function isAdmin(userId, appIdFromPath) {
-      let profileData = getUserProfileData(userId, appIdFromPath);
-      return profileData != null && profileData.isAdmin == true;
-    }
-
-    function isManager(userId, appIdFromPath) {
-      let profileData = getUserProfileData(userId, appIdFromPath);
-      return profileData != null && profileData.isManager == true;
-    }
-    
-    function getManagerSector(userId, appIdFromPath) {
-        let profileData = getUserProfileData(userId, appIdFromPath);
-        return (profileData != null &&
-                profileData.isManager == true && 
-                'sector' in profileData) ? profileData.sector : "";
-    }
-
-    // Usar um nome diferente para o wildcard para evitar confusão com a variável $(appId)
-    // que não é automaticamente escopada para dentro de funções globais da mesma forma.
-    match /artifacts/{appId_wildcard} {
-
-      // Coleções públicas (eventos, categorias, setores, funcionários)
-      match /public/data/{collectionName}/{docId} {
-        allow read: if request.auth != null;
-        // Passa o appId_wildcard capturado do path para a função isAdmin
-        allow write: if request.auth != null && isAdmin(request.auth.uid, appId_wildcard);
-      }
-
-      // Perfis de Usuário
-      match /users_profile/{userId} {
-        allow read: if request.auth != null && (
-                        request.auth.uid == userId || 
-                        isAdmin(request.auth.uid, appId_wildcard) // Passa appId_wildcard
-                      );
-        allow create: if request.auth != null && request.auth.uid == userId; 
-        allow update: if request.auth != null && (
-                        request.auth.uid == userId || 
-                        isAdmin(request.auth.uid, appId_wildcard) // Passa appId_wildcard
-                      );
-      }
-
-      // Registros de Quadro Móvel
-      match /records/{recordId} {
-        allow read: if request.auth != null &&
-                       (isAdmin(request.auth.uid, appId_wildcard) || // Passa appId_wildcard
-                        (isManager(request.auth.uid, appId_wildcard) && resource.data.sector == getManagerSector(request.auth.uid, appId_wildcard)) // Passa appId_wildcard
-                       );
-        allow create: if request.auth != null &&
-                         isManager(request.auth.uid, appId_wildcard) && // Passa appId_wildcard
-                         request.resource.data.managerId == request.auth.uid &&
-                         request.resource.data.sector == getManagerSector(request.auth.uid, appId_wildcard) && // Passa appId_wildcard
-                         request.resource.data.keys().hasAll(['eventId', 'eventName', 'categoryId', 'categoryName', 'employeeId', 'employeeName', 'managerId', 'managerName', 'sector', 'createdAt']);
-        
-        allow update, delete: if request.auth != null && isAdmin(request.auth.uid, appId_wildcard); // Passa appId_wildcard
-      }
-    }
-  }
-}
