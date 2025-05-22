@@ -258,12 +258,9 @@
                         await onConfirmAsync(); 
                     } catch (e) {
                         console.error("Error during modal confirm operation (caught in openModal):", e);
+                        // Error notification is handled by the onConfirmAsync function (e.g., addItemToFirestore)
                     } finally {
-                        // Only close modal if operation was meant to succeed without further user action in modal
-                        // Success/error notifications are handled by the onConfirmAsync function itself.
-                        // The onSnapshot listener will then re-render the list.
                         closeModal(); 
-                        // Button state is reset when modal is closed and reopened.
                     }
                 };
             }
@@ -271,10 +268,10 @@
 
         function closeModal() {
             hideElement(modalContainer);
-            modalContent.innerHTML = ''; // Clear content for next use
+            modalContent.innerHTML = ''; 
         }
 
-        function confirmAction(title, message, onConfirmAsync) { // Renamed onConfirm to onConfirmAsync
+        function confirmAction(title, message, onConfirmAsync) { 
             openModal(title, `<p>${message}</p>`, onConfirmAsync, 'Confirmar', () => {}, 'Cancelar');
         }
 
@@ -284,10 +281,13 @@
             currentUser = firebaseUser;
             if (firebaseUser) {
                 try {
+                    // Log para depuração do caminho do perfil
+                    console.log(`Tentando buscar perfil em: artifacts/${currentAppId}/users_profile/${firebaseUser.uid}`);
                     const userDocRef = doc(db, 'artifacts', currentAppId, 'users_profile', firebaseUser.uid);
                     const userDocSnap = await getDoc(userDocRef);
                     if (userDocSnap.exists()) {
                         userProfile = { id: userDocSnap.id, ...userDocSnap.data() };
+                        console.log("Perfil do usuário encontrado:", userProfile); // Log do perfil
                         updateHeaderUI();
                         showElement(appHeader);
                         showElement(appFooter);
@@ -301,10 +301,11 @@
                         loadAllData(); 
                     } else {
                         showNotification("Perfil do usuário não encontrado. Contacte o administrador.", "error");
+                        console.warn(`Perfil não encontrado para UID: ${firebaseUser.uid} no caminho artifacts/${currentAppId}/users_profile/`);
                         await handleLogout(); 
                     }
                 } catch (error) {
-                    console.error("Erro ao buscar perfil:", error);
+                    console.error("Erro ao buscar perfil:", error); // O erro original é logado aqui
                     showNotification("Erro ao carregar perfil. Tente novamente.", "error");
                     await handleLogout();
                 }
@@ -431,9 +432,8 @@
         async function addRecordToFirestore(recordData) {
             if (!userProfile || !userProfile.isManager) {
                 showNotification("Apenas gestores podem adicionar registros.", "error");
-                return;
+                return Promise.reject(new Error("Acesso negado"));
             }
-            // O feedback de loading é gerenciado pelo modal agora
             try {
                 const recordsCollectionRef = getCollectionRef('records', false);
                 await addDoc(recordsCollectionRef, {
@@ -445,35 +445,42 @@
                 });
                 showNotification("Registro adicionado com sucesso!", "success");
                 currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
-                // renderApp() será chamado pelo onSnapshot ou após o modal fechar.
             } catch (error) {
                 console.error("Erro ao adicionar registro:", error);
                 showNotification("Falha ao adicionar registro.", "error");
+                throw error; 
             }
-            // Se o modal não fechar automaticamente em caso de erro, pode ser necessário re-renderizar
-            // Mas o modal agora fecha no 'finally' do seu manipulador de clique.
-            // A atualização da lista principal é feita pelo onSnapshot.
         }
         
         async function addItemToFirestore(collectionNameKey, data, isPublic = true) {
             if (!userProfile) { 
                 showNotification("Perfil de usuário não carregado. Tente recarregar a página.", "error");
-                return Promise.reject(new Error("Perfil não carregado")); // Retorna uma promessa rejeitada para o modal
+                return Promise.reject(new Error("Perfil não carregado"));
             }
             if (!userProfile.isAdmin) { 
                 showNotification("Acesso negado. Apenas administradores podem adicionar itens.", "error");
-                return Promise.reject(new Error("Acesso negado")); // Retorna uma promessa rejeitada
+                return Promise.reject(new Error("Acesso negado"));
             }
+            if (!currentUser || !currentUser.uid) {
+                showNotification("Informação do usuário atual (UID) não disponível.", "error");
+                return Promise.reject(new Error("UID do usuário não disponível"));
+            }
+
+            const dataToWrite = { ...data, createdAt: Timestamp.now(), createdBy: currentUser.uid };
+            
+            console.log(`[addItemToFirestore] Tentando adicionar em '${collectionNameKey}'.`);
+            console.log(`[addItemToFirestore] Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}`);
+            console.log("[addItemToFirestore] Dados para escrever:", JSON.stringify(dataToWrite));
+            console.log(`[addItemToFirestore] UID do Usuário: ${currentUser.uid}, isAdmin (cliente): ${userProfile.isAdmin}`);
 
             try {
                 const collRef = getCollectionRef(collectionNameKey, isPublic);
-                await addDoc(collRef, { ...data, createdAt: Timestamp.now(), createdBy: currentUser.uid });
+                await addDoc(collRef, dataToWrite);
                 showNotification(`${collectionDisplayName(collectionNameKey).singular} adicionado com sucesso!`, "success");
-                // O onSnapshot listener irá lidar com a re-renderização da lista.
             } catch (e) {
                 showNotification(`Erro ao adicionar ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error");
-                console.error(`Error adding to ${collectionNameKey}:`, e);
-                throw e; // Re-lança o erro para que o modal possa lidar com ele (embora o modal já feche)
+                console.error(`[addItemToFirestore] Falha ao adicionar em '${collectionNameKey}'. Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}. UID: ${currentUser.uid}. Dados:`, dataToWrite, "Objeto do Erro:", e);
+                throw e; 
             }
         }
 
@@ -486,33 +493,42 @@
                 showNotification("Acesso negado.", "error");
                 return Promise.reject(new Error("Acesso negado"));
             }
+             if (!currentUser || !currentUser.uid) {
+                showNotification("Informação do usuário atual (UID) não disponível.", "error");
+                return Promise.reject(new Error("UID do usuário não disponível"));
+            }
+            const dataToWrite = { ...data, updatedAt: Timestamp.now(), updatedBy: currentUser.uid };
+             console.log(`Tentando atualizar item '${id}' em '${collectionNameKey}'. Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}`);
+            console.log("Dados para atualizar:", dataToWrite);
+
             try {
                 const itemDocRef = doc(targetCollectionRef || getCollectionRef(collectionNameKey, isPublic), id);
-                await updateDoc(itemDocRef, { ...data, updatedAt: Timestamp.now() });
+                await updateDoc(itemDocRef, dataToWrite);
                 showNotification(`${collectionDisplayName(collectionNameKey).singular} atualizado com sucesso!`, "success");
             } catch (e) { 
-                showNotification(`Erro ao atualizar ${collectionDisplayName(collectionNameKey).singular}.`, "error"); 
-                console.error(e);
+                showNotification(`Erro ao atualizar ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error"); 
+                console.error(`Falha ao atualizar item '${id}' em '${collectionNameKey}'. Dados:`, dataToWrite, "Objeto do Erro:", e);
                 throw e; 
             }
         }
         
         async function deleteItemFromFirestore(collectionNameKey, id, isPublic = true, targetCollectionRef = null) {
-            if (!userProfile?.isAdmin) return showNotification("Acesso negado.", "error");
+            if (!userProfile?.isAdmin) {
+                 showNotification("Acesso negado.", "error");
+                 return; 
+            }
             
-            // A função confirmAction agora espera uma função async para o onConfirm
             confirmAction(
                 `Confirmar Exclusão`, 
                 `Tem certeza que deseja excluir este item de ${collectionDisplayName(collectionNameKey).plural}? Esta ação não pode ser desfeita.`,
-                async () => { // Esta é a função onConfirmAsync
+                async () => { 
                     try {
+                        console.log(`Tentando excluir item '${id}' de '${collectionNameKey}'. Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}`);
                         await deleteDoc(doc(targetCollectionRef || getCollectionRef(collectionNameKey, isPublic), id));
                         showNotification(`${collectionDisplayName(collectionNameKey).singular} excluído com sucesso!`, "success");
-                        // onSnapshot irá atualizar a UI
                     } catch (e) { 
-                        showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}.`, "error"); 
-                        console.error(e); 
-                        // Não precisa re-lançar aqui, pois a notificação de erro já foi mostrada.
+                        showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error"); 
+                        console.error(`Falha ao excluir item '${id}' de '${collectionNameKey}'. Objeto do Erro:`, e);
                     }
                 }
             );
@@ -526,7 +542,7 @@
                 employees: { singular: "Funcionário", plural: "Funcionários" },
                 users_profile: { singular: "Usuário", plural: "Usuários" }
             };
-            return names[key] || { singular: key.slice(0,-1), plural: key };
+            return names[key] || { singular: key.slice(0,-1) || key, plural: key };
         }
 
 
@@ -683,22 +699,41 @@
                 currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
                 renderApp();
             });
-            document.getElementById('new-record-form').addEventListener('submit', (e) => {
+            document.getElementById('new-record-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                const originalButtonContent = submitButton.innerHTML;
+                submitButton.disabled = true;
+                submitButton.innerHTML = `<span class="flex items-center justify-center"><span class="loader_small_blue mr-2"></span>Salvando...</span>`;
+
                 const eventId = document.getElementById('event').value;
                 const categoryId = document.getElementById('category').value;
                 const employeeId = document.getElementById('employee').value;
                 const notes = document.getElementById('notes').value;
 
                 if (!eventId || !categoryId || !employeeId) {
-                    showNotification("Evento, Categoria e Funcionário são obrigatórios.", "error"); return;
+                    showNotification("Evento, Categoria e Funcionário são obrigatórios.", "error");
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonContent;
+                    return;
                 }
-                addRecordToFirestore({
-                    eventId, eventName: globalData.events.find(ev => ev.id === eventId)?.name,
-                    categoryId, categoryName: globalData.categories.find(cat => cat.id === categoryId)?.name,
-                    employeeId, employeeName: globalData.employees.find(emp => emp.id === employeeId)?.name,
-                    notes
-                });
+                try {
+                    await addRecordToFirestore({
+                        eventId, eventName: globalData.events.find(ev => ev.id === eventId)?.name,
+                        categoryId, categoryName: globalData.categories.find(cat => cat.id === categoryId)?.name,
+                        employeeId, employeeName: globalData.employees.find(emp => emp.id === employeeId)?.name,
+                        notes
+                    });
+                } catch (error) {
+                    console.error("Falha ao submeter formulário de novo registro:", error);
+                } finally {
+                     if (currentView === 'newRecord') { 
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalButtonContent;
+                    }
+                    // Se a view mudar devido ao sucesso, o botão não existirá mais para ser resetado aqui.
+                    // A renderApp() chamada por addRecordToFirestore ou onSnapshot cuidará da UI.
+                }
             });
         }
 
@@ -862,7 +897,7 @@
                 let formHtml = '';
                 fields.forEach(field => {
                     const value = itemToEdit ? (itemToEdit[field.name] || '') : '';
-                    const fieldId = `field-${field.name}`; // Unique ID for each field in the modal
+                    const fieldId = `field-${field.name}`; 
                     if (field.type === 'select') {
                         const optionsHtml = field.options.map(opt => `<option value="${opt.value}" ${value === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
                         formHtml += `<div class="mb-4"><label for="${fieldId}" class="block text-xs font-medium text-gray-600 mb-1">${field.label}:</label><select id="${fieldId}" name="${field.name}" class="${inputBaseClass}" required><option value="">Selecione</option>${optionsHtml}</select></div>`;
@@ -872,17 +907,13 @@
                 });
                 const modalTitle = itemToEdit ? `Editar ${cdn.singular}` : `Adicionar ${cdn.singular}`;
                 
-                // This is the async operation to be performed on confirm
                 const asyncOperation = async () => {
                     const formData = {};
-                    let formIsValid = true;
-                    const formElement = document.getElementById('item-form'); // Get the form to check validity
+                    const formElement = document.getElementById('item-form');
                     if (formElement && !formElement.checkValidity()) {
                          showNotification("Por favor, preencha todos os campos obrigatórios.", "error");
-                         formIsValid = false; // Prevent submission if form is invalid
-                         // Optionally, trigger browser's native validation UI
-                         // formElement.reportValidity();
-                         return Promise.reject(new Error("Formulário inválido")); // Stop execution
+                         formElement.reportValidity(); 
+                         return Promise.reject(new Error("Formulário inválido")); 
                     }
 
                     fields.forEach(field => {
@@ -894,8 +925,6 @@
                         }
                     });
 
-                    if (!formIsValid) return; // Double check
-
                     if (itemToEdit) {
                         await onUpdate(itemToEdit.id, formData);
                     } else {
@@ -904,7 +933,7 @@
                 };
 
                 openModal(modalTitle, 
-                    `<form id="item-form" class="space-y-1">${formHtml.replace(/class="mb-4"(?![\s\S]*class="mb-4")/g, '')}</form>`, // Remove mb-4 from last field for better spacing with buttons
+                    `<form id="item-form" class="space-y-1">${formHtml.replace(/class="mb-4"(?![\s\S]*class="mb-4")/g, '')}</form>`, 
                     asyncOperation, 
                     itemToEdit ? 'Salvar Alterações' : 'Adicionar'
                 );
@@ -919,7 +948,7 @@
             }));
             document.querySelectorAll('.btn-delete-item').forEach(btn => btn.addEventListener('click', (e) => {
                 const itemId = e.currentTarget.dataset.id;
-                deleteItemFromFirestore(collectionKey, itemId); // Pass the correct collectionKey
+                deleteItemFromFirestore(collectionKey, itemId); 
             }));
         }
 
@@ -990,6 +1019,13 @@
                     </form>`;
                 
                 const asyncUserUpdate = async () => {
+                    const formElement = document.getElementById('user-form');
+                     if (formElement && !formElement.checkValidity()) {
+                         showNotification("Por favor, preencha todos os campos obrigatórios.", "error");
+                         formElement.reportValidity();
+                         return Promise.reject(new Error("Formulário inválido"));
+                    }
+
                     const updatedData = {
                         name: document.getElementById('userNameModal').value,
                         sector: document.getElementById('userSectorModal').value,
@@ -1021,3 +1057,76 @@
     </script>
 </body>
 </html>
+```
+
+
+```firestore
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Funções auxiliares agora recebem appId_wildcard como parâmetro
+    function getUserProfileData(userId, appIdFromPath) {
+      let path = /databases/$(database)/documents/artifacts/$(appIdFromPath)/users_profile/$(userId);
+      return exists(path) ? get(path).data : null;
+    }
+
+    function isAdmin(userId, appIdFromPath) {
+      let profileData = getUserProfileData(userId, appIdFromPath);
+      return profileData != null && profileData.isAdmin == true;
+    }
+
+    function isManager(userId, appIdFromPath) {
+      let profileData = getUserProfileData(userId, appIdFromPath);
+      return profileData != null && profileData.isManager == true;
+    }
+    
+    function getManagerSector(userId, appIdFromPath) {
+        let profileData = getUserProfileData(userId, appIdFromPath);
+        return (profileData != null &&
+                profileData.isManager == true && 
+                'sector' in profileData) ? profileData.sector : "";
+    }
+
+    // Usar um nome diferente para o wildcard para evitar confusão com a variável $(appId)
+    // que não é automaticamente escopada para dentro de funções globais da mesma forma.
+    match /artifacts/{appId_wildcard} {
+
+      // Coleções públicas (eventos, categorias, setores, funcionários)
+      match /public/data/{collectionName}/{docId} {
+        allow read: if request.auth != null;
+        // Passa o appId_wildcard capturado do path para a função isAdmin
+        allow write: if request.auth != null && isAdmin(request.auth.uid, appId_wildcard);
+      }
+
+      // Perfis de Usuário
+      match /users_profile/{userId} {
+        allow read: if request.auth != null && (
+                        request.auth.uid == userId || 
+                        isAdmin(request.auth.uid, appId_wildcard) // Passa appId_wildcard
+                      );
+        allow create: if request.auth != null && request.auth.uid == userId; 
+        allow update: if request.auth != null && (
+                        request.auth.uid == userId || 
+                        isAdmin(request.auth.uid, appId_wildcard) // Passa appId_wildcard
+                      );
+      }
+
+      // Registros de Quadro Móvel
+      match /records/{recordId} {
+        allow read: if request.auth != null &&
+                       (isAdmin(request.auth.uid, appId_wildcard) || // Passa appId_wildcard
+                        (isManager(request.auth.uid, appId_wildcard) && resource.data.sector == getManagerSector(request.auth.uid, appId_wildcard)) // Passa appId_wildcard
+                       );
+        allow create: if request.auth != null &&
+                         isManager(request.auth.uid, appId_wildcard) && // Passa appId_wildcard
+                         request.resource.data.managerId == request.auth.uid &&
+                         request.resource.data.sector == getManagerSector(request.auth.uid, appId_wildcard) && // Passa appId_wildcard
+                         request.resource.data.keys().hasAll(['eventId', 'eventName', 'categoryId', 'categoryName', 'employeeId', 'employeeName', 'managerId', 'managerName', 'sector', 'createdAt']);
+        
+        allow update, delete: if request.auth != null && isAdmin(request.auth.uid, appId_wildcard); // Passa appId_wildcard
+      }
+    }
+  }
+}
