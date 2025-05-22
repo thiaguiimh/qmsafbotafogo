@@ -1407,20 +1407,18 @@
         }
         
         /**
-         * Extracts the numeric value from the formatted salary input.
-         * @returns {number} The parsed salary value.
+         * This function is no longer used in the current QM tool as salary input is removed.
+         * Keeping it for reference if needed in future iterations.
          */
-        function getSalarioValue() {
-            // This function is no longer used in the current QM tool as salary input is removed.
-            // Keeping it for reference if needed in future iterations.
-            const salarioInput = document.getElementById('employeeSalary');
-            let value = salarioInput.value
-                .replace('R$', '')
-                .replace(/\./g, '')
-                .replace(',', '.')
-                .trim();
-            return parseFloat(value) || 0;
-        }
+        // function getSalarioValue() {
+        //     const salarioInput = document.getElementById('employeeSalary');
+        //     let value = salarioInput.value
+        //         .replace('R$', '')
+        //         .replace(/\./g, '')
+        //         .replace(',', '.')
+        //         .trim();
+        //     return parseFloat(value) || 0;
+        // }
 
         /**
          * Logs an action to the 'logs' collection in Firebase.
@@ -1458,7 +1456,7 @@
          */
         function openUserManagement() {
             if (!isAdmin) {
-                alert("Acesso restrito a administradores!");
+                showCustomMessageModal("Acesso Negado", "Você não tem permissão de administrador para acessar esta área.");
                 return;
             }
             closeModal();
@@ -1472,7 +1470,7 @@
          */
         function openEmployeeManagement() {
             if (!isAdmin) {
-                alert("Acesso restrito a administradores!");
+                showCustomMessageModal("Acesso Negado", "Você não tem permissão de administrador para acessar esta área.");
                 return;
             }
             closeModal();
@@ -1486,7 +1484,7 @@
          */
         function openSectorManagement() {
             if (!isAdmin) {
-                alert("Acesso restrito a administradores!");
+                showCustomMessageModal("Acesso Negado", "Você não tem permissão de administrador para acessar esta área.");
                 return;
             }
             closeModal();
@@ -1499,7 +1497,7 @@
          */
         function openEventManagement() {
             if (!isAdmin) {
-                alert("Acesso restrito a administradores!");
+                showCustomMessageModal("Acesso Negado", "Você não tem permissão de administrador para acessar esta área.");
                 return;
             }
             closeModal();
@@ -1512,7 +1510,7 @@
          */
         function openCategoryManagement() {
             if (!isAdmin) {
-                alert("Acesso restrito a administradores!");
+                showCustomMessageModal("Acesso Negado", "Você não tem permissão de administrador para acessar esta área.");
                 return;
             }
             closeModal();
@@ -1535,7 +1533,7 @@
          */
         function openExportDataModal() {
             if (!isAdmin) {
-                alert("Acesso restrito a administradores!");
+                showCustomMessageModal("Acesso Negado", "Você não tem permissão de administrador para acessar esta área.");
                 return;
             }
             closeModal();
@@ -2301,6 +2299,31 @@
         }
 
         /**
+         * Shows a custom message modal.
+         * @param {string} title - The title of the modal.
+         * @param {string} message - The message to display.
+         */
+        function showCustomMessageModal(title, message) {
+            const customModal = document.createElement('div');
+            customModal.id = 'customMessageModal';
+            customModal.className = 'modal';
+            customModal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">${title}</h3>
+                        <button class="close-modal" onclick="document.getElementById('customMessageModal').remove()">&times;</button>
+                    </div>
+                    <p>${message}</p>
+                    <div class="modal-actions">
+                        <button onclick="document.getElementById('customMessageModal').remove()">Fechar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(customModal);
+            customModal.style.display = 'flex';
+        }
+
+        /**
          * Shows the login modal.
          */
         function showLogin() {
@@ -2417,17 +2440,17 @@
                 document.getElementById("confirmPasswordError").textContent = "As senhas não coincidem";
                 document.getElementById("confirmPasswordError").style.display = "block"; return;
             }
-            if (!currentUser) { alert("Usuário não autenticado."); showLogin(); return; }
+            if (!currentUser) { showCustomMessageModal("Erro", "Usuário não autenticado."); showLogin(); return; }
 
             const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, currentPassword);
             currentUser.reauthenticateWithCredential(credential)
                 .then(() => currentUser.updatePassword(newPassword))
-                .then(() => { alert("Senha alterada com sucesso!"); closeModal(); })
+                .then(() => { showCustomMessageModal("Sucesso", "Senha alterada com sucesso!"); closeModal(); })
                 .catch((error) => {
                     if (error.code === "auth/wrong-password") {
                         document.getElementById("currentPasswordError").textContent = "Senha atual incorreta";
                         document.getElementById("currentPasswordError").style.display = "block";
-                    } else { alert("Erro ao alterar senha: " + error.message); }
+                    } else { showCustomMessageModal("Erro", "Erro ao alterar senha: " + error.message); }
                     console.error("Erro ao alterar senha:", error);
                 });
         }
@@ -2485,7 +2508,7 @@
                     return db.ref('users/' + userCredential.user.uid).set(userData);
                 })
                 .then(() => {
-                    alert(`Usuário ${name} (${email}) cadastrado!`);
+                    showCustomMessageModal("Sucesso", `Usuário ${name} (${email}) cadastrado!`);
                     document.getElementById("userCpf").value = "";
                     document.getElementById("userName").value = "";
                     document.getElementById("userEmail").value = "";
@@ -2634,11 +2657,11 @@
 
             db.ref('users/' + userId).update({ isAdmin: makeAdmin })
                 .then(() => {
-                    alert(`Usuário ${email} ${makeAdmin ? "promovido a" : "removido de"} administrador com sucesso!`);
+                    showCustomMessageModal("Sucesso", `Usuário ${email} ${makeAdmin ? "promovido a" : "removido de"} administrador com sucesso!`);
                     fetchAllUsersAndPreparePagination();
                     logAction("toggle_admin_status", { targetUserId: userId, targetUserEmail: email, newAdminStatus: makeAdmin });
                 })
-                .catch((error) => alert("Erro ao atualizar status de admin: " + error.message));
+                .catch((error) => showCustomMessageModal("Erro", "Erro ao atualizar status de admin: " + error.message));
         }
 
         /**
@@ -2654,7 +2677,7 @@
             if (makeManager) {
                 const selectedSector = prompt(`Para tornar ${email} gestor, digite o ID do setor (ou o nome para que eu tente encontrar):`);
                 if (!selectedSector) {
-                    alert("Operação cancelada. Setor é obrigatório para gestores.");
+                    showCustomMessageModal("Operação Cancelada", "Setor é obrigatório para gestores.");
                     return;
                 }
                 // Try to find sector by name or assume it's an ID
@@ -2662,7 +2685,7 @@
                 if (foundSector) {
                     sectorId = foundSector[0];
                 } else {
-                    alert("Setor não encontrado. Operação cancelada.");
+                    showCustomMessageModal("Setor Não Encontrado", "Setor não encontrado. Operação cancelada.");
                     return;
                 }
             }
@@ -2671,11 +2694,11 @@
 
             db.ref('users/' + userId).update({ isManager: makeManager, sectorId: sectorId })
                 .then(() => {
-                    alert(`Usuário ${email} ${makeManager ? "promovido a" : "removido de"} gestor com sucesso!`);
+                    showCustomMessageModal("Sucesso", `Usuário ${email} ${makeManager ? "promovido a" : "removido de"} gestor com sucesso!`);
                     fetchAllUsersAndPreparePagination();
                     logAction("toggle_manager_status", { targetUserId: userId, targetUserEmail: email, newManagerStatus: makeManager, newSectorId: sectorId });
                 })
-                .catch((error) => alert("Erro ao atualizar status de gestor: " + error.message));
+                .catch((error) => showCustomMessageModal("Erro", "Erro ao atualizar status de gestor: " + error.message));
         }
 
         /**
@@ -2691,12 +2714,12 @@
             // Actual Firebase Authentication user deletion must be done via Firebase Admin SDK or Console.
             db.ref('users/' + userId).remove()
                 .then(() => {
-                    alert(`Dados do usuário ${email} removidos do banco de dados. A remoção da autenticação deve ser feita via Firebase Console.`);
+                    showCustomMessageModal("Sucesso", `Dados do usuário ${email} removidos do banco de dados. A remoção da autenticação deve ser feita via Firebase Console.`);
                     fetchAllUsersAndPreparePagination();
                     logAction("delete_user_data", { deletedUserId: userId, deletedUserEmail: email });
                 })
                 .catch((error) => {
-                    alert("Erro ao excluir dados do usuário: " + error.message);
+                    showCustomMessageModal("Erro", "Erro ao excluir dados do usuário: " + error.message);
                     console.error("Erro ao deletar do DB:", error);
                 });
         }
@@ -2731,7 +2754,7 @@
             const endDate = document.getElementById("exportEndDate").value;
 
             if (!startDate || !endDate) {
-                alert("Por favor, selecione uma data de início e fim para a exportação.");
+                showCustomMessageModal("Erro", "Por favor, selecione uma data de início e fim para a exportação.");
                 return;
             }
 
@@ -2770,7 +2793,7 @@
                 }
 
                 if (dataToExport.length === 0) {
-                    alert("Nenhum registro de QM encontrado para o período selecionado.");
+                    showCustomMessageModal("Informação", "Nenhum registro de QM encontrado para o período selecionado.");
                     return;
                 }
 
@@ -2782,7 +2805,7 @@
                 closeModal();
             }).catch(error => {
                 console.error("Erro ao exportar dados:", error);
-                alert("Erro ao exportar dados. Tente novamente.");
+                showCustomMessageModal("Erro", "Erro ao exportar dados. Tente novamente.");
             });
         }
 
