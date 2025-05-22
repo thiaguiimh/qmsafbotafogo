@@ -158,7 +158,6 @@
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfigFromUser;
         
-        // AJUSTE AQUI: Priorizar o projectId para consistência com a configuração manual de dados.
         const currentAppId = firebaseConfig.projectId || 'default-app-id';
         if (typeof __app_id !== 'undefined' && __app_id !== firebaseConfig.projectId) {
             console.warn(`Variável __app_id ('${__app_id}') detectada e diferente do projectId ('${firebaseConfig.projectId}'). Usando firebaseConfig.projectId para caminhos do Firestore para consistência com a configuração manual de dados que utiliza o projectId.`);
@@ -286,12 +285,12 @@
             currentUser = firebaseUser;
             if (firebaseUser) {
                 try {
-                    console.log(`Tentando buscar perfil em: artifacts/${currentAppId}/users_profile/${firebaseUser.uid}`);
+                    console.log(`[onAuthStateChanged] Tentando buscar perfil. UID: ${firebaseUser.uid}, currentAppId: ${currentAppId}`);
                     const userDocRef = doc(db, 'artifacts', currentAppId, 'users_profile', firebaseUser.uid);
                     const userDocSnap = await getDoc(userDocRef);
                     if (userDocSnap.exists()) {
                         userProfile = { id: userDocSnap.id, ...userDocSnap.data() };
-                        console.log("Perfil do usuário encontrado:", userProfile); 
+                        console.log("[onAuthStateChanged] Perfil do usuário encontrado:", userProfile); 
                         updateHeaderUI();
                         showElement(appHeader);
                         showElement(appFooter);
@@ -305,11 +304,11 @@
                         loadAllData(); 
                     } else {
                         showNotification("Perfil do usuário não encontrado. Contacte o administrador.", "error");
-                        console.warn(`Perfil não encontrado para UID: ${firebaseUser.uid} no caminho artifacts/${currentAppId}/users_profile/`);
+                        console.warn(`[onAuthStateChanged] Perfil não encontrado para UID: ${firebaseUser.uid} no caminho artifacts/${currentAppId}/users_profile/`);
                         await handleLogout(); 
                     }
                 } catch (error) {
-                    console.error("Erro ao buscar perfil:", error); 
+                    console.error("[onAuthStateChanged] Erro ao buscar perfil:", error); 
                     showNotification("Erro ao carregar perfil. Tente novamente.", "error");
                     await handleLogout();
                 }
@@ -345,7 +344,7 @@
                 console.error("Erro no login:", error);
                 showNotification(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
                     ? "Email ou senha inválidos."
-                    : `Erro ao fazer login: ${error.message} (código: ${error.code})`, "error"); // Mensagem de erro mais detalhada
+                    : `Erro ao fazer login: ${error.message} (código: ${error.code})`, "error"); 
                 renderApp(); 
             }
         }
@@ -390,13 +389,22 @@
             if (!userProfile) return; 
 
             const collRef = targetCollectionRef || getCollectionRef(collectionName, isPublic);
-            let q = query(collRef, ...queryConstraints);
+            let qConstraints = [...queryConstraints]; // Copia para não modificar o array original
 
+            // Filtro específico para gestores
             if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin) {
-                q = query(collRef, where("sector", "==", userProfile.sector));
+                qConstraints.push(where("sector", "==", userProfile.sector));
+            }
+            // FILTRO ADICIONADO PARA FUNCIONÁRIOS
+            if (dataKey === 'employees' && userProfile.isManager && !userProfile.isAdmin) {
+                qConstraints.push(where("sector", "==", userProfile.sector));
             }
             
+            let q = query(collRef, ...qConstraints);
+            
+            console.log(`[fetchDataWithListener] Configurando listener para ${dataKey} em ${collRef.path} com constraints:`, qConstraints);
             const unsubscribe = onSnapshot(q, (snapshot) => {
+                console.log(`[fetchDataWithListener] Dados recebidos para ${dataKey}: ${snapshot.docs.length} itens.`);
                 const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (dataKey === 'records' || dataKey === 'events') {
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
@@ -406,8 +414,8 @@
                     renderApp(); 
                 }
             }, (error) => {
-                console.error(`Erro ao carregar ${collectionName}:`, error);
-                showNotification(`Falha ao carregar ${collectionName}.`, "error");
+                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, qConstraints, "Objeto do Erro Firebase:", error);
+                showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}.`, "error");
             });
             unsubscribers.push(unsubscribe);
         }
@@ -415,13 +423,18 @@
         function loadAllData() {
             clearAllDataAndUnsubscribe(); 
             if (userProfile) {
-                fetchDataWithListener('events', 'events');
-                fetchDataWithListener('categories', 'categories');
-                fetchDataWithListener('sectors', 'sectors');
-                fetchDataWithListener('employees', 'employees');
+                fetchDataWithListener('events', 'events'); // Coleção pública
+                fetchDataWithListener('categories', 'categories'); // Coleção pública
+                fetchDataWithListener('sectors', 'sectors'); // Coleção pública
+                
+                // Funcionários - filtrado por setor para gestores
+                fetchDataWithListener('employees', 'employees'); 
+                
+                // Registros - filtrado por setor para gestores
                 fetchDataWithListener('records', 'records', [], false, getCollectionRef('records', false));
 
                 if (userProfile.isAdmin) {
+                    // Todos os usuários - apenas para admin
                     fetchDataWithListener('users_profile', 'allUsers', [], false, getCollectionRef('users_profile', false));
                 }
             }
@@ -434,24 +447,36 @@
         }
 
         async function addRecordToFirestore(recordData) {
-            if (!userProfile || !userProfile.isManager) {
-                showNotification("Apenas gestores podem adicionar registros.", "error");
-                return Promise.reject(new Error("Acesso negado"));
+            if (!userProfile) {
+                showNotification("Perfil do usuário não carregado. Não é possível salvar o registro.", "error");
+                return Promise.reject(new Error("Perfil não carregado"));
             }
+            if (!userProfile.isManager) {
+                showNotification("Apenas gestores podem adicionar registros.", "error");
+                return Promise.reject(new Error("Acesso negado, não é gestor"));
+            }
+            if (!userProfile.sector || userProfile.sector.trim() === "") { 
+                showNotification("Setor do gestor não definido no perfil. Não é possível salvar o registro. Contacte o administrador.", "error");
+                console.error("[addRecordToFirestore] Tentativa de salvar registro, mas userProfile.sector é indefinido ou vazio:", userProfile);
+                return Promise.reject(new Error("Setor do gestor não definido"));
+            }
+
             try {
                 const recordsCollectionRef = getCollectionRef('records', false);
-                await addDoc(recordsCollectionRef, {
+                const dataToSave = {
                     ...recordData,
                     managerId: currentUser.uid,
                     managerName: userProfile.name,
-                    sector: userProfile.sector,
+                    sector: userProfile.sector, 
                     createdAt: Timestamp.now()
-                });
+                };
+                console.log("[addRecordToFirestore] Dados para salvar:", dataToSave);
+                await addDoc(recordsCollectionRef, dataToSave);
                 showNotification("Registro adicionado com sucesso!", "success");
                 currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
             } catch (error) {
-                console.error("Erro ao adicionar registro:", error);
-                showNotification("Falha ao adicionar registro.", "error");
+                console.error("[addRecordToFirestore] Erro ao adicionar registro:", error);
+                showNotification("Falha ao adicionar registro. Verifique o console para detalhes.", "error");
                 throw error; 
             }
         }
@@ -666,6 +691,7 @@
         function renderNewRecordForm() {
             const eventsOptions = globalData.events.sort((a,b) => new Date(b.date) - new Date(a.date)).map(event => `<option value="${event.id}">${event.name} (${new Date(event.date + 'T00:00:00').toLocaleDateString()})</option>`).join('');
             const categoriesOptions = globalData.categories.map(cat => `<option value="${cat.id}">${cat.name} - ${cat.description}</option>`).join('');
+            // Employees are now filtered in globalData.employees if user is a manager
             const employeesOptions = globalData.employees.map(emp => `<option value="${emp.id}">${emp.name} (${emp.registration}) - ${emp.sector}</option>`).join('');
             const inputBaseClass = "w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
 
@@ -683,7 +709,7 @@
                         </div>
                         <div>
                             <label for="employee" class="block text-xs font-medium text-gray-600 mb-1">Funcionário:</label>
-                            <select id="employee" required class="${inputBaseClass}">${employeesOptions ? `<option value="">Selecione o Funcionário</option>${employeesOptions}` : `<option value="">Nenhum funcionário cadastrado</option>`}</select>
+                            <select id="employee" required class="${inputBaseClass}">${employeesOptions ? `<option value="">Selecione o Funcionário</option>${employeesOptions}` : `<option value="">Nenhum funcionário disponível para seu setor</option>`}</select>
                         </div>
                         <div>
                             <label for="notes" class="block text-xs font-medium text-gray-600 mb-1">Observações (Opcional):</label>
@@ -741,9 +767,10 @@
 
         function renderRecordHistory() {
             let recordsToDisplay = globalData.records;
-            if (userProfile.isManager && !userProfile.isAdmin) {
-                recordsToDisplay = globalData.records.filter(r => r.sector === userProfile.sector);
-            }
+            // A filtragem de records para gestores já é feita em fetchDataWithListener
+            // if (userProfile.isManager && !userProfile.isAdmin) {
+            //     recordsToDisplay = globalData.records.filter(r => r.sector === userProfile.sector);
+            // }
             
             const tableRows = recordsToDisplay.map(record => `
                 <tr class="hover:bg-gray-50 transition-colors">
