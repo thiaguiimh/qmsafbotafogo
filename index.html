@@ -79,10 +79,10 @@
             @apply flex flex-col;
         }
         .filter-label {
-            @apply text-xs font-medium text-gray-500 mb-1; /* Ajustado para text-xs e mb-1 */
+            @apply text-xs font-medium text-gray-500 mb-1;
         }
         .filter-input {
-            @apply w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-300; 
+            @apply w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-400; 
         }
     </style>
 </head>
@@ -777,8 +777,8 @@
             currentFilteredRecordsForExport = [...recordsToDisplay]; 
 
             const adminFiltersHtml = userProfile.isAdmin ? `
-                <div class="mb-6 pt-2 pb-4 border-b border-gray-200">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-4 items-end"> {/* Ajustado gap-y */}
+                <div class="mb-6 pt-3 pb-4 border-b border-gray-200">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-4 items-end"> 
                         <div class="filter-group">
                             <label for="filter-search" class="filter-label">Termo Geral:</label>
                             <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, etc.">
