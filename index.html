@@ -1105,17 +1105,10 @@
                     const workbook = XLSX.read(data, { type: 'array' });
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
-                    // IMPORTANT: When reading from sheet to JSON, use 'raw: false' to ensure Excel dates are converted to strings.
-                    // Also, specify 'header: 1' to correctly pick up headers from the first row (index 0 of the JSON array).
-                    // The 'range: 2' means data processing will start from the 3rd row (index 2 of the JSON array), effectively skipping the empty row 2.
-                    const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2, raw: false });
 
-                    // Get headers from the first row (which is at index 0 in the JSON `json` array if `header: 1` wasn't used, but `sheet_to_json` with `header:1` uses it to map).
-                    // Let's re-read headers correctly in case `sheet_to_json` with `range` and `header` misbehaves.
-                    // Simplest is to just read the first row of the original `json` for headers.
+                    // Read all rows to get headers from the first row.
                     const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                     const headers = allRows[0].map(h => String(h).trim());
-
 
                     const expectedHeaders = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
                     const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
@@ -1127,12 +1120,17 @@
                         return;
                     }
 
-                    // Manually map `recordsRaw` (which starts from Excel row 3) to objects using the `headers` from Excel row 1.
+                    // Start parsing data from the 3rd row (index 2) of the Excel sheet,
+                    // and use `raw: false` to attempt to convert dates to strings.
+                    const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2, raw: false });
+
+                    // Manually map `recordsRaw` to objects using the `headers` from Excel row 1.
                     const recordsToProcess = recordsRaw.map(row => {
                         const newRecord = {};
                         headers.forEach((header, index) => {
-                            // Ensure value is converted to string before trimming
-                            newRecord[header.trim()] = row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : '';
+                            // Ensure value is converted to string before trimming,
+                            // handling potential undefined/null values robustly.
+                            newRecord[header.trim()] = (row[index] !== undefined && row[index] !== null) ? String(row[index]).trim() : '';
                         });
                         return newRecord;
                     }).filter(record => Object.values(record).some(value => value !== undefined && value !== '')); // Remove entirely empty rows
@@ -1147,9 +1145,8 @@
                         // rowNum needs to account for skipped header (1) + skipped empty row (1) + current row index (0-based) + 1
                         const rowNum = recordsToProcess.indexOf(record) + 3;
                         try {
-                            // Values are already strings due to the mapping above
                             const eventName = record["Nome do Evento"];
-                            const eventDateRaw = record["Data do Evento"];
+                            const eventDateRaw = record["Data do Evento"]; // This is now already a string thanks to raw:false and String() conversion
                             const categoryName = record["Classificação"];
                             const employeeName = record["Funcionário"];
                             const notes = record["Observações"] || '';
@@ -1160,14 +1157,28 @@
 
                             // Validação e formatação da data do evento
                             let eventDate;
-                            if (eventDateRaw.match(/^\d{4}-\d{2}-\d{2}$/)) { // AAAA-MM-DD
+                            // Check if eventDateRaw is a number (Excel serial date) and convert it
+                            if (!isNaN(eventDateRaw) && !isNaN(parseFloat(eventDateRaw))) {
+                                const dateObj = XLSX.SSF.parse_date_code(Number(eventDateRaw));
+                                eventDate = `${dateObj.y}-${String(dateObj.m).padStart(2, '0')}-${String(dateObj.d).padStart(2, '0')}`;
+                            } else if (eventDateRaw.match(/^\d{4}-\d{2}-\d{2}$/)) { // YYYY-MM-DD
                                 eventDate = eventDateRaw;
-                            } else if (eventDateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)) { // DD/MM/YYYY
+                            } else if (eventDateRaw.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) { // M/D/YYYY or MM/DD/YYYY
                                 const parts = eventDateRaw.split('/');
-                                eventDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // Convert to AAAA-MM-DD
-                            } else {
-                                throw new Error(`Formato de data inválido para 'Data do Evento': ${eventDateRaw}. Use AAAA-MM-DD ou DD/MM/AAAA.`);
+                                eventDate = `${parts[2]}-${String(parts[0]).padStart(2, '0')}-${String(parts[1]).padStart(2, '0')}`; // Convert to YYYY-MM-DD (assuming M/D/YYYY)
+                            } else if (eventDateRaw.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) { // M/D/YY or MM/DD/YY (assuming year 2000+)
+                                const parts = eventDateRaw.split('/');
+                                const year = parseInt(parts[2], 10) + 2000; // Assuming 2000+ for 2-digit years
+                                eventDate = `${year}-${String(parts[0]).padStart(2, '0')}-${String(parts[1]).padStart(2, '0')}`; // Convert to YYYY-MM-DD (assuming M/D/YY)
                             }
+                            else if (eventDateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)) { // DD/MM/YYYY (fallback for explicit DD/MM/YYYY)
+                                const parts = eventDateRaw.split('/');
+                                eventDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // Convert to YYYY-MM-DD
+                            }
+                            else {
+                                throw new Error(`Formato de data inválido para 'Data do Evento': ${eventDateRaw}. Use AAAA-MM-DD, DD/MM/AAAA ou M/D/AA(AAAA).`);
+                            }
+
 
                             const category = globalData.categories.find(c => c.name?.toLowerCase() === categoryName.toLowerCase());
                             if (!category) {
