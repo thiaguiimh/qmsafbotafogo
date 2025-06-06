@@ -1009,7 +1009,7 @@
             const listsSheetName = "Listas"; // Hidden sheet for raw lists
 
             // Filter employees by manager's sector if not admin, otherwise get all
-            const employeesForDropdown = userProfile.isAdmin
+            const employeesForLists = userProfile.isAdmin
                 ? globalData.employees.map(emp => emp.name)
                 : globalData.employees.filter(emp => emp.sector === userProfile.sector).map(emp => emp.name);
 
@@ -1018,62 +1018,26 @@
 
             // Create workbook and main sheet
             const workbook = XLSX.utils.book_new();
-            // Main sheet: Row 1 has headers, Row 2 is empty.
+            // Main sheet: Row 1 has headers. Row 2 is explicitly empty for visual consistency.
             const wsData = [
                 headers, // Row 1: Headers
-                []       // Row 2: Empty row
+                []       // Row 2: Completely empty (no placeholder, no dropdown)
             ];
             const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-            // Add lists to the hidden sheet
+            // Create lists sheet (hidden)
             const wsLists = XLSX.utils.aoa_to_sheet([]);
-            employeesForDropdown.forEach((name, index) => {
+            employeesForLists.forEach((name, index) => {
                 XLSX.utils.sheet_add_aoa(wsLists, [[name]], { origin: `A${index + 1}` });
             });
             categoriesForLists.forEach((name, index) => {
                 XLSX.utils.sheet_add_aoa(wsLists, [[name]], { origin: `B${index + 1}` });
             });
 
-            // Add placeholder text to D2 (Funcionário column, row 2)
-            ws['D2'] = { t: 's', v: 'Nome do Funcionário (Lista Suspensa)' };
-
-            // Define the range for data validations. Max 500 rows, allowing user to drag.
-            const maxRowsForValidation = 500;
-            const employeeColumnLetter = 'D'; // Corresponds to 'Funcionário' (4th column, 0-indexed 3)
-            const categoryColumnLetter = 'C'; // Corresponds to 'Classificação' (3rd column, 0-indexed 2)
-
-            ws['!dataValidations'] = ws['!dataValidations'] || [];
-
-            // Add data validation for "Funcionário" column (D), starting from D2.
-            // This applies to the *first* data row where the user would start typing, as requested.
-            if (employeesForDropdown.length > 0) {
-                ws['!dataValidations'].push({
-                    sqref: `${employeeColumnLetter}2:${employeeColumnLetter}${maxRowsForValidation}`, // Apply from row 2 down to maxRowsForValidation
-                    type: 'list',
-                    allowBlank: 1,
-                    error: "Selecione um funcionário da lista",
-                    errorTitle: "Entrada Inválida",
-                    formula1: `'${listsSheetName}'!$A$1:$A$${employeesForDropdown.length}` // Reference to hidden sheet (employees are in col A)
-                });
-            } else {
-                 showNotification("Não há funcionários cadastrados para criar a lista de nomes no modelo.", "info", 6000);
-            }
-
-            // Add data validation for "Classificação" column (C), starting from C3.
-            // This ensures C2 is explicitly without a dropdown for Classificação, as requested.
-            if (categoriesForLists.length > 0) {
-                 ws['!dataValidations'].push({
-                    sqref: `${categoryColumnLetter}3:${categoryColumnLetter}${maxRowsForValidation}`, // Apply from row 3 down to maxRowsForValidation
-                    type: 'list',
-                    allowBlank: 1,
-                    error: "Selecione uma categoria da lista",
-                    errorTitle: "Entrada Inválida",
-                    formula1: `'${listsSheetName}'!$B$1:$B$${categoriesForLists.length}` // Reference to hidden sheet (categories are in col B)
-                });
-            } else {
-                 showNotification("Não há categorias cadastrada para criar a lista de nomes no modelo.", "info", 6000);
-            }
-
+            // No data validations or dropdowns in the main sheet's data cells.
+            // The previous attempts added data validations (dropdowns).
+            // By explicitly not adding to ws['!dataValidations'] anymore,
+            // we ensure the main sheet is clean.
 
             // Add sheets to workbook
             XLSX.utils.book_append_sheet(workbook, ws, mainSheetName);
@@ -1847,7 +1811,7 @@
                     showNotification(`Erro ao ${isCreating ? 'criar' : 'atualizar'} perfil. Detalhes no console.`, "error");
                     console.error(`Erro ao salvar perfil de usuário ${uid}:`, error);
                     submitButton.disabled = false;
-                    submitButton.innerHTML = originalButtonText;
+                    submitButton.innerHTML = originalButtonContent;
                 }
             });
         }
