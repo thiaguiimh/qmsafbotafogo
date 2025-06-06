@@ -1018,15 +1018,10 @@
             // Main sheet: Row 1 has headers. No data in subsequent rows.
             const ws = XLSX.utils.aoa_to_sheet([headers]);
 
-            // Create lists sheet with only employee names (and categories for reference, though not used as dropdowns)
+            // Create lists sheet with only employee names
             const wsLists = XLSX.utils.aoa_to_sheet([["Funcionários"], ...employeesForLists.map(name => [name])]); // Column A: Employee names
 
-            // Add categories to Column B of Lists sheet for reference
-            const categoriesForLists = globalData.categories.map(cat => cat.name);
-            XLSX.utils.sheet_add_aoa(wsLists, [["Categorias"], ...categoriesForLists.map(name => [name])], { origin: "B1" });
-
-
-            // NO data validations or dropdowns are added to the main sheet.
+            // No data validations or dropdowns are added to the main sheet.
             // This ensures the main sheet is clean as requested.
 
             // Add sheets to workbook
@@ -1034,14 +1029,10 @@
             XLSX.utils.book_append_sheet(workbook, wsLists, listsSheetName);
 
             // Explicitly set the visibility of the "Listas" sheet to visible (not hidden)
-            // Note: SheetJS might default to visible if not explicitly hidden.
-            // We just ensure we don't add the hidden property.
-            // If the sheet object needs to be explicitly pushed to Workbook.Sheets and not hidden,
-            // this is where we control it.
             if (!workbook.Workbook) workbook.Workbook = {};
             if (!workbook.Workbook.Sheets) workbook.Workbook.Sheets = [];
 
-            // Find the Lists sheet and ensure it's not hidden. If it was added hidden by default, correct it.
+            // Find the Lists sheet and ensure it's not hidden.
             const listsSheetIdx = workbook.SheetNames.indexOf(listsSheetName);
             if (listsSheetIdx !== -1 && workbook.Workbook.Sheets[listsSheetIdx]) {
                 delete workbook.Workbook.Sheets[listsSheetIdx].Hidden; // Ensure it's not hidden
@@ -1123,10 +1114,20 @@
                         return;
                     }
 
-                    // Skip the second row (index 1) for header parsing, effectively using row 1 as headers
-                    const headers = json[0].map(h => String(h).trim()); // Get headers from first row and trim
+                    // Get headers from the first row.
+                    const headers = json[0].map(h => String(h).trim());
 
-                    // Use `range: 2` to start parsing data from the 3rd row (index 2) of the Excel sheet.
+                    const expectedHeaders = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
+                    const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
+
+                    if (missingHeaders.length > 0) {
+                        showNotification(`Cabeçalhos ausentes: ${missingHeaders.join(', ')}. Verifique sua planilha.`, "error");
+                        importSummaryP.textContent = `Erro: Cabeçalhos ausentes: ${missingHeaders.join(', ')}.`;
+                        importStatusDiv.classList.add('bg-red-50');
+                        return;
+                    }
+
+                    // Start parsing data from the 3rd row (index 2) of the Excel sheet.
                     // This correctly skips the header row and the empty second row.
                     const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2 });
 
@@ -1134,13 +1135,11 @@
                     const recordsToProcess = recordsRaw.map(row => {
                         const newRecord = {};
                         headers.forEach((header, index) => {
-                            // Trim the header name to match keys consistently
-                            newRecord[header.trim()] = row[index];
+                            // Ensure value is converted to string before trimming
+                            newRecord[header.trim()] = row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : '';
                         });
                         return newRecord;
                     }).filter(record => Object.values(record).some(value => value !== undefined && value !== '')); // Remove entirely empty rows
-
-                    // console.log("Registros lidos da planilha após ajuste:", recordsToProcess);
 
 
                     let recordsToAdd = [];
@@ -1151,11 +1150,12 @@
                     for (const record of recordsToProcess) {
                         const rowNum = recordsToProcess.indexOf(record) + 3; // +3 for header row, empty row, and 0-based index
                         try {
-                            const eventName = record["Nome do Evento"]?.trim();
-                            const eventDateRaw = record["Data do Evento"]?.trim();
-                            const categoryName = record["Classificação"]?.trim();
-                            const employeeName = record["Funcionário"]?.trim();
-                            const notes = record["Observações"]?.trim() || '';
+                            // Already trimmed above by String(row[index]).trim()
+                            const eventName = record["Nome do Evento"];
+                            const eventDateRaw = record["Data do Evento"];
+                            const categoryName = record["Classificação"];
+                            const employeeName = record["Funcionário"];
+                            const notes = record["Observações"] || '';
 
                             if (!eventName || !eventDateRaw || !categoryName || !employeeName) {
                                 throw new Error("Campos obrigatórios (Nome do Evento, Data do Evento, Classificação, Funcionário) não podem estar vazios.");
