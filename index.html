@@ -1006,50 +1006,47 @@
 
             const headers = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
             const mainSheetName = "Registros";
-            const listsSheetName = "Listasx"; // Hidden sheet for raw lists
+            const listsSheetName = "Listas"; // Name for the lists sheet
 
             // Filter employees by manager's sector if not admin, otherwise get all
             const employeesForLists = userProfile.isAdmin
                 ? globalData.employees.map(emp => emp.name)
                 : globalData.employees.filter(emp => emp.sector === userProfile.sector).map(emp => emp.name);
 
-            // Get all categories for lists sheet
-            const categoriesForLists = globalData.categories.map(cat => cat.name);
-
             // Create workbook and main sheet
             const workbook = XLSX.utils.book_new();
-            // Main sheet: Row 1 has headers. Row 2 is explicitly empty for visual consistency.
-            const wsData = [
-                headers, // Row 1: Headers
-                []       // Row 2: Completely empty (no placeholder, no dropdown)
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            // Main sheet: Row 1 has headers. No data in subsequent rows.
+            const ws = XLSX.utils.aoa_to_sheet([headers]);
 
-            // Create lists sheet (hidden)
-            const wsLists = XLSX.utils.aoa_to_sheet([]);
-            employeesForLists.forEach((name, index) => {
-                XLSX.utils.sheet_add_aoa(wsLists, [[name]], { origin: `A${index + 1}` });
-            });
-            categoriesForLists.forEach((name, index) => {
-                XLSX.utils.sheet_add_aoa(wsLists, [[name]], { origin: `B${index + 1}` });
-            });
+            // Create lists sheet with only employee names (and categories for reference, though not used as dropdowns)
+            const wsLists = XLSX.utils.aoa_to_sheet([["Funcionários"], ...employeesForLists.map(name => [name])]); // Column A: Employee names
 
-            // No data validations or dropdowns in the main sheet's data cells.
-            // The previous attempts added data validations (dropdowns).
-            // By explicitly not adding to ws['!dataValidations'] anymore,
-            // we ensure the main sheet is clean.
+            // Add categories to Column B of Lists sheet for reference
+            const categoriesForLists = globalData.categories.map(cat => cat.name);
+            XLSX.utils.sheet_add_aoa(wsLists, [["Categorias"], ...categoriesForLists.map(name => [name])], { origin: "B1" });
+
+
+            // NO data validations or dropdowns are added to the main sheet.
+            // This ensures the main sheet is clean as requested.
 
             // Add sheets to workbook
             XLSX.utils.book_append_sheet(workbook, ws, mainSheetName);
             XLSX.utils.book_append_sheet(workbook, wsLists, listsSheetName);
 
-            // Hide the lists sheet
+            // Explicitly set the visibility of the "Listas" sheet to visible (not hidden)
+            // Note: SheetJS might default to visible if not explicitly hidden.
+            // We just ensure we don't add the hidden property.
+            // If the sheet object needs to be explicitly pushed to Workbook.Sheets and not hidden,
+            // this is where we control it.
             if (!workbook.Workbook) workbook.Workbook = {};
             if (!workbook.Workbook.Sheets) workbook.Workbook.Sheets = [];
-            workbook.Workbook.Sheets.push({
-                Hidden: 1,
-                name: listsSheetName
-            });
+
+            // Find the Lists sheet and ensure it's not hidden. If it was added hidden by default, correct it.
+            const listsSheetIdx = workbook.SheetNames.indexOf(listsSheetName);
+            if (listsSheetIdx !== -1 && workbook.Workbook.Sheets[listsSheetIdx]) {
+                delete workbook.Workbook.Sheets[listsSheetIdx].Hidden; // Ensure it's not hidden
+            }
+
 
             XLSX.writeFile(workbook, "modelo_quadro_movel.xlsx");
             showNotification("Modelo de planilha baixado com sucesso!", "success");
@@ -1064,7 +1061,7 @@
                         <h2 class="text-xl font-semibold text-gray-800">Importar Registros de Quadro Móvel (Planilha)</h2>
                         <div class="flex items-center space-x-2">
                              <button id="btn-download-template" class="px-3 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 = 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 Baixar Modelo (Planilha)
                              </button>
                              <button id="btn-back-dashboard-import" class="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar</button>
@@ -1129,35 +1126,9 @@
                     // Skip the second row (index 1) for header parsing, effectively using row 1 as headers
                     const headers = json[0].map(h => String(h).trim()); // Get headers from first row and trim
 
-                    // IMPORTANT: To correctly parse data from row 3 onwards with row 1 as headers,
-                    // we need to pass a slice of the JSON array starting from row 2 (index 1)
-                    // and then provide the 'header' option using the extracted headers.
-                    // However, sheet_to_json with 'header: headers' already does this implicitly
-                    // by mapping `json[0]` to headers and processing subsequent rows.
-                    // The issue might be in how `XLSX.utils.sheet_to_json` handles empty rows
-                    // at the very beginning of the data if `header` is not a row number.
-                    // Let's rely on `json[0]` for headers and process `json.slice(1)` as data
-                    // then remap column names if necessary.
-                    // However, the current logic of `XLSX.utils.sheet_to_json(worksheet, { header: headers })`
-                    // implicitly uses the row *after* the one identified by `header` if `header` is an array.
-                    // This is good for skipping the second row if headers are correctly provided.
-
-                    const expectedHeaders = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
-                    const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
-
-                    if (missingHeaders.length > 0) {
-                        showNotification(`Cabeçalhos ausentes: ${missingHeaders.join(', ')}. Verifique sua planilha.`, "error");
-                        importSummaryP.textContent = `Erro: Cabeçalhos ausentes: ${missingHeaders.join(', ')}.`;
-                        importStatusDiv.classList.add('bg-red-50');
-                        return;
-                    }
-
-                    // Re-parse from worksheet, explicitly skipping the second row by starting data from row 3.
-                    // This is usually handled by sheet_to_json if the headers are passed as an array,
-                    // but let's be explicit to avoid issues with blank second row if it caused problems.
-                    // Instead of `header: headers`, let's try `range: 2` to start parsing data from row 3 (0-indexed 2).
-                    // This means the first row of actual data will be row 3 of the Excel sheet.
-                    const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2 }); // Data starts from Excel row 3, row 1 as headers
+                    // Use `range: 2` to start parsing data from the 3rd row (index 2) of the Excel sheet.
+                    // This correctly skips the header row and the empty second row.
+                    const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2 });
 
                     // Manually map to expected keys after parsing
                     const recordsToProcess = recordsRaw.map(row => {
@@ -1811,7 +1782,7 @@
                     showNotification(`Erro ao ${isCreating ? 'criar' : 'atualizar'} perfil. Detalhes no console.`, "error");
                     console.error(`Erro ao salvar perfil de usuário ${uid}:`, error);
                     submitButton.disabled = false;
-                    submitButton.innerHTML = originalButtonContent;
+                    submitButton.innerHTML = originalButtonText;
                 }
             });
         }
