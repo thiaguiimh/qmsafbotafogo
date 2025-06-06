@@ -697,7 +697,7 @@
                                 <input id="password" type="password" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="••••••••">
                             </div>
                             <button type="submit" class="w-full flex items-center justify-center text-sm bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-150 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="3" y2="12"></line></svg>
                                 Entrar
                             </button>
                             <div class="text-center mt-4 text-xs">
@@ -765,7 +765,7 @@
                     showNotification("Link de redefinição enviado para seu e-mail!", "success");
                     currentView = 'login';
                     renderApp();
-                } catch (error) {
+                }  catch (error) {
                     console.error("Erro ao enviar link de redefinição:", error);
                     showNotification(error.code === 'auth/user-not-found' ? "E-mail não cadastrado." : `Erro: ${error.message}`, "error");
                 } finally {
@@ -1018,8 +1018,12 @@
 
             // Create workbook and main sheet
             const workbook = XLSX.utils.book_new();
-            // Add headers to main sheet. This creates row 1 with headers and subsequent rows are empty.
-            const ws = XLSX.utils.aoa_to_sheet([headers]);
+            // Add headers in the first row and an empty second row explicitly.
+            const wsData = [
+                headers, // Row 1: Headers
+                []       // Row 2: Empty row
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
 
             // Create lists sheet (hidden)
             const wsLists = XLSX.utils.aoa_to_sheet([]);
@@ -1153,7 +1157,22 @@
                         return;
                     }
 
+                    // Skip the second row (index 1) for header parsing, effectively using row 1 as headers
                     const headers = json[0].map(h => String(h).trim()); // Get headers from first row and trim
+
+                    // IMPORTANT: To correctly parse data from row 3 onwards with row 1 as headers,
+                    // we need to pass a slice of the JSON array starting from row 2 (index 1)
+                    // and then provide the 'header' option using the extracted headers.
+                    // However, sheet_to_json with 'header: headers' already does this implicitly
+                    // by mapping `json[0]` to headers and processing subsequent rows.
+                    // The issue might be in how `XLSX.utils.sheet_to_json` handles empty rows
+                    // at the very beginning of the data if `header` is not a row number.
+                    // Let's rely on `json[0]` for headers and process `json.slice(1)` as data
+                    // then remap column names if necessary.
+                    // However, the current logic of `XLSX.utils.sheet_to_json(worksheet, { header: headers })`
+                    // implicitly uses the row *after* the one identified by `header` if `header` is an array.
+                    // This is good for skipping the second row if headers are correctly provided.
+
                     const expectedHeaders = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
                     const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
 
@@ -1164,8 +1183,25 @@
                         return;
                     }
 
-                    const recordsToProcess = XLSX.utils.sheet_to_json(worksheet, { header: headers }); // Read again with dynamic headers
-                    // console.log("Registros lidos da planilha:", recordsToProcess);
+                    // Re-parse from worksheet, explicitly skipping the second row by starting data from row 3.
+                    // This is usually handled by sheet_to_json if the headers are passed as an array,
+                    // but let's be explicit to avoid issues with blank second row if it caused problems.
+                    // Instead of `header: headers`, let's try `range: 2` to start parsing data from row 3 (0-indexed 2).
+                    // This means the first row of actual data will be row 3 of the Excel sheet.
+                    const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2 }); // Data starts from Excel row 3, row 1 as headers
+
+                    // Manually map to expected keys after parsing
+                    const recordsToProcess = recordsRaw.map(row => {
+                        const newRecord = {};
+                        headers.forEach((header, index) => {
+                            // Trim the header name to match keys consistently
+                            newRecord[header.trim()] = row[index];
+                        });
+                        return newRecord;
+                    }).filter(record => Object.values(record).some(value => value !== undefined && value !== '')); // Remove entirely empty rows
+
+                    // console.log("Registros lidos da planilha após ajuste:", recordsToProcess);
+
 
                     let recordsToAdd = [];
                     let duplicateRecords = [];
@@ -1173,7 +1209,7 @@
 
                     // Step 1: Pre-validation and identification of duplicates
                     for (const record of recordsToProcess) {
-                        const rowNum = recordsToProcess.indexOf(record) + 2; // +2 for header row and 0-based index
+                        const rowNum = recordsToProcess.indexOf(record) + 3; // +3 for header row, empty row, and 0-based index
                         try {
                             const eventName = record["Nome do Evento"]?.trim();
                             const eventDateRaw = record["Data do Evento"]?.trim();
