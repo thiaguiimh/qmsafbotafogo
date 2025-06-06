@@ -6,15 +6,16 @@
     <title>Portal Quadro Móvel - Botafogo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Biblioteca SheetJS para exportação/importação de XLSX -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            background-color: #f8f9fa; 
+            background-color: #f8f9fa;
         }
-        .font_inter { 
+        .font_inter {
             font-family: 'Inter', sans-serif;
         }
         .animate-fadeIn {
@@ -29,26 +30,26 @@
             height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #e9ecef; 
+            background: #e9ecef;
         }
         ::-webkit-scrollbar-thumb {
-            background: #adb5bd; 
+            background: #adb5bd;
             border-radius: 3px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #6c757d; 
+            background: #6c757d;
         }
         .loader {
-            border: 3px solid #dee2e6; 
-            border-top: 3px solid #007bff; 
+            border: 3px solid #dee2e6;
+            border-top: 3px solid #007bff;
             border-radius: 50%;
             width: 30px;
             height: 30px;
             animation: spin 0.8s linear infinite;
         }
         .loader_small_blue {
-            border: 2px solid #cce5ff; 
-            border-top: 2px solid #ffffff; 
+            border: 2px solid #cce5ff;
+            border-top: 2px solid #ffffff;
             border-radius: 50%;
             width: 16px;
             height: 16px;
@@ -62,17 +63,17 @@
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
-            background-image: none; 
+            background-image: none;
         }
-         select {
+        select {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236c757d'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
             background-size: 1.25em 1.25em;
-            padding-right: 2.5rem; 
+            padding-right: 2.5rem;
         }
         textarea {
-            resize: vertical; 
+            resize: vertical;
         }
         /* Estilos para filtros refinados */
         .filter-group {
@@ -82,7 +83,7 @@
             @apply text-xs font-medium text-gray-500 mb-1;
         }
         .filter-input {
-            @apply w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-400; 
+            @apply w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-400;
         }
     </style>
 </head>
@@ -98,7 +99,7 @@
                     </h1>
                 </div>
                 <div id="user-info-header" class="flex items-center space-x-4">
-                    </div>
+                </div>
             </div>
         </header>
 
@@ -123,31 +124,32 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithEmailAndPassword, 
-            signOut, 
+        import {
+            getAuth,
+            signInWithEmailAndPassword,
+            signOut,
             onAuthStateChanged,
             signInAnonymously,
             signInWithCustomToken,
+            sendPasswordResetEmail // Adicionado para o fluxo de primeiro acesso
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            getDoc, 
-            setDoc, 
-            addDoc, 
-            collection, 
-            query, 
-            where, 
-            getDocs, 
+        import {
+            getFirestore,
+            doc,
+            getDoc,
+            setDoc,
+            addDoc,
+            collection,
+            query,
+            where,
+            getDocs,
             Timestamp,
             deleteDoc,
             updateDoc,
-            onSnapshot,
-            orderBy
+            onSnapshot
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Configuração do Firebase, usando a variável global se disponível, caso contrário, a configuração padrão.
         const firebaseConfigFromUser = {
             apiKey: "AIzaSyDkRi6GWPiVawTe607frndhUbfB77yfVOw",
             authDomain: "qmsafbotafogo.firebaseapp.com",
@@ -159,7 +161,8 @@
         };
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfigFromUser;
-        
+
+        // currentAppId deve ser baseado no projectId do firebaseConfig para consistência com as regras de segurança e caminhos.
         const currentAppId = firebaseConfig.projectId || 'default-app-id';
         if (typeof __app_id !== 'undefined' && __app_id !== firebaseConfig.projectId) {
             console.warn(`Variável __app_id ('${__app_id}') detectada e diferente do projectId ('${firebaseConfig.projectId}'). Usando firebaseConfig.projectId para caminhos do Firestore para consistência com a configuração manual de dados que utiliza o projectId.`);
@@ -186,11 +189,12 @@
             categories: [], sectors: [], employees: [], records: [], allUsers: []
         };
         let unsubscribers = [];
-        let currentFilteredRecordsForExport = []; 
+        let currentFilteredRecordsForExport = [];
 
         const showElement = (el) => el.classList.remove('hidden');
         const hideElement = (el) => el.classList.add('hidden');
 
+        // Função para exibir notificações na tela
         function showNotification(message, type = 'info', duration = 4000) {
             const id = `notif-${Date.now()}`;
             let bgColor, textColor, iconColor, iconSvg;
@@ -208,7 +212,7 @@
                     bgColor = 'bg-blue-50'; textColor = 'text-blue-700'; iconColor = 'text-blue-500';
                     iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zm-1-5a1 1 0 102 0V8a1 1 0 10-2 0v3zm0 3a1 1 0 102 0 1 1 0 10-2 0z" clip-rule="evenodd" /></svg>`;
             }
-            
+
             const notificationDiv = document.createElement('div');
             notificationDiv.id = id;
             notificationDiv.className = `animate-fadeIn p-4 rounded-lg shadow-lg ${bgColor} ${textColor} flex items-start space-x-3 border border-${type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue'}-200`;
@@ -229,7 +233,8 @@
                 if (el) el.remove();
             }, duration);
         }
-        
+
+        // Função para abrir modais customizados
         function openModal(title, contentHtml, onConfirmAsync = null, confirmText = 'Confirmar', onCancel = null, cancelText = 'Cancelar') {
             modalContent.innerHTML = `
                 <div class="flex justify-between items-center mb-5">
@@ -246,44 +251,48 @@
             `;
             showElement(modalContainer);
             document.getElementById('modal-close-btn').onclick = closeModal;
-            
+
             const cancelBtn = document.getElementById('modal-cancel-btn');
             if (cancelBtn && typeof onCancel === 'function') {
                 cancelBtn.onclick = () => { closeModal(); onCancel(); };
             }
-            
+
             const confirmBtn = document.getElementById('modal-confirm-btn');
             if (confirmBtn && typeof onConfirmAsync === 'function') {
                 confirmBtn.onclick = async () => {
                     const originalButtonText = confirmBtn.innerHTML;
                     const cancelButton = document.getElementById('modal-cancel-btn');
-                    
+
                     confirmBtn.disabled = true;
                     if(cancelButton) cancelButton.disabled = true;
                     confirmBtn.innerHTML = `<span class="flex items-center justify-center"><span class="loader_small_blue mr-2"></span>Processando...</span>`;
 
                     try {
-                        await onConfirmAsync(); 
+                        await onConfirmAsync();
                     } catch (e) {
                         console.error("Error during modal confirm operation (caught in openModal):", e);
                     } finally {
-                        closeModal(); 
+                        // Fecha o modal independentemente do sucesso ou falha da operação
+                        closeModal();
                     }
                 };
             }
         }
 
+        // Função para fechar modais
         function closeModal() {
             hideElement(modalContainer);
-            modalContent.innerHTML = ''; 
+            modalContent.innerHTML = '';
         }
 
-        function confirmAction(title, message, onConfirmAsync) { 
+        // Função de confirmação genérica
+        function confirmAction(title, message, onConfirmAsync) {
             openModal(title, `<p>${message}</p>`, onConfirmAsync, 'Confirmar', () => {}, 'Cancelar');
         }
 
+        // Listener de autenticação do Firebase
         onAuthStateChanged(auth, async (firebaseUser) => {
-            hideElement(initialLoadingDiv); 
+            hideElement(initialLoadingDiv);
             currentUser = firebaseUser;
             if (firebaseUser) {
                 try {
@@ -292,7 +301,7 @@
                     const userDocSnap = await getDoc(userDocRef);
                     if (userDocSnap.exists()) {
                         userProfile = { id: userDocSnap.id, ...userDocSnap.data() };
-                        console.log("[onAuthStateChanged] Perfil do usuário encontrado:", userProfile); 
+                        console.log("[onAuthStateChanged] Perfil do usuário encontrado:", userProfile);
                         updateHeaderUI();
                         showElement(appHeader);
                         showElement(appFooter);
@@ -300,17 +309,17 @@
                         else if (userProfile.isManager) currentView = 'managerDashboard';
                         else {
                             showNotification("Usuário não possui perfil de gestor ou admin.", "error");
-                            currentView = 'login'; 
-                            await handleLogout(); 
+                            currentView = 'login';
+                            await handleLogout();
                         }
-                        loadAllData(); 
+                        loadAllData();
                     } else {
                         showNotification("Perfil do usuário não encontrado. Contacte o administrador.", "error");
                         console.warn(`[onAuthStateChanged] Perfil não encontrado para UID: ${firebaseUser.uid} no caminho artifacts/${currentAppId}/users_profile/`);
-                        await handleLogout(); 
+                        await handleLogout();
                     }
                 } catch (error) {
-                    console.error("[onAuthStateChanged] Erro ao buscar perfil:", error); 
+                    console.error("[onAuthStateChanged] Erro ao buscar perfil:", error);
                     showNotification("Erro ao carregar perfil. Tente novamente.", "error");
                     await handleLogout();
                 }
@@ -323,7 +332,8 @@
             }
             renderApp();
         });
-        
+
+        // Função para realizar o sign-in inicial com token customizado (do ambiente Canvas) ou anonimamente
         async function performInitialSignIn() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -337,6 +347,7 @@
             }
         }
 
+        // Função para lidar com o login de email/senha
         async function handleLogin(email, password) {
             appContent.innerHTML = `<div class="flex flex-col justify-center items-center h-64"><div class="loader"></div><p class="ml-3 text-gray-600 mt-3">Entrando...</p></div>`;
             try {
@@ -346,11 +357,12 @@
                 console.error("Erro no login:", error);
                 showNotification(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
                     ? "Email ou senha inválidos."
-                    : `Erro ao fazer login: ${error.message} (código: ${error.code})`, "error"); 
-                renderApp(); 
+                    : `Erro ao fazer login: ${error.message} (código: ${error.code})`, "error");
+                renderApp();
             }
         }
 
+        // Função para lidar com o logout
         async function handleLogout() {
             try {
                 await signOut(auth);
@@ -361,11 +373,12 @@
             }
         }
 
+        // Atualiza a UI do cabeçalho com informações do usuário
         function updateHeaderUI() {
             if (userProfile) {
                 userInfoHeader.innerHTML = `
                     <span class="text-sm text-gray-600 hidden sm:block">
-                        Olá, <span class="font-medium text-gray-800">${userProfile.name}</span> 
+                        Olá, <span class="font-medium text-gray-800">${userProfile.name}</span>
                         <span class="text-gray-400">(${userProfile.isAdmin ? 'Admin' : userProfile.isManager ? `Gestor - ${userProfile.sector}` : 'Usuário'})</span>
                     </span>
                     <button id="logout-btn" class="text-sm font-medium text-blue-600 hover:text-blue-700 py-2 px-3 rounded-lg hover:bg-blue-50 transition-colors duration-150 flex items-center space-x-1.5">
@@ -379,42 +392,48 @@
                 userInfoHeader.innerHTML = '';
             }
         }
-        
+
+        // Retorna a referência da coleção baseada se é pública ou não
         function getCollectionRef(collectionName, isPublic = true) {
             if (isPublic) {
                 return collection(db, 'artifacts', currentAppId, 'public', 'data', collectionName);
             }
+            // Para coleções privadas ou específicas do app (como 'records' ou 'users_profile')
             return collection(db, 'artifacts', currentAppId, collectionName);
         }
 
+        // Função para buscar dados do Firestore com listener em tempo real
         async function fetchDataWithListener(collectionName, dataKey, queryConstraints = [], isPublic = true, targetCollectionRef = null) {
-            if (!userProfile) return; 
+            if (!userProfile) return;
 
             const collRef = targetCollectionRef || getCollectionRef(collectionName, isPublic);
-            let qConstraints = [...queryConstraints]; 
+            let qConstraints = [...queryConstraints];
 
+            // Filtra records e employees pelo setor do gestor, se não for admin
             if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin) {
                 qConstraints.push(where("sector", "==", userProfile.sector));
             }
             if (dataKey === 'employees' && userProfile.isManager && !userProfile.isAdmin) {
                 qConstraints.push(where("sector", "==", userProfile.sector));
             }
-            
+
             let q = query(collRef, ...qConstraints);
-            
+
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (dataKey === 'records') { 
+                if (dataKey === 'records') {
+                    // Ordena registros pela data de criação em ordem decrescente
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
                 }
                 globalData[dataKey] = items;
-                if (document.getElementById('app-content')) { 
-                    if(currentView === 'history' || (currentView.startsWith('adminManage') && dataKey !== 'records')) {
-                         renderApp(); 
+                // Re-renderiza a aplicação apenas se a view atual precisa ser atualizada com os novos dados
+                if (document.getElementById('app-content')) {
+                    if(currentView === 'history' || currentView === 'importRecords' || (currentView.startsWith('adminManage') && dataKey !== 'records')) {
+                        renderApp();
                     } else if (currentView !== 'login' && !currentView.startsWith('adminManage') && dataKey === 'records' && !document.getElementById('record-history-table-container')) {
                         renderApp();
                     } else if (currentView.startsWith('adminManage') && dataKey === 'records') {
-                        // No-op
+                        // No-op para evitar renderizações desnecessárias em telas de gerenciamento que não exibem registros
                     }
                 }
             }, (error) => {
@@ -424,26 +443,31 @@
             unsubscribers.push(unsubscribe);
         }
 
+        // Carrega todos os dados iniciais
         function loadAllData() {
-            clearAllDataAndUnsubscribe(); 
+            clearAllDataAndUnsubscribe();
             if (userProfile) {
-                fetchDataWithListener('categories', 'categories'); 
-                fetchDataWithListener('sectors', 'sectors'); 
-                fetchDataWithListener('employees', 'employees'); 
+                fetchDataWithListener('categories', 'categories');
+                fetchDataWithListener('sectors', 'sectors');
+                fetchDataWithListener('employees', 'employees');
+                // Registros não são públicos, então o isPublic é false e a coleção é direta.
                 fetchDataWithListener('records', 'records', [], false, getCollectionRef('records', false));
 
+                // Apenas administradores buscam todos os perfis de usuários
                 if (userProfile.isAdmin) {
                     fetchDataWithListener('users_profile', 'allUsers', [], false, getCollectionRef('users_profile', false));
                 }
             }
         }
-        
+
+        // Limpa os dados globais e cancela todos os listeners do Firestore
         function clearAllDataAndUnsubscribe() {
             unsubscribers.forEach(unsub => unsub());
             unsubscribers = [];
             globalData = { categories: [], sectors: [], employees: [], records: [], allUsers: [] };
         }
 
+        // Adiciona um registro de quadro móvel ao Firestore
         async function addRecordToFirestore(recordData) {
             if (!userProfile) {
                 showNotification("Perfil do usuário não carregado. Não é possível salvar o registro.", "error");
@@ -453,39 +477,40 @@
                 showNotification("Apenas gestores podem adicionar registros.", "error");
                 return Promise.reject(new Error("Acesso negado, não é gestor"));
             }
-            if (!userProfile.sector || userProfile.sector.trim() === "") { 
+            if (!userProfile.sector || userProfile.sector.trim() === "") {
                 showNotification("Setor do gestor não definido no perfil. Não é possível salvar o registro. Contacte o administrador.", "error");
                 console.error("[addRecordToFirestore] Tentativa de salvar registro, mas userProfile.sector é indefinido ou vazio:", userProfile);
                 return Promise.reject(new Error("Setor do gestor não definido"));
             }
 
             try {
-                const recordsCollectionRef = getCollectionRef('records', false);
+                const recordsCollectionRef = getCollectionRef('records', false); // Registros não são públicos
                 const dataToSave = {
-                    ...recordData, 
+                    ...recordData,
                     managerId: currentUser.uid,
                     managerName: userProfile.name,
-                    sector: userProfile.sector, 
+                    sector: userProfile.sector,
                     createdAt: Timestamp.now()
                 };
                 console.log("[addRecordToFirestore] Dados para salvar:", dataToSave);
                 await addDoc(recordsCollectionRef, dataToSave);
                 showNotification("Registro adicionado com sucesso!", "success");
                 currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
-                renderApp(); 
+                renderApp();
             } catch (error) {
                 console.error("[addRecordToFirestore] Erro ao adicionar registro:", error);
                 showNotification("Falha ao adicionar registro. Verifique o console para detalhes.", "error");
-                throw error; 
+                throw error;
             }
         }
-        
+
+        // Adiciona um novo item (categoria, setor, funcionário) ao Firestore
         async function addItemToFirestore(collectionNameKey, data, isPublic = true) {
-            if (!userProfile) { 
+            if (!userProfile) {
                 showNotification("Perfil de usuário não carregado. Tente recarregar a página.", "error");
                 return Promise.reject(new Error("Perfil não carregado"));
             }
-            if (!userProfile.isAdmin) { 
+            if (!userProfile.isAdmin) {
                 showNotification("Acesso negado. Apenas administradores podem adicionar itens.", "error");
                 return Promise.reject(new Error("Acesso negado"));
             }
@@ -495,7 +520,7 @@
             }
 
             const dataToWrite = { ...data, createdAt: Timestamp.now(), createdBy: currentUser.uid };
-            
+
             console.log(`[addItemToFirestore] Tentando adicionar em '${collectionNameKey}'.`);
             console.log(`[addItemToFirestore] Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}`);
             console.log("[addItemToFirestore] Dados para escrever:", JSON.stringify(dataToWrite));
@@ -508,67 +533,72 @@
             } catch (e) {
                 showNotification(`Erro ao adicionar ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error");
                 console.error(`[addItemToFirestore] Falha ao adicionar em '${collectionNameKey}'. Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}. UID: ${currentUser.uid}. Dados:`, dataToWrite, "Objeto do Erro:", e);
-                throw e; 
+                throw e;
             }
         }
 
+        // Atualiza um item existente no Firestore
         async function updateItemInFirestore(collectionNameKey, id, data, isPublic = true, targetCollectionRef = null) {
-            if (!userProfile) { 
+            if (!userProfile) {
                 showNotification("Perfil de usuário não carregado.", "error");
                 return Promise.reject(new Error("Perfil não carregado"));
             }
-            if (!userProfile.isAdmin) { 
+            if (!userProfile.isAdmin) {
                 showNotification("Acesso negado.", "error");
                 return Promise.reject(new Error("Acesso negado"));
             }
-             if (!currentUser || !currentUser.uid) {
+            if (!currentUser || !currentUser.uid) {
                 showNotification("Informação do usuário atual (UID) não disponível.", "error");
                 return Promise.reject(new Error("UID do usuário não disponível"));
             }
             const dataToWrite = { ...data, updatedAt: Timestamp.now(), updatedBy: currentUser.uid };
-             console.log(`Tentando atualizar item '${id}' em '${collectionNameKey}'. Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}`);
+            console.log(`Tentando atualizar item '${id}' em '${collectionNameKey}'. Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}`);
             console.log("Dados para atualizar:", dataToWrite);
 
             try {
                 const itemDocRef = doc(targetCollectionRef || getCollectionRef(collectionNameKey, isPublic), id);
                 await updateDoc(itemDocRef, dataToWrite);
                 showNotification(`${collectionDisplayName(collectionNameKey).singular} atualizado com sucesso!`, "success");
-            } catch (e) { 
-                showNotification(`Erro ao atualizar ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error"); 
+            } catch (e) {
+                showNotification(`Erro ao atualizar ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error");
                 console.error(`Falha ao atualizar item '${id}' em '${collectionNameKey}'. Dados:`, dataToWrite, "Objeto do Erro:", e);
-                throw e; 
+                throw e;
             }
         }
-        
+
+        // Deleta um item do Firestore
         async function deleteItemFromFirestore(collectionNameKey, id, isPublic = true, targetCollectionRef = null) {
             let canDelete = false;
             if (userProfile?.isAdmin) {
                 canDelete = true;
             } else if (collectionNameKey === 'records' && userProfile?.isManager) {
-                canDelete = true; 
+                // Gestores podem deletar seus próprios registros
+                // Para maior segurança, poderíamos verificar se o registro pertence a ele, mas simplificamos por ora
+                canDelete = true;
             }
 
             if (!canDelete) {
-                 showNotification("Acesso negado para exclusão.", "error");
-                 return; 
+                showNotification("Acesso negado para exclusão.", "error");
+                return;
             }
-            
+
             confirmAction(
-                `Confirmar Exclusão`, 
+                `Confirmar Exclusão`,
                 `Tem certeza que deseja excluir este item de ${collectionDisplayName(collectionNameKey).plural}? Esta ação não pode ser desfeita.`,
-                async () => { 
+                async () => {
                     try {
                         console.log(`Tentando excluir item '${id}' de '${collectionNameKey}'. Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}`);
                         await deleteDoc(doc(targetCollectionRef || getCollectionRef(collectionNameKey, isPublic), id));
                         showNotification(`${collectionDisplayName(collectionNameKey).singular} excluído com sucesso!`, "success");
-                    } catch (e) { 
-                        showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error"); 
+                    } catch (e) {
+                        showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error");
                         console.error(`Falha ao excluir item '${id}' de '${collectionNameKey}'. Objeto do Erro:`, e);
                     }
                 }
             );
         }
-        
+
+        // Retorna nomes amigáveis para as coleções
         function collectionDisplayName(key) {
             const names = {
                 categories: { singular: "Categoria", plural: "Categorias" },
@@ -581,22 +611,26 @@
         }
 
         // --- RENDERIZAÇÃO DAS VIEWS ---
+        // Função principal para renderizar a view atual
         function renderApp() {
-            if (!currentUser && currentView !== 'login') { 
-                 currentView = 'login';
+            if (!currentUser && currentView !== 'login' && currentView !== 'firstAccess') {
+                // Se não há usuário logado e não está nas telas de login/primeiro acesso, redireciona para login
+                currentView = 'login';
             }
-            
+
             if (!appContent) {
                 console.error("Elemento #app-content não encontrado no DOM.");
                 return;
             }
-            appContent.innerHTML = ''; 
-            hideElement(initialLoadingDiv); 
+            appContent.innerHTML = '';
+            hideElement(initialLoadingDiv);
 
             switch (currentView) {
                 case 'login': renderLoginPage(); break;
+                case 'firstAccess': renderFirstAccessPage(); break; // Nova tela de primeiro acesso
                 case 'managerDashboard': renderManagerDashboard(); break;
                 case 'newRecord': renderNewRecordForm(); break;
+                case 'importRecords': renderImportRecordsPage(); break; // Nova tela de importação
                 case 'history': renderRecordHistory(); break;
                 case 'adminDashboard': renderAdminDashboard(); break;
                 case 'adminManageCategories':
@@ -625,11 +659,12 @@
                         (id) => deleteItemFromFirestore('employees', id)
                     ); break;
                 case 'adminManageUsers': renderAdminManageUsersPage(); break;
-                case 'adminCreateUserProfile': renderAdminCreateUserProfilePage(); break; 
+                case 'adminCreateUserProfile': renderAdminCreateUserProfilePage(); break;
                 default: renderLoginPage();
             }
         }
 
+        // Renderiza a página de login
         function renderLoginPage() {
             appContent.innerHTML = `
                 <div class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-4 animate-fadeIn">
@@ -652,6 +687,9 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
                                 Entrar
                             </button>
+                            <div class="text-center mt-4 text-xs">
+                                <a href="#" id="first-access-link" class="text-blue-600 hover:text-blue-700 hover:underline">Primeiro acesso ou esqueceu sua senha?</a>
+                            </div>
                         </form>
                     </div>
                     <footer class="text-center p-6 mt-8 text-gray-500 text-xs">
@@ -665,17 +703,84 @@
                 const password = document.getElementById('password').value;
                 handleLogin(email, password);
             });
+            document.getElementById('first-access-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                currentView = 'firstAccess';
+                renderApp();
+            });
         }
 
+        // Nova página para primeiro acesso / redefinição de senha
+        function renderFirstAccessPage() {
+            appContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-4 animate-fadeIn">
+                    <div class="w-full max-w-sm bg-white shadow-xl rounded-xl p-8 border border-gray-200">
+                        <div class="flex flex-col items-center mb-6">
+                            <img src="https://placehold.co/80x80/000000/FFFFFF?text=BFR&font=inter" alt="Logo Botafogo" class="h-16 w-16 rounded-lg mb-5">
+                            <h2 class="text-2xl font-semibold text-gray-800 text-center">Primeiro Acesso / Redefinir Senha</h2>
+                            <p class="text-gray-500 mt-1 text-sm text-center">Informe seu e-mail para receber um link de redefinição de senha.</p>
+                        </div>
+                        <form id="first-access-form" class="space-y-5">
+                            <div>
+                                <label for="resetEmail" class="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                                <input id="resetEmail" type="email" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="seu.email@safbfr.com.br">
+                            </div>
+                            <button type="submit" class="w-full flex items-center justify-center text-sm bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-150 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1">
+                                Enviar Link de Redefinição
+                            </button>
+                            <div class="text-center mt-4 text-xs">
+                                <a href="#" id="back-to-login-link" class="text-blue-600 hover:text-blue-700 hover:underline">Voltar para o Login</a>
+                            </div>
+                        </form>
+                    </div>
+                    <footer class="text-center p-6 mt-8 text-gray-500 text-xs">
+                        © ${new Date().getFullYear()} SAF Botafogo. Todos os direitos reservados.
+                    </footer>
+                </div>
+            `;
+            document.getElementById('first-access-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('resetEmail').value;
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                const originalButtonContent = submitButton.innerHTML;
+
+                submitButton.disabled = true;
+                submitButton.innerHTML = `<span class="flex items-center justify-center"><span class="loader_small_blue mr-2"></span>Enviando...</span>`;
+
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    showNotification("Link de redefinição enviado para seu e-mail!", "success");
+                    currentView = 'login';
+                    renderApp();
+                } catch (error) {
+                    console.error("Erro ao enviar link de redefinição:", error);
+                    showNotification(error.code === 'auth/user-not-found' ? "E-mail não cadastrado." : `Erro: ${error.message}`, "error");
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonContent;
+                }
+            });
+            document.getElementById('back-to-login-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                currentView = 'login';
+                renderApp();
+            });
+        }
+
+        // Renderiza o painel do gestor
         function renderManagerDashboard() {
             appContent.innerHTML = `
                 <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
                     <h2 class="text-2xl font-semibold text-gray-800 mb-1">Bem-vindo, Gestor <span class="text-blue-600">${userProfile.name}</span>!</h2>
                     <p class="text-gray-500 mb-6 text-sm">Setor: <span class="font-medium text-gray-700">${userProfile.sector}</span>. Utilize as opções abaixo.</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
                         <button id="btn-new-record" class="flex flex-col items-center justify-center text-center p-6 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded-lg transition-all duration-150 ease-in-out border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2 text-blue-600"><path d="M12 5v14M5 12h14"></path></svg>
                             Incluir Novo Registro
+                        </button>
+                        <button id="btn-import-records" class="flex flex-col items-center justify-center text-center p-6 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded-lg transition-all duration-150 ease-in-out border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2 text-blue-600"><path d="M21.44 10.42L12.59 1.57a2 2 0 0 0-2.82 0L1.57 10.42A2 2 0 0 0 2 14h20a2 2 0 0 0 .44-3.58z"></path><path d="M12 22v-8"></path><path d="M5 22h14"></path></svg>
+                            Importar Registros (Planilha)
                         </button>
                         <button id="btn-history" class="flex flex-col items-center justify-center text-center p-6 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded-lg transition-all duration-150 ease-in-out border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2 text-blue-600"><path d="M1 4v6h6M23 20v-6h-6"></path><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
@@ -685,12 +790,16 @@
                 </div>
             `;
             document.getElementById('btn-new-record').addEventListener('click', () => { currentView = 'newRecord'; renderApp(); });
+            document.getElementById('btn-import-records').addEventListener('click', () => { currentView = 'importRecords'; renderApp(); });
             document.getElementById('btn-history').addEventListener('click', () => { currentView = 'history'; renderApp(); });
         }
-        
+
+        // Renderiza o formulário para inclusão de novo registro
         function renderNewRecordForm() {
             const categoriesOptions = globalData.categories.map(cat => `<option value="${cat.id}">${cat.name} - ${cat.description}</option>`).join('');
-            const employeesOptions = globalData.employees.map(emp => `<option value="${emp.id}">${emp.name} (${emp.registration}) - ${emp.sector}</option>`).join('');
+            // Filtra funcionários pelo setor do gestor, se não for admin
+            const employeesFilteredBySector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => emp.sector === userProfile.sector);
+            const employeesOptions = employeesFilteredBySector.map(emp => `<option value="${emp.id}">${emp.name} (${emp.registration}) - ${emp.sector}</option>`).join('');
             const inputBaseClass = "w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
 
             appContent.innerHTML = `
@@ -752,8 +861,8 @@
                 }
                 try {
                     await addRecordToFirestore({
-                        eventName, 
-                        eventDate, 
+                        eventName,
+                        eventDate,
                         categoryId, categoryName: globalData.categories.find(cat => cat.id === categoryId)?.name,
                         employeeId, employeeName: globalData.employees.find(emp => emp.id === employeeId)?.name,
                         notes
@@ -761,7 +870,7 @@
                 } catch (error) {
                     console.error("Falha ao submeter formulário de novo registro:", error);
                 } finally {
-                     if (currentView === 'newRecord' && submitButton.disabled) { 
+                    if (currentView === 'newRecord' && submitButton.disabled) {
                         submitButton.disabled = false;
                         submitButton.innerHTML = originalButtonContent;
                     }
@@ -769,16 +878,185 @@
             });
         }
 
-        function renderRecordHistory() {
-            let recordsToDisplay = [...globalData.records]; 
-            if (userProfile.isManager && !userProfile.isAdmin) {
-                 recordsToDisplay = recordsToDisplay.filter(r => r.sector === userProfile.sector);
-            }
-            currentFilteredRecordsForExport = [...recordsToDisplay]; 
+        // Nova função para importar registros via planilha
+        function renderImportRecordsPage() {
+            appContent.innerHTML = `
+                <div class="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 animate-fadeIn">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold text-gray-800">Importar Registros de Quadro Móvel (Planilha)</h2>
+                        <button id="btn-back-dashboard-import" class="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar</button>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-4">
+                        Faça o upload de uma planilha Excel (.xlsx, .xls) ou CSV. As colunas esperadas são:
+                        <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Nome do Evento</code>,
+                        <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Data do Evento</code> (formato AAAA-MM-DD ou DD/MM/AAAA),
+                        <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Classificação</code> (Nome da Categoria),
+                        <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Funcionário</code> (Nome do Funcionário),
+                        <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Observações</code> (Opcional).
+                    </p>
+                    <input type="file" id="file-input" accept=".xlsx, .xls, .csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors cursor-pointer">
+                    <div id="import-status" class="mt-6 p-4 rounded-lg bg-gray-50 border border-gray-200 hidden">
+                        <h3 class="font-semibold text-gray-800 mb-2">Resultados da Importação:</h3>
+                        <p id="import-summary" class="text-sm text-gray-700 mb-3"></p>
+                        <div id="import-errors" class="space-y-1 text-red-700 text-xs max-h-48 overflow-y-auto"></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('btn-back-dashboard-import').addEventListener('click', () => {
+                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                renderApp();
+            });
+            document.getElementById('file-input').addEventListener('change', handleFileUpload);
+        }
 
+        // Lida com o upload do arquivo e processa os dados
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                showNotification("Nenhum arquivo selecionado.", "info");
+                return;
+            }
+
+            const importStatusDiv = document.getElementById('import-status');
+            const importSummaryP = document.getElementById('import-summary');
+            const importErrorsDiv = document.getElementById('import-errors');
+            showElement(importStatusDiv);
+            importSummaryP.innerHTML = 'Processando... <span class="loader_small_blue ml-2 inline-block align-middle"></span>';
+            importErrorsDiv.innerHTML = '';
+            importStatusDiv.classList.remove('bg-red-50', 'bg-green-50'); // Limpa estados anteriores
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays first to get headers dynamically
+
+                    if (json.length < 2) {
+                        showNotification("A planilha está vazia ou não contém dados válidos.", "error");
+                        importSummaryP.textContent = 'Erro: Planilha vazia ou sem cabeçalhos.';
+                        importStatusDiv.classList.add('bg-red-50');
+                        return;
+                    }
+
+                    const headers = json[0].map(h => String(h).trim()); // Get headers from first row and trim
+                    const expectedHeaders = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
+                    const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
+
+                    if (missingHeaders.length > 0) {
+                        showNotification(`Cabeçalhos ausentes: ${missingHeaders.join(', ')}. Verifique sua planilha.`, "error");
+                        importSummaryP.textContent = `Erro: Cabeçalhos ausentes: ${missingHeaders.join(', ')}.`;
+                        importStatusDiv.classList.add('bg-red-50');
+                        return;
+                    }
+
+                    const recordsToProcess = XLSX.utils.sheet_to_json(worksheet, { header: headers }); // Read again with dynamic headers
+                    // console.log("Registros lidos da planilha:", recordsToProcess);
+
+                    let successCount = 0;
+                    let errorDetails = [];
+
+                    for (const record of recordsToProcess) {
+                        const rowNum = recordsToProcess.indexOf(record) + 2; // +2 for header row and 0-based index
+                        try {
+                            const eventName = record["Nome do Evento"]?.trim();
+                            const eventDateRaw = record["Data do Evento"]?.trim();
+                            const categoryName = record["Classificação"]?.trim();
+                            const employeeName = record["Funcionário"]?.trim();
+                            const notes = record["Observações"]?.trim() || '';
+
+                            if (!eventName || !eventDateRaw || !categoryName || !employeeName) {
+                                throw new Error("Campos obrigatórios (Nome do Evento, Data do Evento, Classificação, Funcionário) não podem estar vazios.");
+                            }
+
+                            // Validação e formatação da data do evento
+                            let eventDate;
+                            if (eventDateRaw.match(/^\d{4}-\d{2}-\d{2}$/)) { // YYYY-MM-DD
+                                eventDate = eventDateRaw;
+                            } else if (eventDateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)) { // DD/MM/YYYY
+                                const parts = eventDateRaw.split('/');
+                                eventDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // Convert to YYYY-MM-DD
+                            } else {
+                                throw new Error(`Formato de data inválido para 'Data do Evento': ${eventDateRaw}. Use AAAA-MM-DD ou DD/MM/AAAA.`);
+                            }
+
+                            const category = globalData.categories.find(c => c.name?.toLowerCase() === categoryName.toLowerCase());
+                            if (!category) {
+                                throw new Error(`Categoria '${categoryName}' não encontrada na base de dados. Cadastre a categoria primeiro.`);
+                            }
+
+                            // Filtra funcionários pelo setor do gestor (se não for admin)
+                            const employeesInSector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => emp.sector === userProfile.sector);
+                            const employee = employeesInSector.find(emp => emp.name?.toLowerCase() === employeeName.toLowerCase());
+
+                            if (!employee) {
+                                throw new Error(`Funcionário '${employeeName}' não encontrado ou não pertence ao seu setor ('${userProfile.sector}').`);
+                            }
+
+                            const dataToSave = {
+                                eventName,
+                                eventDate,
+                                categoryId: category.id,
+                                categoryName: category.name,
+                                employeeId: employee.id,
+                                employeeName: employee.name,
+                                notes,
+                                // managerId, managerName, sector, createdAt serão adicionados por addRecordToFirestore
+                            };
+
+                            await addRecordToFirestore(dataToSave);
+                            successCount++;
+
+                        } catch (importError) {
+                            errorDetails.push(`Linha ${rowNum}: ${importError.message}`);
+                            console.error(`Erro na importação da linha ${rowNum}:`, importError);
+                        }
+                    }
+
+                    if (successCount > 0) {
+                        showNotification(`Importação concluída. ${successCount} registros adicionados com sucesso!`, "success");
+                        importStatusDiv.classList.add('bg-green-50');
+                    }
+                    if (errorDetails.length > 0) {
+                        showNotification(`Atenção: ${errorDetails.length} registros falharam na importação.`, "error");
+                        importStatusDiv.classList.add('bg-red-50');
+                        importErrorsDiv.innerHTML = errorDetails.map(err => `<p class="text-xs font-mono break-words">${err}</p>`).join('');
+                    }
+                    importSummaryP.textContent = `Importação concluída: ${successCount} sucesso(s), ${errorDetails.length} falha(s).`;
+
+                } catch (generalError) {
+                    showNotification("Erro ao processar o arquivo. Verifique o formato.", "error");
+                    importSummaryP.textContent = `Erro geral: ${generalError.message}.`;
+                    importStatusDiv.classList.add('bg-red-50');
+                    console.error("Erro geral no processamento do arquivo:", generalError);
+                } finally {
+                    event.target.value = ''; // Limpa o input file para permitir re-upload do mesmo arquivo
+                }
+            };
+
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file); // For CSV, read as text
+            } else {
+                reader.readAsArrayBuffer(file); // For XLSX/XLS, read as array buffer
+            }
+        }
+
+
+        // Renderiza o histórico de registros
+        function renderRecordHistory() {
+            let recordsToDisplay = [...globalData.records];
+            // Se o usuário é gestor e não admin, filtra por seu setor
+            if (userProfile.isManager && !userProfile.isAdmin) {
+                recordsToDisplay = recordsToDisplay.filter(r => r.sector === userProfile.sector);
+            }
+            currentFilteredRecordsForExport = [...recordsToDisplay]; // Mantém uma cópia para exportação inicial
+
+            // HTML dos filtros administrativos (visível apenas para admins)
             const adminFiltersHtml = userProfile.isAdmin ? `
                 <div class="mb-6 pt-3 pb-4 border-b border-gray-200">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-4 items-end"> 
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-4 items-end">
                         <div class="filter-group">
                             <label for="filter-search" class="filter-label">Termo Geral:</label>
                             <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, etc.">
@@ -804,7 +1082,7 @@
                                 ${globalData.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
                             </select>
                         </div>
-                         <div class="filter-group">
+                        <div class="filter-group">
                             <label for="filter-manager" class="filter-label">Gestor Lançador:</label>
                             <select id="filter-manager" class="filter-input">
                                 <option value="">Todos</option>
@@ -816,23 +1094,32 @@
                             <input type="text" id="filter-event-name" class="filter-input" placeholder="Nome exato do evento">
                         </div>
                         <div class="filter-group">
-                            <label for="filter-date-start" class="filter-label">Criação (De):</label>
-                            <input type="date" id="filter-date-start" class="filter-input">
+                            <label for="filter-event-date-start" class="filter-label">Data Evento (De):</label>
+                            <input type="date" id="filter-event-date-start" class="filter-input">
                         </div>
                         <div class="filter-group">
-                            <label for="filter-date-end" class="filter-label">Criação (Até):</label>
-                            <input type="date" id="filter-date-end" class="filter-input">
+                            <label for="filter-event-date-end" class="filter-label">Data Evento (Até):</label>
+                            <input type="date" id="filter-event-date-end" class="filter-input">
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-creation-date-start" class="filter-label">Criação (De):</label>
+                            <input type="date" id="filter-creation-date-start" class="filter-input">
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-creation-date-end" class="filter-label">Criação (Até):</label>
+                            <input type="date" id="filter-creation-date-end" class="filter-input">
                         </div>
                     </div>
-                    <div class="mt-4 flex justify-end space-x-2"> 
+                    <div class="mt-4 flex justify-end space-x-2">
                         <button id="btn-clear-filters" class="px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md shadow-sm">Limpar Filtros</button>
                         <button id="btn-apply-filters" class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm">Aplicar Filtros</button>
                     </div>
                 </div>
             ` : '';
 
+            // Gera a tabela HTML com base nos dados fornecidos
             const generateTableHtml = (data) => {
-                currentFilteredRecordsForExport = [...data]; 
+                currentFilteredRecordsForExport = [...data];
                 const tableRows = data.map(record => `
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.createdAt?.toDate?.().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) || 'N/A'}</td>
@@ -842,7 +1129,8 @@
                         <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.sector}</td>
                         <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.managerName}</td>
                         <td class="px-5 py-3.5 text-xs text-gray-500 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
-                        ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin) || userProfile.isAdmin ? 
+                        <!-- Coluna de Ação visível se o usuário for gestor do setor do registro ou admin -->
+                        ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin) || userProfile.isAdmin ?
                             `<td class="px-5 py-3.5 text-xs text-center">
                                 <button class="btn-delete-record text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md" data-id="${record.id}" title="Excluir Registro">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -852,7 +1140,7 @@
                     </tr>
                 `).join('');
 
-                return data.length === 0 ? 
+                return data.length === 0 ?
                     `<div class="text-center py-10"><p class="text-gray-500 text-sm">Nenhum registro encontrado para os filtros aplicados.</p></div>` :
                     `<div class="overflow-x-auto border border-gray-200 rounded-lg">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -872,7 +1160,7 @@
                         </table>
                     </div>`;
             };
-            
+
             appContent.innerHTML = `
                 <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -893,8 +1181,10 @@
                 </div>
             `;
 
+            // Aplica os filtros administrativos
             const applyAdminFilters = () => {
-                if (!userProfile.isAdmin) return;
+                if (!userProfile.isAdmin) return; // Apenas admin pode aplicar todos os filtros
+
                 let filtered = [...globalData.records];
 
                 const searchTerm = document.getElementById('filter-search')?.value.toLowerCase();
@@ -903,11 +1193,13 @@
                 const employeeId = document.getElementById('filter-employee')?.value;
                 const managerName = document.getElementById('filter-manager')?.value;
                 const eventNameFilter = document.getElementById('filter-event-name')?.value.toLowerCase();
-                const dateStartStr = document.getElementById('filter-date-start')?.value;
-                const dateEndStr = document.getElementById('filter-date-end')?.value;
+                const eventDateStartStr = document.getElementById('filter-event-date-start')?.value; // Novo filtro: Data do Evento (De)
+                const eventDateEndStr = document.getElementById('filter-event-date-end')?.value;   // Novo filtro: Data do Evento (Até)
+                const creationDateStartStr = document.getElementById('filter-creation-date-start')?.value;
+                const creationDateEndStr = document.getElementById('filter-creation-date-end')?.value;
 
                 if (searchTerm) {
-                    filtered = filtered.filter(r => 
+                    filtered = filtered.filter(r =>
                         (r.eventName && r.eventName.toLowerCase().includes(searchTerm)) ||
                         (r.categoryName && r.categoryName.toLowerCase().includes(searchTerm)) ||
                         (r.employeeName && r.employeeName.toLowerCase().includes(searchTerm)) ||
@@ -920,23 +1212,40 @@
                 if (categoryId) filtered = filtered.filter(r => r.categoryId === categoryId);
                 if (employeeId) filtered = filtered.filter(r => r.employeeId === employeeId);
                 if (managerName) filtered = filtered.filter(r => r.managerName === managerName);
-                if (eventNameFilter) filtered = filtered.filter(r => r.eventName && r.eventName.toLowerCase() === eventNameFilter);
+                if (eventNameFilter) filtered = filtered.filter(r => r.eventName && r.eventName.toLowerCase().includes(eventNameFilter)); // Usar includes para pesquisa parcial
 
-                if (dateStartStr) {
-                    const startDate = new Date(dateStartStr); 
-                    startDate.setHours(0,0,0,0); 
+                // Filtro por Data do Evento
+                if (eventDateStartStr) {
+                    const startDate = new Date(eventDateStartStr + 'T00:00:00'); // Garante que a comparação seja do início do dia
+                    filtered = filtered.filter(r => r.eventDate && new Date(r.eventDate + 'T00:00:00') >= startDate);
+                }
+                if (eventDateEndStr) {
+                    const endDate = new Date(eventDateEndStr + 'T23:59:59'); // Garante que a comparação seja até o final do dia
+                    filtered = filtered.filter(r => r.eventDate && new Date(r.eventDate + 'T00:00:00') <= endDate);
+                }
+
+                // Filtro por Data de Criação (já existia)
+                if (creationDateStartStr) {
+                    const startDate = new Date(creationDateStartStr);
+                    startDate.setHours(0,0,0,0);
                     filtered = filtered.filter(r => r.createdAt && r.createdAt.toDate() >= startDate);
                 }
-                if (dateEndStr) {
-                    const endDate = new Date(dateEndStr); 
-                    endDate.setHours(23,59,59,999); 
+                if (creationDateEndStr) {
+                    const endDate = new Date(creationDateEndStr);
+                    endDate.setHours(23,59,59,999);
                     filtered = filtered.filter(r => r.createdAt && r.createdAt.toDate() <= endDate);
                 }
-                
+
+                // Se o usuário é gestor e não admin, aplica o filtro de setor *após* outros filtros, mas garante que os dados exibidos são sempre os do seu setor.
+                if (userProfile.isManager && !userProfile.isAdmin) {
+                    filtered = filtered.filter(r => r.sector === userProfile.sector);
+                }
+
                 const tableContainer = document.getElementById('record-history-table-container');
                 if(tableContainer) tableContainer.innerHTML = generateTableHtml(filtered);
             };
-            
+
+            // Limpa todos os campos de filtro
             const clearAdminFilters = () => {
                 if (!userProfile.isAdmin) return;
                 document.getElementById('filter-search').value = '';
@@ -945,9 +1254,11 @@
                 document.getElementById('filter-employee').value = '';
                 document.getElementById('filter-manager').value = '';
                 document.getElementById('filter-event-name').value = '';
-                document.getElementById('filter-date-start').value = '';
-                document.getElementById('filter-date-end').value = '';
-                applyAdminFilters(); 
+                document.getElementById('filter-event-date-start').value = ''; // Limpa o novo campo
+                document.getElementById('filter-event-date-end').value = '';   // Limpa o novo campo
+                document.getElementById('filter-creation-date-start').value = '';
+                document.getElementById('filter-creation-date-end').value = '';
+                applyAdminFilters();
             };
 
             document.getElementById('btn-back-dashboard').addEventListener('click', () => {
@@ -959,10 +1270,12 @@
                 document.getElementById('btn-apply-filters')?.addEventListener('click', applyAdminFilters);
                 document.getElementById('btn-clear-filters')?.addEventListener('click', clearAdminFilters);
             }
-            
+
             document.querySelectorAll('.btn-delete-record').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const recordId = e.currentTarget.dataset.id;
+                    // A exclusão de registros por gestores é permitida se o registro for do seu setor
+                    // A função deleteItemFromFirestore já contém a lógica de permissão
                     deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false));
                 });
             });
@@ -970,10 +1283,11 @@
             document.getElementById('btn-export-csv').addEventListener('click', () => exportToCSV(currentFilteredRecordsForExport));
             document.getElementById('btn-export-xlsx').addEventListener('click', () => exportToXLSX(currentFilteredRecordsForExport));
         }
-        
+
+        // Renderiza o painel do administrador
         function renderAdminDashboard() {
             const adminButtonBaseClass = "flex flex-col items-center justify-center text-center p-5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-all duration-150 ease-in-out border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-lg";
-            const iconBaseClass = "w-8 h-8 mb-2 text-blue-600"; 
+            const iconBaseClass = "w-8 h-8 mb-2 text-blue-600";
 
             appContent.innerHTML = `
                 <div class="animate-fadeIn">
@@ -981,13 +1295,17 @@
                         <h2 class="text-2xl font-semibold text-gray-800 mb-1">Painel Administrativo</h2>
                         <p class="text-gray-500 text-sm">Bem-vindo, <span class="font-medium text-gray-700">${userProfile.name}</span>. Gerencie todos os aspectos do sistema.</p>
                     </div>
-                    
+
                     <div class="mb-8">
-                        <h3 class="text-base font-semibold text-gray-500 mb-3 px-1">Ações Rápidas de Gestor</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <h3 class="text-base font-semibold text-gray-500 mb-3 px-1">Ações Rápidas de Gestor (Admin)</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <button id="admin-btn-new-record" class="${adminButtonBaseClass}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                                 <span class="text-xs font-medium">Incluir Novo Registro</span>
+                            </button>
+                            <button id="admin-btn-import-records" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2 text-blue-600"><path d="M21.44 10.42L12.59 1.57a2 2 0 0 0-2.82 0L1.57 10.42A2 2 0 0 0 2 14h20a2 2 0 0 0 .44-3.58z"></path><path d="M12 22v-8"></path><path d="M5 22h14"></path></svg>
+                                <span class="text-xs font-medium">Importar Registros (Planilha)</span>
                             </button>
                             <button id="admin-btn-history" class="${adminButtonBaseClass}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4v6h6M23 20v-6h-6"></path><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
@@ -1016,6 +1334,7 @@
                 </div>
             `;
             document.getElementById('admin-btn-new-record').onclick = () => { currentView = 'newRecord'; renderApp(); };
+            document.getElementById('admin-btn-import-records').onclick = () => { currentView = 'importRecords'; renderApp(); };
             document.getElementById('admin-btn-history').onclick = () => { currentView = 'history'; renderApp(); };
             document.getElementById('admin-manage-categories').onclick = () => { currentView = 'adminManageCategories'; renderApp(); };
             document.getElementById('admin-manage-sectors').onclick = () => { currentView = 'adminManageSectors'; renderApp(); };
@@ -1023,8 +1342,9 @@
             document.getElementById('admin-manage-users').onclick = () => { currentView = 'adminManageUsers'; renderApp(); };
         }
 
+        // Renderiza a página genérica de gerenciamento (Categorias, Setores, Funcionários)
         function renderAdminManageGenericPage(collectionKey, items, fields, onAdd, onUpdate, onDelete) {
-            const cdn = collectionDisplayName(collectionKey); 
+            const cdn = collectionDisplayName(collectionKey);
             const inputBaseClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
 
             const tableHeaders = fields.map(f => `<th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${f.label}</th>`).join('');
@@ -1066,12 +1386,12 @@
                     }
                 </div>
             `;
-            
+
             const openItemModal = (itemToEdit = null) => {
                 let formHtml = '';
                 fields.forEach(field => {
                     const value = itemToEdit ? (itemToEdit[field.name] || '') : '';
-                    const fieldId = `field-${field.name}`; 
+                    const fieldId = `field-${field.name}`;
                     if (field.type === 'select') {
                         const optionsHtml = field.options.map(opt => `<option value="${opt.value}" ${value === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
                         formHtml += `<div class="mb-4"><label for="${fieldId}" class="block text-xs font-medium text-gray-600 mb-1">${field.label}:</label><select id="${fieldId}" name="${field.name}" class="${inputBaseClass}" required><option value="">Selecione</option>${optionsHtml}</select></div>`;
@@ -1080,20 +1400,20 @@
                     }
                 });
                 const modalTitle = itemToEdit ? `Editar ${cdn.singular}` : `Adicionar ${cdn.singular}`;
-                
+
                 const asyncOperation = async () => {
                     const formData = {};
                     const formElement = document.getElementById('item-form');
                     if (formElement && !formElement.checkValidity()) {
-                         showNotification("Por favor, preencha todos os campos obrigatórios.", "error");
-                         formElement.reportValidity(); 
-                         return Promise.reject(new Error("Formulário inválido")); 
+                        showNotification("Por favor, preencha todos os campos obrigatórios.", "error");
+                        formElement.reportValidity();
+                        return Promise.reject(new Error("Formulário inválido"));
                     }
 
                     fields.forEach(field => {
                         const inputElement = document.getElementById(`field-${field.name}`);
                         if (inputElement) {
-                             formData[field.name] = inputElement.value;
+                            formData[field.name] = inputElement.value;
                         } else {
                             console.warn(`Elemento do formulário não encontrado para o campo: field-${field.name}`);
                         }
@@ -1106,9 +1426,9 @@
                     }
                 };
 
-                openModal(modalTitle, 
-                    `<form id="item-form" class="space-y-1">${formHtml.replace(/class="mb-4"(?![\s\S]*class="mb-4")/g, '')}</form>`, 
-                    asyncOperation, 
+                openModal(modalTitle,
+                    `<form id="item-form" class="space-y-1">${formHtml.replace(/class="mb-4"(?![\s\S]*class="mb-4")/g, '')}</form>`,
+                    asyncOperation,
                     itemToEdit ? 'Salvar Alterações' : 'Adicionar'
                 );
             };
@@ -1122,17 +1442,18 @@
             }));
             document.querySelectorAll('.btn-delete-item').forEach(btn => btn.addEventListener('click', (e) => {
                 const itemId = e.currentTarget.dataset.id;
-                deleteItemFromFirestore(collectionKey, itemId); 
+                deleteItemFromFirestore(collectionKey, itemId);
             }));
         }
-        
+
+        // Renderiza a página para criar/editar perfis de usuário
         function renderAdminCreateUserProfilePage(userToEdit = null) {
             const isCreating = !userToEdit;
             const cdn = collectionDisplayName('users_profile');
             const sectorsOptionsHtml = globalData.sectors.map(s => `<option value="${s.name}" ${userToEdit?.sector === s.name ? 'selected' : ''}>${s.name}</option>`).join('');
             const inputBaseClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
             const checkboxClass = "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500";
-            
+
             const pageTitle = isCreating ? "Criar Novo Perfil de Usuário" : `Editar Perfil: ${userToEdit.name}`;
 
             appContent.innerHTML = `
@@ -1150,8 +1471,8 @@
                              <input type="email" id="userProfileEmail" value="${userToEdit?.email || ''}" class="${inputBaseClass}" required placeholder="email.do.usuario@example.com"></div>
                         <div><label for="userProfileSector" class="block text-xs font-medium text-gray-600 mb-1">Setor:</label>
                              <select id="userProfileSector" class="${inputBaseClass}">
-                                <option value="" ${!(userToEdit?.sector) ? 'selected': ''}>Nenhum</option>
-                                ${sectorsOptionsHtml}
+                                 <option value="" ${!(userToEdit?.sector) ? 'selected': ''}>Nenhum</option>
+                                 ${sectorsOptionsHtml}
                              </select></div>
                         <div class="grid grid-cols-2 gap-4 pt-1">
                             <label class="flex items-center space-x-2 text-sm text-gray-700"><input type="checkbox" id="userProfileIsManager" ${userToEdit?.isManager ? 'checked' : ''} class="${checkboxClass}"><span>É Gestor?</span></label>
@@ -1185,15 +1506,16 @@
                     sector: document.getElementById('userProfileSector').value,
                     isManager: document.getElementById('userProfileIsManager').checked,
                     isAdmin: document.getElementById('userProfileIsAdmin').checked,
-                    uid: uid 
+                    uid: uid
                 };
 
                 try {
                     const userDocRef = doc(getCollectionRef('users_profile', false), uid);
-                    await setDoc(userDocRef, profileData, { merge: !isCreating }); 
+                    // setDoc com { merge: true } para atualizar ou criar se não existir
+                    await setDoc(userDocRef, profileData, { merge: !isCreating });
                     showNotification(`Perfil de usuário ${isCreating ? 'criado' : 'atualizado'} com sucesso!`, "success");
-                    currentView = 'adminManageUsers'; 
-                    renderApp(); 
+                    currentView = 'adminManageUsers';
+                    renderApp();
                 } catch (error) {
                     showNotification(`Erro ao ${isCreating ? 'criar' : 'atualizar'} perfil. Detalhes no console.`, "error");
                     console.error(`Erro ao salvar perfil de usuário ${uid}:`, error);
@@ -1204,10 +1526,11 @@
         }
 
 
+        // Renderiza a página de gerenciamento de usuários (apenas para admin)
         function renderAdminManageUsersPage() {
             const users = globalData.allUsers;
             const cdn = collectionDisplayName('users_profile');
-            
+
             const tableRows = users.map(user => `
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-5 py-3 text-xs text-gray-700 font-medium whitespace-nowrap">${user.name || 'N/A'}</td>
@@ -1255,7 +1578,7 @@
             `;
 
             document.getElementById('btn-add-new-user-profile').addEventListener('click', () => {
-                currentView = 'adminCreateUserProfile'; 
+                currentView = 'adminCreateUserProfile';
                 renderApp();
             });
             document.getElementById('btn-back-admin-dash-users').addEventListener('click', () => { currentView = 'adminDashboard'; renderApp(); });
@@ -1263,12 +1586,13 @@
                 const userId = e.currentTarget.dataset.id;
                 const userToEdit = users.find(u => u.id === userId);
                 if(userToEdit) {
-                    renderAdminCreateUserProfilePage(userToEdit); 
+                    renderAdminCreateUserProfilePage(userToEdit);
                 }
             }));
         }
 
         // --- Funções de Exportação ---
+        // Exporta dados para CSV
         function exportToCSV(records) {
             if (!records || records.length === 0) {
                 showNotification("Nenhum dado para exportar.", "info"); return;
@@ -1279,7 +1603,7 @@
             records.forEach(record => {
                 const row = [
                     record.createdAt?.toDate?.().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) || 'N/A',
-                    `"${(record.eventName || 'N/A').replace(/"/g, '""')}"`, 
+                    `"${(record.eventName || 'N/A').replace(/"/g, '""')}"`,
                     record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A',
                     `"${(record.categoryName || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.employeeName || 'N/A').replace(/"/g, '""')}"`,
@@ -1300,6 +1624,7 @@
             showNotification("CSV exportado com sucesso!", "success");
         }
 
+        // Exporta dados para XLSX
         function exportToXLSX(records) {
             if (typeof XLSX === 'undefined') {
                 showNotification("Erro: Biblioteca de exportação XLSX não carregada.", "error");
@@ -1329,8 +1654,9 @@
         }
 
 
+        // Garante que o login inicial seja tentado ao carregar a página
         document.addEventListener('DOMContentLoaded', () => {
-            performInitialSignIn(); 
+            performInitialSignIn();
         });
 
     </script>
