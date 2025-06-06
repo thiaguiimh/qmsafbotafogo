@@ -213,7 +213,7 @@
                     break;
                 default: // info
                     bgColor = 'bg-blue-50'; textColor = 'text-blue-700'; iconColor = 'text-blue-500';
-                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zm-1-5a1 1 0 102 0V8a1 1 0 10-2 0v3zm0 3a1 1 0 102 0 1 1 0 10-2 0z" clip-rule="evenodd" /></svg>`;
+                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zm-1-5a1 1 0 102 0V8a1 1 0 10-2 0v3zm0 3a1 1 0 102 0 1 1 0 10-2 0z" clip-rule='evenodd' /></svg>`;
             }
 
             const notificationDiv = document.createElement('div');
@@ -1025,6 +1025,10 @@
             ];
             const ws = XLSX.utils.aoa_to_sheet(wsData);
 
+            // Add placeholder text to D2 for visual guidance.
+            // This is a static value, not part of data validation.
+            ws['D2'] = { t: 's', v: 'Nome do Funcionário (Lista Suspensa)' };
+
             // Create lists sheet (hidden)
             const wsLists = XLSX.utils.aoa_to_sheet([]);
             employeesForDropdown.forEach((name, index) => {
@@ -1067,7 +1071,7 @@
                     formula1: `'${listsSheetName}'!$B$1:$B$${categoriesForDropdown.length}` // Reference to hidden sheet (categories are in col B)
                 });
             } else {
-                 showNotification("Não há categorias cadastradas para criar a lista suspensa no modelo.", "info", 6000);
+                 showNotification("Não há categorias cadastrada para criar a lista suspensa no modelo.", "info", 6000);
             }
 
             // Add sheets to workbook
