@@ -131,7 +131,10 @@
             onAuthStateChanged,
             signInAnonymously,
             signInWithCustomToken,
-            sendPasswordResetEmail // Adicionado para o fluxo de primeiro acesso
+            sendPasswordResetEmail,
+            reauthenticateWithCredential, // Importar para reautenticação
+            EmailAuthProvider,          // Importar para criar credencial
+            updatePassword              // Importar para atualizar a senha
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import {
             getFirestore,
@@ -377,6 +380,10 @@
         function updateHeaderUI() {
             if (userProfile) {
                 userInfoHeader.innerHTML = `
+                    <button id="btn-change-password" class="text-sm font-medium text-gray-600 hover:text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-100 transition-colors duration-150 flex items-center space-x-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <span>Redefinir Senha</span>
+                    </button>
                     <span class="text-sm text-gray-600 hidden sm:block">
                         Olá, <span class="font-medium text-gray-800">${userProfile.name}</span>
                         <span class="text-gray-400">(${userProfile.isAdmin ? 'Admin' : userProfile.isManager ? `Gestor - ${userProfile.sector}` : 'Usuário'})</span>
@@ -387,6 +394,10 @@
                     </button>
                 `;
                 document.getElementById('logout-btn').addEventListener('click', handleLogout);
+                document.getElementById('btn-change-password').addEventListener('click', () => {
+                    currentView = 'changePassword';
+                    renderApp();
+                });
                 appFooter.innerHTML = `© ${new Date().getFullYear()} SAF Botafogo. Todos os direitos reservados. <span class="text-gray-400">UID: ${currentUser?.uid}</span>`;
             } else {
                 userInfoHeader.innerHTML = '';
@@ -428,7 +439,7 @@
                 globalData[dataKey] = items;
                 // Re-renderiza a aplicação apenas se a view atual precisa ser atualizada com os novos dados
                 if (document.getElementById('app-content')) {
-                    if(currentView === 'history' || currentView === 'importRecords' || (currentView.startsWith('adminManage') && dataKey !== 'records')) {
+                    if(currentView === 'history' || currentView === 'importRecords' || currentView === 'changePassword' || (currentView.startsWith('adminManage') && dataKey !== 'records')) {
                         renderApp();
                     } else if (currentView !== 'login' && !currentView.startsWith('adminManage') && dataKey === 'records' && !document.getElementById('record-history-table-container')) {
                         renderApp();
@@ -628,6 +639,7 @@
             switch (currentView) {
                 case 'login': renderLoginPage(); break;
                 case 'firstAccess': renderFirstAccessPage(); break; // Nova tela de primeiro acesso
+                case 'changePassword': renderChangePasswordPage(); break; // Nova tela de redefinição de senha
                 case 'managerDashboard': renderManagerDashboard(); break;
                 case 'newRecord': renderNewRecordForm(); break;
                 case 'importRecords': renderImportRecordsPage(); break; // Nova tela de importação
@@ -710,7 +722,7 @@
             });
         }
 
-        // Nova página para primeiro acesso / redefinição de senha
+        // Nova página para primeiro acesso / redefinição de senha via link por e-mail
         function renderFirstAccessPage() {
             appContent.innerHTML = `
                 <div class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-4 animate-fadeIn">
@@ -766,6 +778,103 @@
                 renderApp();
             });
         }
+
+        // Nova página para redefinição de senha direta
+        function renderChangePasswordPage() {
+            appContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-4 animate-fadeIn">
+                    <div class="w-full max-w-sm bg-white shadow-xl rounded-xl p-8 border border-gray-200">
+                        <div class="flex flex-col items-center mb-6">
+                            <h2 class="text-2xl font-semibold text-gray-800 text-center">Redefinir Senha</h2>
+                            <p class="text-gray-500 mt-1 text-sm text-center">Para sua segurança, confirme sua senha atual e defina uma nova.</p>
+                        </div>
+                        <form id="change-password-form" class="space-y-5">
+                            <div>
+                                <label for="currentPassword" class="block text-xs font-medium text-gray-600 mb-1">Senha Atual:</label>
+                                <input id="currentPassword" type="password" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="••••••••">
+                            </div>
+                            <div>
+                                <label for="newPassword" class="block text-xs font-medium text-gray-600 mb-1">Nova Senha:</label>
+                                <input id="newPassword" type="password" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="••••••••">
+                            </div>
+                            <div>
+                                <label for="confirmNewPassword" class="block text-xs font-medium text-gray-600 mb-1">Confirmar Nova Senha:</label>
+                                <input id="confirmNewPassword" type="password" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="••••••••">
+                            </div>
+                            <button type="submit" class="w-full flex items-center justify-center text-sm bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-150 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1">
+                                Redefinir Senha
+                            </button>
+                            <div class="text-center mt-4 text-xs">
+                                <button type="button" id="back-to-dashboard-change-password" class="text-blue-600 hover:text-blue-700 hover:underline">Voltar ao Painel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('change-password-form').addEventListener('submit', handleChangePassword);
+            document.getElementById('back-to-dashboard-change-password').addEventListener('click', () => {
+                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                renderApp();
+            });
+        }
+
+        // Função para lidar com a redefinição de senha direta
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonContent = submitButton.innerHTML;
+
+            if (!currentUser) {
+                showNotification("Nenhum usuário logado. Por favor, faça login novamente.", "error");
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                showNotification("A nova senha e a confirmação não coincidem.", "error");
+                return;
+            }
+
+            if (newPassword.length < 6) { // Firebase exige no mínimo 6 caracteres
+                showNotification("A nova senha deve ter pelo menos 6 caracteres.", "error");
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<span class="flex items-center justify-center"><span class="loader_small_blue mr-2"></span>Redefinindo...</span>`;
+
+            try {
+                // Primeiro, reautenticar o usuário
+                const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+                await reauthenticateWithCredential(currentUser, credential);
+
+                // Se a reautenticação for bem-sucedida, atualize a senha
+                await updatePassword(currentUser, newPassword);
+                showNotification("Senha redefinida com sucesso!", "success");
+                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                renderApp();
+            } catch (error) {
+                console.error("Erro ao redefinir senha:", error);
+                let errorMessage = "Erro ao redefinir senha. Tente novamente.";
+                if (error.code === 'auth/wrong-password') {
+                    errorMessage = "Senha atual incorreta.";
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = "Muitas tentativas de login falhas. Tente novamente mais tarde.";
+                } else if (error.code === 'auth/requires-recent-login') {
+                    errorMessage = "Por favor, faça logout e login novamente para redefinir sua senha.";
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = "A nova senha é muito fraca. Por favor, use uma senha mais forte.";
+                }
+                showNotification(errorMessage, "error");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonContent;
+            }
+        }
+
 
         // Renderiza o painel do gestor
         function renderManagerDashboard() {
@@ -973,11 +1082,11 @@
 
                             // Validação e formatação da data do evento
                             let eventDate;
-                            if (eventDateRaw.match(/^\d{4}-\d{2}-\d{2}$/)) { // YYYY-MM-DD
+                            if (eventDateRaw.match(/^\d{4}-\d{2}-\d{2}$/)) { // AAAA-MM-DD
                                 eventDate = eventDateRaw;
                             } else if (eventDateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)) { // DD/MM/YYYY
                                 const parts = eventDateRaw.split('/');
-                                eventDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // Convert to YYYY-MM-DD
+                                eventDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // Convert to AAAA-MM-DD
                             } else {
                                 throw new Error(`Formato de data inválido para 'Data do Evento': ${eventDateRaw}. Use AAAA-MM-DD ou DD/MM/AAAA.`);
                             }
