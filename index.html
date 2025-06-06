@@ -1105,17 +1105,17 @@
                     const workbook = XLSX.read(data, { type: 'array' });
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays first to get headers dynamically
+                    // IMPORTANT: When reading from sheet to JSON, use 'raw: false' to ensure Excel dates are converted to strings.
+                    // Also, specify 'header: 1' to correctly pick up headers from the first row (index 0 of the JSON array).
+                    // The 'range: 2' means data processing will start from the 3rd row (index 2 of the JSON array), effectively skipping the empty row 2.
+                    const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2, raw: false });
 
-                    if (json.length < 2) {
-                        showNotification("A planilha está vazia ou não contém dados válidos.", "error");
-                        importSummaryP.textContent = 'Erro: Planilha vazia ou sem cabeçalhos.';
-                        importStatusDiv.classList.add('bg-red-50');
-                        return;
-                    }
+                    // Get headers from the first row (which is at index 0 in the JSON `json` array if `header: 1` wasn't used, but `sheet_to_json` with `header:1` uses it to map).
+                    // Let's re-read headers correctly in case `sheet_to_json` with `range` and `header` misbehaves.
+                    // Simplest is to just read the first row of the original `json` for headers.
+                    const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    const headers = allRows[0].map(h => String(h).trim());
 
-                    // Get headers from the first row.
-                    const headers = json[0].map(h => String(h).trim());
 
                     const expectedHeaders = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
                     const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
@@ -1127,11 +1127,7 @@
                         return;
                     }
 
-                    // Start parsing data from the 3rd row (index 2) of the Excel sheet.
-                    // This correctly skips the header row and the empty second row.
-                    const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2 });
-
-                    // Manually map to expected keys after parsing
+                    // Manually map `recordsRaw` (which starts from Excel row 3) to objects using the `headers` from Excel row 1.
                     const recordsToProcess = recordsRaw.map(row => {
                         const newRecord = {};
                         headers.forEach((header, index) => {
@@ -1148,9 +1144,10 @@
 
                     // Step 1: Pre-validation and identification of duplicates
                     for (const record of recordsToProcess) {
-                        const rowNum = recordsToProcess.indexOf(record) + 3; // +3 for header row, empty row, and 0-based index
+                        // rowNum needs to account for skipped header (1) + skipped empty row (1) + current row index (0-based) + 1
+                        const rowNum = recordsToProcess.indexOf(record) + 3;
                         try {
-                            // Already trimmed above by String(row[index]).trim()
+                            // Values are already strings due to the mapping above
                             const eventName = record["Nome do Evento"];
                             const eventDateRaw = record["Data do Evento"];
                             const categoryName = record["Classificação"];
