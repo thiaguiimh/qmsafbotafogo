@@ -1016,9 +1016,9 @@
             // Filter categories for dropdown
             const categoriesForDropdown = globalData.categories.map(cat => cat.name);
 
-            // Create workbook and main sheet
+            // Create workbook and main sheet with only headers initially
             const workbook = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet([headers]); // Add headers to main sheet
+            const ws = XLSX.utils.aoa_to_sheet([headers]);
 
             // Create lists sheet
             const wsLists = XLSX.utils.aoa_to_sheet([]);
@@ -1029,17 +1029,15 @@
                 XLSX.utils.sheet_add_aoa(wsLists, [[name]], { origin: `B${index + 1}` });
             });
 
-            // Add data validation to "Funcionário" column (column D)
-            // Assuming 'D' is the 'Funcionário' column (0-indexed: 3)
-            // Max number of rows for validation, extendable by user dragging
-            const maxRowsForValidation = 500;
+            // Add data validation for 'Funcionário' (column D) in the second row (D2)
+            const maxRowsForValidation = 500; // Define a range for user to drag validation
             const employeeColumnLetter = 'D'; // Corresponds to 'Funcionário'
             const categoryColumnLetter = 'C'; // Corresponds to 'Classificação'
 
             if (employeesForDropdown.length > 0) {
                 ws['!dataValidations'] = ws['!dataValidations'] || [];
                 ws['!dataValidations'].push({
-                    sqref: `${employeeColumnLetter}2:${employeeColumnLetter}${maxRowsForValidation}`, // Apply from row 2 down to maxRowsForValidation
+                    sqref: `${employeeColumnLetter}2:${employeeColumnLetter}${maxRowsForValidation}`, // Apply to D2, allowing drag down
                     type: 'list',
                     allowBlank: 1,
                     error: "Selecione um funcionário da lista",
@@ -1050,10 +1048,11 @@
                  showNotification("Não há funcionários cadastrados para criar a lista suspensa no modelo.", "info", 6000);
             }
 
+            // Keep category dropdown as well, but also only for C2, as it's useful
             if (categoriesForDropdown.length > 0) {
                 ws['!dataValidations'] = ws['!dataValidations'] || [];
                  ws['!dataValidations'].push({
-                    sqref: `${categoryColumnLetter}2:${categoryColumnLetter}${maxRowsForValidation}`,
+                    sqref: `${categoryColumnLetter}2:${categoryColumnLetter}${maxRowsForValidation}`, // Apply to C2, allowing drag down
                     type: 'list',
                     allowBlank: 1,
                     error: "Selecione uma categoria da lista",
