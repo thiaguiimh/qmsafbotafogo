@@ -419,17 +419,7 @@
             if (!userProfile) return;
 
             const collRef = targetCollectionRef || getCollectionRef(collectionName, isPublic);
-            let qConstraints = [...queryConstraints];
-
-            // Filtra records e employees pelo setor do gestor, se não for admin
-            if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin) {
-                qConstraints.push(where("sector", "==", userProfile.sector));
-            }
-            if (dataKey === 'employees' && userProfile.isManager && !userProfile.isAdmin) {
-                qConstraints.push(where("sector", "==", userProfile.sector));
-            }
-
-            let q = query(collRef, ...qConstraints);
+            let q = query(collRef, ...queryConstraints);
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -449,7 +439,7 @@
                     }
                 }
             }, (error) => {
-                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, qConstraints, "Objeto do Erro Firebase:", error);
+                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, queryConstraints, "Objeto do Erro Firebase:", error);
                 showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}.`, "error");
             });
             unsubscribers.push(unsubscribe);
@@ -580,15 +570,31 @@
             }
         }
 
-        // Deleta um item do Firestore
-        async function deleteItemFromFirestore(collectionNameKey, id, isPublic = true, targetCollectionRef = null) {
+        // New helper function for direct deletion without confirmation UI
+        async function _performDirectDelete(collectionNameKey, id, isPublic = true, targetCollectionRef = null) {
+            try {
+                const docRef = doc(targetCollectionRef || getCollectionRef(collectionNameKey, isPublic), id);
+                await deleteDoc(docRef);
+                return { success: true };
+            } catch (e) {
+                console.error(`[Delete Item Direct] Falha ao excluir item '${id}' de '${collectionNameKey}'. Objeto do Erro:`, e);
+                return { success: false, error: e.message };
+            }
+        }
+
+        // Modified deleteItemFromFirestore to use the direct delete or trigger confirmation
+        async function deleteItemFromFirestore(collectionNameKey, id, isPublic = true, targetCollectionRef = null, skipConfirmation = false) {
             let canDelete = false;
             if (userProfile?.isAdmin) {
                 canDelete = true;
             } else if (collectionNameKey === 'records' && userProfile?.isManager) {
-                // Gestores podem deletar seus próprios registros
-                // Para maior segurança, poderíamos verificar se o registro pertence a ele, mas simplificamos por ora
-                canDelete = true;
+                // For records, check if the manager owns it (simplified check for now)
+                const record = globalData.records.find(r => r.id === id);
+                if (record && record.managerId === currentUser.uid) { // Assuming managerId exists on record and currentUser.uid is available
+                    canDelete = true;
+                } else if (userProfile.isAdmin) { // Admins can delete any record
+                    canDelete = true;
+                }
             }
 
             if (!canDelete) {
@@ -596,17 +602,24 @@
                 return;
             }
 
+            if (skipConfirmation) {
+                return await _performDirectDelete(collectionNameKey, id, isPublic, targetCollectionRef);
+            }
+
+            // Normal confirmation flow for single deletion
             confirmAction(
                 `Confirmar Exclusão`,
                 `Tem certeza que deseja excluir este item de ${collectionDisplayName(collectionNameKey).plural}? Esta ação não pode ser desfeita.`,
                 async () => {
-                    try {
-                        console.log(`Tentando excluir item '${id}' de '${collectionNameKey}'. Path: artifacts/${currentAppId}/${isPublic ? 'public/data/' : ''}${collectionNameKey}`);
-                        await deleteDoc(doc(targetCollectionRef || getCollectionRef(collectionNameKey, isPublic), id));
+                    const result = await _performDirectDelete(collectionNameKey, id, isPublic, targetCollectionRef);
+                    if (result.success) {
                         showNotification(`${collectionDisplayName(collectionNameKey).singular} excluído com sucesso!`, "success");
-                    } catch (e) {
-                        showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}. Detalhes no console.`, "error");
-                        console.error(`Falha ao excluir item '${id}' de '${collectionNameKey}'. Objeto do Erro:`, e);
+                        // Only remove from selectedRecordIds if it was part of individual deletion path
+                        // For bulk deletion, it's handled by the bulk delete function itself
+                        selectedRecordIds.delete(id); // Ensure it's removed from bulk selection too
+                        renderApp(); // Re-render to update the table
+                    } else {
+                        showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}.`, "error");
                     }
                 }
             );
@@ -1124,6 +1137,8 @@
 
                     // Start parsing data from the 2nd row (index 1) of the Excel sheet,
                     // and use `raw: false` to attempt to convert dates to strings.
+                    // header: 1 means the 1st row (index 0) contains headers.
+                    // range: 1 means start reading data from the 2nd row (index 1).
                     const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 1, raw: false });
 
                     // Manually map `recordsRaw` to objects using the `headers` from Excel row 1.
@@ -1163,7 +1178,7 @@
                             if (typeof eventDateRaw === 'number') {
                                 const dateObj = XLSX.SSF.parse_date_code(eventDateRaw);
                                 eventDate = `${dateObj.y}-${String(dateObj.m).padStart(2, '0')}-${String(dateObj.d).padStart(2, '0')}`;
-                            } else if (eventDateRaw.match(/^\d{4}-\d{2}-\d{2}$/)) { // YYYY-MM-DD
+                            } else if (eventDateRaw.match(/^\d{4}-\d{2}-\d{2}$/)) { // AAAA-MM-DD
                                 eventDate = eventDateRaw;
                             } else if (eventDateRaw.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) { // M/D/YYYY or MM/DD/YYYY
                                 const parts = eventDateRaw.split('/');
@@ -1174,7 +1189,7 @@
                                 eventDate = `${year}-${String(parts[0]).padStart(2, '0')}-${String(parts[1]).padStart(2, '0')}`; // Assuming M/D/YY
                             } else if (eventDateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)) { // DD/MM/YYYY
                                 const parts = eventDateRaw.split('/');
-                                eventDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // Convert to YYYY-MM-DD
+                                eventDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // Convert to AAAA-MM-DD
                             } else {
                                 throw new Error(`Formato de data inválido para 'Data do Evento': ${eventDateRaw}. Use AAAA-MM-DD, DD/MM/AAAA ou M/D/AA(AAAA).`);
                             }
@@ -1524,28 +1539,43 @@
                     return;
                 }
 
-                const recordsToDeleteList = Array.from(selectedRecordIds).map(id => {
+                const recordsToDeleteDetails = Array.from(selectedRecordIds).map(id => {
                     const record = globalData.records.find(r => r.id === id);
-                    return record ? `${record.eventName} (${new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR')})` : `ID: ${id}`;
-                }).join('<br>');
+                    return record ? { id: record.id, name: `${record.eventName} (${new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR')})` } : { id: id, name: `ID: ${id}` };
+                });
+                const recordsToDeleteListHtml = recordsToDeleteDetails.map(d => `<p class="text-xs font-mono">${d.name}</p>`).join('');
 
                 openModal(
                     `Confirmar Exclusão de Registros`,
-                    `<p>Você está prestes a excluir os seguintes ${selectedRecordIds.size} registro(s):</p><div class="max-h-32 overflow-y-auto p-2 bg-gray-100 rounded-md border border-gray-200 mb-4">${recordsToDeleteList}</div><p>Esta ação não pode ser desfeita. Deseja continuar?</p>`,
+                    `<p>Você está prestes a excluir os seguintes ${selectedRecordIds.size} registro(s):</p><div class="max-h-32 overflow-y-auto p-2 bg-gray-100 rounded-md border border-gray-200 mb-4">${recordsToDeleteListHtml}</div><p>Esta ação não pode ser desfeita. Deseja continuar?</p>`,
                     async () => {
                         let successfulDeletions = 0;
                         let failedDeletions = 0;
-                        for (const recordId of selectedRecordIds) {
-                            try {
-                                await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false));
+                        const idsActuallyDeleted = new Set(); // Track successfully deleted IDs
+
+                        // Perform deletions sequentially to await each promise
+                        for (const recordDetail of recordsToDeleteDetails) {
+                            const result = await _performDirectDelete('records', recordDetail.id, false, getCollectionRef('records', false));
+                            if (result.success) {
                                 successfulDeletions++;
-                            } catch (error) {
-                                console.error(`Falha ao excluir registro ${recordId}:`, error);
+                                idsActuallyDeleted.add(recordDetail.id);
+                            } else {
                                 failedDeletions++;
+                                console.error(`Falha ao excluir registro ${recordDetail.id}:`, result.error);
                             }
                         }
-                        selectedRecordIds.clear(); // Clear selection after attempting deletion
-                        showNotification(`Exclusão concluída: ${successfulDeletions} sucesso(s), ${failedDeletions} falha(s).`, successfulDeletions > 0 ? 'success' : 'error');
+
+                        // Clear the selected IDs from the global set based on which ones were actually deleted
+                        // This ensures that if a deletion failed, its checkbox state can be re-evaluated
+                        selectedRecordIds.forEach(id => {
+                            if (idsActuallyDeleted.has(id)) {
+                                selectedRecordIds.delete(id);
+                            }
+                        });
+                        // Alternatively, we could just clear all selectedRecordIds and let renderApp rebuild the set.
+                        // selectedRecordIds.clear(); // If you want to clear all selections regardless of success/failure for the bulk operation.
+
+                        showNotification(`Exclusão concluída: ${successfulDeletions} sucesso(s), ${failedDeletions} falha(s).`, successfulDeletions > 0 ? 'success' : (failedDeletions > 0 ? 'error' : 'info'));
                         renderApp(); // Re-render to update the table
                     },
                     'Excluir',
@@ -1593,9 +1623,9 @@
                         `Confirmar Exclusão`,
                         `Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.`,
                         async () => {
-                             await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false));
+                             await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false), true); // Pass true to skip confirmation for nested delete
                              selectedRecordIds.delete(recordId); // Ensure it's removed from bulk selection too
-                             updateSelectedCountUI();
+                             updateSelectedCountUI(); // Update UI immediately if single delete is confirmed
                         }
                     );
                 });
