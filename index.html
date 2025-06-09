@@ -428,19 +428,30 @@
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
                 }
                 globalData[dataKey] = items;
-                // Re-renderiza a aplicação apenas se a view atual precisa ser atualizada com os novos dados
-                if (document.getElementById('app-content')) {
-                    if(currentView === 'history' || currentView === 'importRecords' || currentView === 'changePassword' || (currentView.startsWith('adminManage') && dataKey !== 'records')) {
-                        renderApp();
-                    } else if (currentView !== 'login' && !currentView.startsWith('adminManage') && dataKey === 'records' && !document.getElementById('record-history-table-container')) {
-                        renderApp();
-                    } else if (currentView.startsWith('adminManage') && dataKey === 'records') {
-                        // No-op para evitar renderizações desnecessárias em telas de gerenciamento que não exibem registros
+                // Clear selected IDs for any records that might have been deleted,
+                // or if the data itself changed significantly after the snapshot.
+                selectedRecordIds.forEach(id => {
+                    if (!items.some(item => item.id === id)) {
+                        selectedRecordIds.delete(id);
                     }
+                });
+                updateSelectedCountUI(); // Update UI after globalData is updated and selections potentially adjusted.
+
+                // Re-render only if the current view depends on this specific data
+                if (document.getElementById('app-content')) {
+                    if(currentView === 'history' || currentView === 'importRecords' || currentView === 'changePassword') {
+                        // These views can implicitly re-render as globalData changes
+                        // However, calling renderApp here is safe as it re-builds
+                        renderApp();
+                    }
+                    // For adminManage views, they already explicitly call renderApp when their specific data changes
+                    // If dataKey !== 'records', renderApp is still fine.
                 }
             }, (error) => {
                 console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, queryConstraints, "Objeto do Erro Firebase:", error);
-                showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}.`, "error");
+                showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}. Tentando recarregar dados.`, "error", 5000);
+                // Attempt to re-establish all listeners and refresh data on error
+                loadAllData(); // <--- ADDED CALL HERE TO RECOVER FROM LISTENER ERRORS
             });
             unsubscribers.push(unsubscribe);
         }
@@ -614,9 +625,8 @@
                     const result = await _performDirectDelete(collectionNameKey, id, isPublic, targetCollectionRef);
                     if (result.success) {
                         showNotification(`${collectionDisplayName(collectionNameKey).singular} excluído com sucesso!`, "success");
-                        // Only remove from selectedRecordIds if it was part of individual deletion path
-                        // For bulk deletion, it's handled by the bulk delete function itself
-                        selectedRecordIds.delete(id); // Ensure it's removed from bulk selection too
+                        // This will trigger onSnapshot and then renderApp, which will handle selectedRecordIds
+                        // selectedRecordIds.delete(id); // Removed, as onSnapshot update handles it
                         renderApp(); // Re-render to update the table
                     } else {
                         showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}.`, "error");
@@ -1486,15 +1496,18 @@
                 const selectedRecordsCountSpan = document.getElementById('selected-records-count');
                 const deleteSelectedBtn = document.getElementById('btn-delete-selected-records');
 
-                if (count > 0) {
-                    showElement(bulkActionsContainer);
-                    selectedRecordsCountSpan.textContent = `${count} registro(s) selecionado(s)`;
-                    deleteSelectedBtn.disabled = false;
-                } else {
-                    hideElement(bulkActionsContainer);
-                    selectedRecordsCountSpan.textContent = '';
-                    deleteSelectedBtn.disabled = true;
+                if (bulkActionsContainer && selectedRecordsCountSpan && deleteSelectedBtn) { // Ensure elements exist
+                    if (count > 0) {
+                        showElement(bulkActionsContainer);
+                        selectedRecordsCountSpan.textContent = `${count} registro(s) selecionado(s)`;
+                        deleteSelectedBtn.disabled = false;
+                    } else {
+                        hideElement(bulkActionsContainer);
+                        selectedRecordsCountSpan.textContent = '';
+                        deleteSelectedBtn.disabled = true;
+                    }
                 }
+
 
                 // Update "Select All" checkbox state
                 const selectAllCheckbox = document.getElementById('select-all-records-checkbox');
@@ -1593,13 +1606,15 @@
             if (userProfile.isAdmin) {
                 document.getElementById('btn-apply-filters')?.addEventListener('click', () => {
                     selectedRecordIds.clear(); // Clear selection on filter change
-                    document.getElementById('select-all-records-checkbox').checked = false; // Uncheck select all
+                    const selectAllCheckbox = document.getElementById('select-all-records-checkbox');
+                    if (selectAllCheckbox) selectAllCheckbox.checked = false; // Uncheck select all
                     updateSelectedCountUI(); // Update UI
                     applyAdminFilters();
                 });
                 document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
                     selectedRecordIds.clear(); // Clear selection on filter clear
-                    document.getElementById('select-all-records-checkbox').checked = false; // Uncheck select all
+                    const selectAllCheckbox = document.getElementById('select-all-records-checkbox');
+                    if (selectAllCheckbox) selectAllCheckbox.checked = false; // Uncheck select all
                     updateSelectedCountUI(); // Update UI
                     clearAdminFilters();
                 });
