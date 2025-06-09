@@ -449,9 +449,8 @@
                 }
             }, (error) => {
                 console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, queryConstraints, "Objeto do Erro Firebase:", error);
-                showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}. Tentando recarregar dados.`, "error", 5000);
-                // Attempt to re-establish all listeners and refresh data on error
-                loadAllData(); // <--- ADDED CALL HERE TO RECOVER FROM LISTENER ERRORS
+                showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}. Verifique suas permissões ou tente novamente.`, "error", 5000);
+                // NOT calling loadAllData() here to avoid potential loops if security rules are the issue.
             });
             unsubscribers.push(unsubscribe);
         }
@@ -627,7 +626,7 @@
                         showNotification(`${collectionDisplayName(collectionNameKey).singular} excluído com sucesso!`, "success");
                         // This will trigger onSnapshot and then renderApp, which will handle selectedRecordIds
                         // selectedRecordIds.delete(id); // Removed, as onSnapshot update handles it
-                        renderApp(); // Re-render to update the table
+                        // No explicit renderApp() here as onSnapshot listener takes care of it
                     } else {
                         showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}.`, "error");
                     }
