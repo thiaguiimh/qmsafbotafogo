@@ -91,6 +91,25 @@
         .filter-input {
             @apply w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-400;
         }
+        /* Custom styles for collapsible filter section */
+        .filter-header {
+            @apply flex items-center justify-between cursor-pointer py-2 px-4 bg-gray-100 rounded-t-lg transition-colors duration-200 hover:bg-gray-200;
+        }
+        .filter-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .filter-content.expanded {
+            max-height: 500px; /* Adjust as needed for content height */
+            transition: max-height 0.3s ease-in;
+        }
+        .filter-header svg {
+            transition: transform 0.3s ease;
+        }
+        .filter-header.expanded svg {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -859,65 +878,9 @@
 
             document.getElementById('change-password-form').addEventListener('submit', handleChangePassword);
             document.getElementById('back-to-dashboard-change-password').addEventListener('click', () => {
-                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                currentView = 'changePassword';
                 renderApp();
             });
-        }
-
-        // Função para lidar com a redefinição de senha direta
-        async function handleChangePassword(e) {
-            e.preventDefault();
-            const currentPassword = document.getElementById('currentPassword').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            const originalButtonContent = submitButton.innerHTML;
-
-            if (!currentUser) {
-                showNotification("Nenhum usuário logado. Por favor, faça login novamente.", "error");
-                return;
-            }
-
-            if (newPassword !== confirmNewPassword) {
-                showNotification("A nova senha e a confirmação não coincidem.", "error");
-                return;
-            }
-
-            if (newPassword.length < 6) { // Firebase exige no mínimo 6 caracteres
-                showNotification("A nova senha deve ter pelo menos 6 caracteres.", "error");
-                return;
-            }
-
-            submitButton.disabled = true;
-            submitButton.innerHTML = `<span class="flex items-center justify-center"><span class="loader_small_blue mr-2"></span>Redefinindo...</span>`;
-
-            try {
-                // Primeiro, reautenticar o usuário
-                const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
-                await reauthenticateWithCredential(currentUser, credential);
-
-                // Se a reautenticação for bem-sucedida, atualize a senha
-                await updatePassword(currentUser, newPassword);
-                showNotification("Senha redefinida com sucesso!", "success");
-                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
-                renderApp();
-            } catch (error) {
-                console.error("Erro ao redefinir senha:", error);
-                let errorMessage = "Erro ao redefinir senha. Tente novamente.";
-                if (error.code === 'auth/wrong-password') {
-                    errorMessage = "Senha atual incorreta.";
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMessage = "Muitas tentativas de login falhas. Tente novamente mais tarde.";
-                } else if (error.code === 'auth/requires-recent-login') {
-                    errorMessage = "Por favor, faça logout e login novamente para redefinir sua senha.";
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = "A nova senha é muito fraca. Por favor, use uma senha mais forte.";
-                }
-                showNotification(errorMessage, "error");
-            } finally {
-                submitButton.disabled = false;
-                submitButton.innerHTML = originalButtonContent;
-            }
         }
 
 
@@ -1400,8 +1363,7 @@
             if (userProfile.isManager && !userProfile.isAdmin) {
                 recordsToDisplay = recordsToDisplay.filter(r => r.sector === userProfile.sector && r.managerId === currentUser.uid); // Filtra por setor E managerId
             }
-            // currentFilteredRecordsForExport será definida pelo applyAdminFilters
-            // currentFilteredRecordsForExport = [...recordsToDisplay]; // Não inicializar aqui, será filtrada no applyAdminFilters
+            currentFilteredRecordsForExport = [...recordsToDisplay]; // Mantém uma cópia para exportação inicial
 
             // HTML dos filtros administrativos (visível apenas para admins)
             // A estrutura de filtros foi movida para dentro do renderRecordHistory para facilitar a reinicialização da UI
@@ -1513,7 +1475,7 @@
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
                                     <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gestor</th>
                                     <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs.</th>
-                                    ${(userProfile.isManager && !userProfile.isAdmin) || userProfile.isAdmin ? '<th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
+                                    ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin) || userProfile.isAdmin ? '<th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
@@ -1541,68 +1503,73 @@
                             <button id="btn-back-dashboard" class="px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Voltar</button>
                         </div>
                     </div>
-                    <!-- Nova estrutura de filtros -->
-                    <div id="filters-container" class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
-                        <h3 class="text-sm font-semibold text-gray-700 mb-3">Filtros:</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            <div class="filter-group">
-                                <label for="filter-search" class="filter-label">Termo Geral:</label>
-                                <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, observações...">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-event-name" class="filter-label">Nome do Evento:</label>
-                                <input type="text" id="filter-event-name" class="filter-input" placeholder="Ex: Jogo Botafogo vs Flamengo">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-employee" class="filter-label">Funcionário:</label>
-                                <select id="filter-employee" class="filter-input">
-                                    <option value="">Todos</option>
-                                    ${globalData.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-category" class="filter-label">Categoria:</label>
-                                <select id="filter-category" class="filter-input">
-                                    <option value="">Todas</option>
-                                    ${globalData.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            ${userProfile.isAdmin ? `
-                                <div class="filter-group">
-                                    <label for="filter-sector" class="filter-label">Setor:</label>
-                                    <select id="filter-sector" class="filter-input">
-                                        <option value="">Todos</option>
-                                        ${[...new Set(globalData.records.map(r => r.sector))].filter(Boolean).sort().map(s => `<option value="${s}">${s}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div class="filter-group">
-                                    <label for="filter-manager" class="filter-label">Gestor Lançador:</label>
-                                    <select id="filter-manager" class="filter-input">
-                                        <option value="">Todos</option>
-                                        ${[...new Set(globalData.records.map(r => r.managerName))].filter(Boolean).sort().map(m => `<option value="${m}">${m}</option>`).join('')}
-                                    </select>
-                                </div>
-                            ` : ''}
-                            <div class="filter-group">
-                                <label for="filter-event-date-start" class="filter-label">Data Evento (De):</label>
-                                <input type="date" id="filter-event-date-start" class="filter-input">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-event-date-end" class="filter-label">Data Evento (Até):</label>
-                                <input type="date" id="filter-event-date-end" class="filter-input">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-creation-date-start" class="filter-label">Criação (De):</label>
-                                <input type="date" id="filter-creation-date-start" class="filter-input">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-creation-date-end" class="filter-label">Criação (Até):</label>
-                                <input type="date" id="filter-creation-date-end" class="filter-input">
-                            </div>
+                    <!-- Nova estrutura de filtros com toggle -->
+                    <div class="bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                        <div id="filter-header" class="filter-header">
+                            <h3 class="text-sm font-semibold text-gray-700">Filtros Avançados</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                         </div>
-                        <div class="mt-4 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-                            <button id="btn-clear-filters" class="px-4 py-2 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors shadow-sm">Limpar Filtros</button>
-                            <button id="btn-apply-filters" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">Aplicar Filtros</button>
+                        <div id="filter-content" class="filter-content px-4 pt-3 pb-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                <div class="filter-group">
+                                    <label for="filter-search" class="filter-label">Termo Geral:</label>
+                                    <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, observações...">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-event-name" class="filter-label">Nome do Evento:</label>
+                                    <input type="text" id="filter-event-name" class="filter-input" placeholder="Ex: Jogo Botafogo vs Flamengo">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-employee" class="filter-label">Funcionário:</label>
+                                    <select id="filter-employee" class="filter-input">
+                                        <option value="">Todos</option>
+                                        ${globalData.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-category" class="filter-label">Categoria:</label>
+                                    <select id="filter-category" class="filter-input">
+                                        <option value="">Todas</option>
+                                        ${globalData.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                ${userProfile.isAdmin ? `
+                                    <div class="filter-group">
+                                        <label for="filter-sector" class="filter-label">Setor:</label>
+                                        <select id="filter-sector" class="filter-input">
+                                            <option value="">Todos</option>
+                                            ${[...new Set(globalData.records.map(r => r.sector))].filter(Boolean).sort().map(s => `<option value="${s}">${s}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label for="filter-manager" class="filter-label">Gestor Lançador:</label>
+                                        <select id="filter-manager" class="filter-input">
+                                            <option value="">Todos</option>
+                                            ${[...new Set(globalData.records.map(r => r.managerName))].filter(Boolean).sort().map(m => `<option value="${m}">${m}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                ` : ''}
+                                <div class="filter-group">
+                                    <label for="filter-event-date-start" class="filter-label">Data Evento (De):</label>
+                                    <input type="date" id="filter-event-date-start" class="filter-input">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-event-date-end" class="filter-label">Data Evento (Até):</label>
+                                    <input type="date" id="filter-event-date-end" class="filter-input">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-creation-date-start" class="filter-label">Criação (De):</label>
+                                    <input type="date" id="filter-creation-date-start" class="filter-input">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-creation-date-end" class="filter-label">Criação (Até):</label>
+                                    <input type="date" id="filter-creation-date-end" class="filter-input">
+                                </div>
+                            </div>
+                            <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                                <button id="btn-clear-filters" class="px-4 py-2 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors shadow-sm">Limpar Filtros</button>
+                                <button id="btn-apply-filters" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">Aplicar Filtros</button>
+                            </div>
                         </div>
                     </div>
                     <div id="record-history-table-container">
@@ -1611,121 +1578,96 @@
                 </div>
             `;
 
-            // Function to update the count of selected records and enable/disable the delete button
-            const updateSelectedCountUI = () => {
-                const count = selectedRecordIds.size;
-                const bulkActionsContainer = document.getElementById('bulk-actions-container');
-                const selectedRecordsCountSpan = document.getElementById('selected-records-count');
-                const deleteSelectedBtn = document.getElementById('btn-delete-selected-records');
+            // Filter logic
+            const applyAdminFilters = () => {
+                let filtered = [...globalData.records];
 
-                if (bulkActionsContainer && selectedRecordsCountSpan && deleteSelectedBtn) { // Ensure elements exist
-                    if (count > 0) {
-                        showElement(bulkActionsContainer);
-                        selectedRecordsCountSpan.textContent = `${count} registro(s) selecionado(s)`;
-                        deleteSelectedBtn.disabled = false;
-                    } else {
-                        hideElement(bulkActionsContainer);
-                        selectedRecordsCountSpan.textContent = '';
-                        deleteSelectedBtn.disabled = true;
-                    }
+                // Initial role-based filtering (already done by onSnapshot, but re-applying for client-side consistency)
+                if (userProfile.isManager && !userProfile.isAdmin) {
+                    filtered = filtered.filter(r => r.sector === userProfile.sector && r.managerId === currentUser.uid);
                 }
 
+                const searchTerm = document.getElementById('filter-search')?.value.toLowerCase();
+                const eventNameFilter = document.getElementById('filter-event-name')?.value.toLowerCase();
+                const employeeId = document.getElementById('filter-employee')?.value;
+                const categoryId = document.getElementById('filter-category')?.value;
+                const sector = document.getElementById('filter-sector')?.value;
+                const managerName = document.getElementById('filter-manager')?.value;
+                const eventDateStartStr = document.getElementById('filter-event-date-start')?.value;
+                const eventDateEndStr = document.getElementById('filter-event-date-end')?.value;
+                const creationDateStartStr = document.getElementById('filter-creation-date-start')?.value;
+                const creationDateEndStr = document.getElementById('filter-creation-date-end')?.value;
 
-                // Update "Select All" checkbox state
-                const selectAllCheckbox = document.getElementById('select-all-records-checkbox');
-                if (selectAllCheckbox) {
-                    const visibleRecordCheckboxes = document.querySelectorAll('.record-checkbox');
-                    const allVisibleSelected = Array.from(visibleRecordCheckboxes).every(cb => cb.checked);
-                    selectAllCheckbox.checked = allVisibleSelected && visibleRecordCheckboxes.length > 0;
-                    selectAllCheckbox.indeterminate = !allVisibleSelected && count > 0;
+                if (searchTerm) {
+                    filtered = filtered.filter(r =>
+                        (r.eventName && r.eventName.toLowerCase().includes(searchTerm)) ||
+                        (r.categoryName && r.categoryName.toLowerCase().includes(searchTerm)) ||
+                        (r.employeeName && r.employeeName.toLowerCase().includes(searchTerm)) ||
+                        (r.sector && r.sector.toLowerCase().includes(searchTerm)) ||
+                        (r.managerName && r.managerName.toLowerCase().includes(searchTerm)) ||
+                        (r.notes && r.notes.toLowerCase().includes(searchTerm))
+                    );
                 }
-            };
+                if (eventNameFilter) filtered = filtered.filter(r => r.eventName && r.eventName.toLowerCase().includes(eventNameFilter));
+                if (employeeId) filtered = filtered.filter(r => r.employeeId === employeeId);
+                if (categoryId) filtered = filtered.filter(r => r.categoryId === categoryId);
 
-            // Function to handle the "Select All" checkbox toggle
-            const toggleSelectAllCheckboxes = (event) => {
-                const isChecked = event.target.checked;
-                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-                    checkbox.checked = isChecked;
-                    const recordId = checkbox.dataset.id;
-                    if (isChecked) {
-                        selectedRecordIds.add(recordId);
-                    } else {
-                        selectedRecordIds.delete(recordId);
-                    }
-                });
-                updateSelectedCountUI();
-            };
-
-            // Function to handle individual checkbox changes
-            const handleIndividualCheckboxChange = (event) => {
-                const recordId = event.target.dataset.id;
-                if (event.target.checked) {
-                    selectedRecordIds.add(recordId);
-                } else {
-                    selectedRecordIds.delete(recordId);
-                }
-                updateSelectedCountUI();
-            };
-
-            // Function to delete selected records
-            const deleteSelectedRecords = async () => {
-                if (selectedRecordIds.size === 0) {
-                    showNotification("Nenhum registro selecionado para exclusão.", "info");
-                    return;
+                if (userProfile.isAdmin) {
+                    if (sector) filtered = filtered.filter(r => r.sector === sector);
+                    if (managerName) filtered = filtered.filter(r => r.managerName === managerName);
                 }
 
-                const recordsToDeleteDetails = Array.from(selectedRecordIds).map(id => {
-                    const record = globalData.records.find(r => r.id === id);
-                    return record ? { id: record.id, name: `${record.eventName} (${new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR')})` } : { id: id, name: `ID: ${id}` };
-                });
-                const recordsToDeleteListHtml = recordsToDeleteDetails.map(d => `<p class="text-xs font-mono">${d.name}</p>`).join('');
+                // Date filters
+                if (eventDateStartStr) {
+                    filtered = filtered.filter(r => r.eventDate && r.eventDate >= eventDateStartStr);
+                }
+                if (eventDateEndStr) {
+                    filtered = filtered.filter(r => r.eventDate && r.eventDate <= eventDateEndStr);
+                }
+                if (creationDateStartStr) {
+                    filtered = filtered.filter(r => r.createdAt && r.createdAt.toDate().toISOString().split('T')[0] >= creationDateStartStr);
+                }
+                if (creationDateEndStr) {
+                    filtered = filtered.filter(r => r.createdAt && r.createdAt.toDate().toISOString().split('T')[0] <= creationDateEndStr);
+                }
 
-                openModal(
-                    `Confirmar Exclusão de Registros`,
-                    `<p>Você está prestes a excluir os seguintes ${selectedRecordIds.size} registro(s):</p><div class="max-h-32 overflow-y-auto p-2 bg-gray-100 rounded-md border border-gray-200 mb-4">${recordsToDeleteListHtml}</div><p>Esta ação não pode ser desfeita. Deseja continuar?</p>`,
-                    async () => {
-                        let successfulDeletions = 0;
-                        let failedDeletions = 0;
-                        const idsActuallyDeleted = new Set(); // Track successfully deleted IDs
+                currentFilteredRecordsForExport = [...filtered];
 
-                        // Perform deletions sequentially to await each promise
-                        for (const recordDetail of recordsToDeleteDetails) {
-                            const result = await _performDirectDelete('records', recordDetail.id, false, getCollectionRef('records', false));
-                            if (result.success) {
-                                successfulDeletions++;
-                                idsActuallyDeleted.add(recordDetail.id);
-                            } else {
-                                failedDeletions++;
-                                console.error(`Falha ao excluir registro ${recordDetail.id}:`, result.error);
-                            }
+                const tableContainer = document.getElementById('record-history-table-container');
+                if(tableContainer) {
+                    tableContainer.innerHTML = generateTableHtml(filtered);
+                    // Re-check selected items after filter
+                    selectedRecordIds.forEach(id => {
+                        const checkbox = tableContainer.querySelector(`.record-checkbox[data-id="${id}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
                         }
-
-                        // Clear the selected IDs from the global set based on which ones were actually deleted
-                        // This ensures that if a deletion failed, its checkbox state can be re-evaluated
-                        selectedRecordIds.forEach(id => {
-                            if (idsActuallyDeleted.has(id)) {
-                                selectedRecordIds.delete(id);
-                            }
-                        });
-                        // Alternatively, we could just clear all selectedRecordIds and let renderApp rebuild the set.
-                        // selectedRecordIds.clear(); // If you want to clear all selections regardless of success/failure for the bulk operation.
-
-                        showNotification(`Exclusão concluída: ${successfulDeletions} sucesso(s), ${failedDeletions} falha(s).`, successfulDeletions > 0 ? 'success' : (failedDeletions > 0 ? 'error' : 'info'));
-                        renderApp(); // Re-render to update the table
-                    },
-                    'Excluir',
-                    () => { /* Cancel action */ },
-                    'Cancelar'
-                );
+                    });
+                }
+                updateSelectedCountUI();
             };
 
-            // Attach event listeners
-            document.getElementById('btn-back-dashboard').addEventListener('click', () => {
-                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
-                renderApp();
-            });
+            const clearAdminFilters = () => {
+                document.getElementById('filter-search').value = '';
+                document.getElementById('filter-event-name').value = '';
+                document.getElementById('filter-employee').value = '';
+                document.getElementById('filter-category').value = '';
+                if (userProfile.isAdmin) {
+                    document.getElementById('filter-sector').value = '';
+                    document.getElementById('filter-manager').value = '';
+                }
+                document.getElementById('filter-event-date-start').value = '';
+                document.getElementById('filter-event-date-end').value = '';
+                document.getElementById('filter-creation-date-start').value = '';
+                document.getElementById('filter-creation-date-end').value = '';
+                applyAdminFilters(); // Re-apply filters to show all data after clearing
+            };
 
-            // Delegated event listeners for filters container
+
+            // Initial call to apply filters so the table is populated correctly on load
+            applyAdminFilters();
+
+            // Event Listeners for Filter Buttons (Delegated to filters-container)
             const filtersContainer = document.getElementById('filters-container');
             if (filtersContainer) {
                 filtersContainer.addEventListener('click', (event) => {
@@ -1733,11 +1675,34 @@
                         applyAdminFilters();
                     } else if (event.target.id === 'btn-clear-filters') {
                         clearAdminFilters();
+                    } else if (event.target.id === 'filter-header') {
+                        const filterContent = document.getElementById('filter-content');
+                        if (filterContent) {
+                            filterContent.classList.toggle('expanded');
+                            event.currentTarget.classList.toggle('expanded'); // Toggle class on header for arrow rotation
+                        }
                     }
                 });
+
+                // Add change listeners to input fields to trigger applyAdminFilters
+                filtersContainer.addEventListener('change', (event) => {
+                    if (event.target.classList.contains('filter-input')) {
+                        // Apply filters on change for select/date inputs, or when text inputs change
+                        // This might be too aggressive for text inputs, consider a debounce or explicit button click.
+                        // For this implementation, we apply on explicit button click for text and date,
+                        // and on change for selects.
+                        if (event.target.tagName === 'SELECT') {
+                            applyAdminFilters();
+                        }
+                    }
+                });
+                // For text inputs, apply filters on button click as per UI layout
+                // (Already handled by the delegated click listener on btn-apply-filters)
+
             } else {
                 console.error("Filters container not found!");
             }
+
 
             // Delegated event listeners for checkboxes (since rows are dynamically rendered)
             document.getElementById('record-history-table-container').addEventListener('change', (event) => {
@@ -1750,20 +1715,22 @@
 
             document.getElementById('btn-delete-selected-records')?.addEventListener('click', deleteSelectedRecords);
 
-            document.querySelectorAll('.btn-delete-record').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const recordId = e.currentTarget.dataset.id;
+            // Single record delete buttons are inside dynamically generated HTML, so delegated listener for them too.
+            document.getElementById('record-history-table-container').addEventListener('click', (event) => {
+                if (event.target.classList.contains('btn-delete-record')) {
+                    const recordId = event.target.dataset.id;
                     confirmAction(
                         `Confirmar Exclusão`,
                         `Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.`,
                         async () => {
-                             await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false), true); // Pass true to skip confirmation for nested delete
-                             selectedRecordIds.delete(recordId); // Ensure it's removed from bulk selection too
-                             updateSelectedCountUI(); // Update UI immediately if single delete is confirmed
+                             await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false), true);
+                             // selectedRecordIds.delete(recordId); // This is handled by onSnapshot which re-renders and updates selectedRecordIds
+                             // updateSelectedCountUI(); // This is also handled by onSnapshot re-render
                         }
                     );
-                });
+                }
             });
+
 
             document.getElementById('btn-export-csv').addEventListener('click', () => exportToCSV(currentFilteredRecordsForExport));
             document.getElementById('btn-export-xlsx').addEventListener('click', () => exportToXLSX(currentFilteredRecordsForExport));
