@@ -419,7 +419,18 @@
             if (!userProfile) return;
 
             const collRef = targetCollectionRef || getCollectionRef(collectionName, isPublic);
-            let q = query(collRef, ...queryConstraints);
+            let qConstraints = [...queryConstraints];
+
+            // Filtra records e employees pelo setor do gestor, se não for admin
+            if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin) {
+                qConstraints.push(where("sector", "==", userProfile.sector));
+                qConstraints.push(where("managerId", "==", currentUser.uid)); // Adicionando filtro por managerId para gestores
+            }
+            if (dataKey === 'employees' && userProfile.isManager && !userProfile.isAdmin) {
+                qConstraints.push(where("sector", "==", userProfile.sector));
+            }
+
+            let q = query(collRef, ...qConstraints);
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -448,7 +459,7 @@
                     // If dataKey !== 'records', renderApp is still fine.
                 }
             }, (error) => {
-                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, queryConstraints, "Objeto do Erro Firebase:", error);
+                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, qConstraints, "Objeto do Erro Firebase:", error);
                 showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}. Verifique suas permissões ou tente novamente.`, "error", 5000);
                 // NOT calling loadAllData() here to avoid potential loops if security rules are the issue.
             });
@@ -1020,7 +1031,7 @@
         function downloadExcelTemplate() {
             if (typeof XLSX === 'undefined') {
                 showNotification("Erro: Biblioteca de exportação XLSX não carregada.", "error");
-                console.error("XLSX library (SheetJS) not found. Make sure it's included via CDN.");
+                console.error("XLSX library (SheetJS) not found. Make more details in console");
                 return;
             }
             if (!userProfile) {
@@ -1343,7 +1354,7 @@
             let recordsToDisplay = [...globalData.records];
             // Se o usuário é gestor e não admin, filtra por seu setor
             if (userProfile.isManager && !userProfile.isAdmin) {
-                recordsToDisplay = recordsToDisplay.filter(r => r.sector === userProfile.sector);
+                recordsToDisplay = recordsToDisplay.filter(r => r.sector === userProfile.sector && r.managerId === currentUser.uid); // Filtra por setor E managerId
             }
             currentFilteredRecordsForExport = [...recordsToDisplay]; // Mantém uma cópia para exportação inicial
 
@@ -1996,7 +2007,7 @@
         function exportToXLSX(records) {
             if (typeof XLSX === 'undefined') {
                 showNotification("Erro: Biblioteca de exportação XLSX não carregada.", "error");
-                console.error("XLSX library (SheetJS) not found. Make sure it's included via CDN.");
+                console.error("XLSX library (SheetJS) not found. Make more details in console");
                 return;
             }
             if (!records || records.length === 0) {
