@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Quadro Móvel - Botafogo</title>
+    <!-- Sugestão de Segurança: Considere implementar uma Content Security Policy (CSP)
+         no seu servidor web para mitigar ataques de Cross-Site Scripting (XSS) e injeção de dados.
+         Exemplo (inclua no cabeçalho HTTP do servidor ou como meta tag se souber o impacto):
+         <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://www.gstatic.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://placehold.co; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com; style-src-elem 'self' https://fonts.googleapis.com 'unsafe-inline';">
+         A configuração acima é um exemplo e deve ser adaptada cuidadosamente ao seu ambiente.
+    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Biblioteca SheetJS para exportação/importação de XLSX -->
@@ -153,6 +159,8 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Configuração do Firebase, usando a variável global se disponível, caso contrário, a configuração padrão.
+        // A chave de API do Firebase é pública e projetada para ser incluída no código do cliente.
+        // As regras de segurança do Firestore (configuradas separadamente) são responsáveis por proteger seus dados.
         const firebaseConfigFromUser = {
             apiKey: "AIzaSyDkRi6GWPiVawTe607frndhUbfB77yfVOw",
             authDomain: "qmsafbotafogo.firebaseapp.com",
@@ -565,7 +573,7 @@
         // Atualiza um item existente no Firestore
         async function updateItemInFirestore(collectionNameKey, id, data, isPublic = true, targetCollectionRef = null) {
             if (!userProfile) {
-                showNotification("Perfil de usuário não carregado.", "error");
+                showNotification("Perfil de usuário não carregado. Tente recarregar a página.", "error");
                 return Promise.reject(new Error("Perfil não carregado"));
             }
             if (!userProfile.isAdmin) {
@@ -1463,7 +1471,7 @@
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funcionário</th>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gestor</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs.</th>
+                                    <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs.</th>
                                     ${(userProfile.isManager && !userProfile.isAdmin) || userProfile.isAdmin ? '<th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
                                 </tr>
                             </thead>
