@@ -1378,6 +1378,142 @@
         }
 
 
+        // Função para aplicar os filtros
+function applyFilters() {
+    // Atualiza o estado dos filtros com os valores atuais dos inputs
+    filterState = {
+        searchTerm: document.getElementById('filter-search')?.value || '',
+        eventName: document.getElementById('filter-event-name')?.value || '',
+        employeeId: document.getElementById('filter-employee')?.value || '',
+        categoryId: document.getElementById('filter-category')?.value || '',
+        sector: document.getElementById('filter-sector')?.value || '',
+        managerName: document.getElementById('filter-manager')?.value || '',
+        eventDateStart: document.getElementById('filter-event-date-start')?.value || '',
+        eventDateEnd: document.getElementById('filter-event-date-end')?.value || '',
+        creationDateStart: document.getElementById('filter-creation-date-start')?.value || '',
+        creationDateEnd: document.getElementById('filter-creation-date-end')?.value || ''
+    };
+
+    // Filtra os registros
+    let filteredRecords = [...globalData.records];
+
+    // Aplica os filtros um por um
+    if (filterState.searchTerm) {
+        const searchTerm = filterState.searchTerm.toLowerCase();
+        filteredRecords = filteredRecords.filter(record => 
+            (record.eventName?.toLowerCase().includes(searchTerm) ||
+            (record.employeeName?.toLowerCase().includes(searchTerm)) ||
+            (record.categoryName?.toLowerCase().includes(searchTerm)) ||
+            (record.notes?.toLowerCase().includes(searchTerm))
+        );
+    }
+
+    if (filterState.eventName) {
+        filteredRecords = filteredRecords.filter(record => 
+            record.eventName?.toLowerCase().includes(filterState.eventName.toLowerCase())
+        );
+    }
+
+    if (filterState.employeeId) {
+        filteredRecords = filteredRecords.filter(record => 
+            record.employeeId === filterState.employeeId
+        );
+    }
+
+    if (filterState.categoryId) {
+        filteredRecords = filteredRecords.filter(record => 
+            record.categoryId === filterState.categoryId
+        );
+    }
+
+    if (filterState.sector) {
+        filteredRecords = filteredRecords.filter(record => 
+            record.sector === filterState.sector
+        );
+    }
+
+    if (filterState.managerName) {
+        filteredRecords = filteredRecords.filter(record => 
+            record.managerName === filterState.managerName
+        );
+    }
+
+    if (filterState.eventDateStart) {
+        filteredRecords = filteredRecords.filter(record => 
+            record.eventDate >= filterState.eventDateStart
+        );
+    }
+
+    if (filterState.eventDateEnd) {
+        filteredRecords = filteredRecords.filter(record => 
+            record.eventDate <= filterState.eventDateEnd
+        );
+    }
+
+    if (filterState.creationDateStart) {
+        const startDate = new Date(filterState.creationDateStart);
+        filteredRecords = filteredRecords.filter(record => 
+            record.createdAt?.toDate() >= startDate
+        );
+    }
+
+    if (filterState.creationDateEnd) {
+        const endDate = new Date(filterState.creationDateEnd);
+        endDate.setHours(23, 59, 59, 999); // Fim do dia
+        filteredRecords = filteredRecords.filter(record => 
+            record.createdAt?.toDate() <= endDate
+        );
+    }
+
+    // Se for gestor, filtra apenas os registros do seu setor
+    if (userProfile.isManager && !userProfile.isAdmin) {
+        filteredRecords = filteredRecords.filter(record => 
+            record.sector === userProfile.sector && record.managerId === currentUser.uid
+        );
+    }
+
+    // Atualiza a tabela com os registros filtrados
+    const tableContainer = document.getElementById('record-history-table-container');
+    if (tableContainer) {
+        tableContainer.innerHTML = generateTableHtml(filteredRecords);
+    }
+
+    // Atualiza a contagem de selecionados
+    updateSelectedCountUI();
+}
+
+// Função para limpar todos os filtros
+function clearFilters() {
+    // Reseta o estado dos filtros
+    filterState = {
+        searchTerm: '',
+        eventName: '',
+        employeeId: '',
+        categoryId: '',
+        sector: '',
+        managerName: '',
+        eventDateStart: '',
+        eventDateEnd: '',
+        creationDateStart: '',
+        creationDateEnd: ''
+    };
+
+    // Reseta os valores dos inputs
+    document.getElementById('filter-search').value = '';
+    document.getElementById('filter-event-name').value = '';
+    document.getElementById('filter-employee').value = '';
+    document.getElementById('filter-category').value = '';
+    if (document.getElementById('filter-sector')) document.getElementById('filter-sector').value = '';
+    if (document.getElementById('filter-manager')) document.getElementById('filter-manager').value = '';
+    document.getElementById('filter-event-date-start').value = '';
+    document.getElementById('filter-event-date-end').value = '';
+    document.getElementById('filter-creation-date-start').value = '';
+    document.getElementById('filter-creation-date-end').value = '';
+
+    // Aplica os filtros (que agora estão vazios, mostrando todos os registros)
+    applyFilters();
+}
+
         // Renderiza o histórico de registros
        function renderRecordHistory() {
     // Get initial data for display based on user role
