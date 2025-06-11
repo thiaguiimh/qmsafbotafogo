@@ -242,7 +242,8 @@
             eventDateStart: '',
             eventDateEnd: '',
             creationDateStart: '',
-            creationDateEnd: ''
+            creationDateEnd: '',
+            isExpanded: false // New property to track filter section state
         };
 
 
@@ -1378,469 +1379,403 @@
         }
 
 
-        // Função para aplicar os filtros
-function applyFilters() {
-    // Atualiza o estado dos filtros com os valores atuais dos inputs
-    filterState = {
-        searchTerm: document.getElementById('filter-search')?.value || '',
-        eventName: document.getElementById('filter-event-name')?.value || '',
-        employeeId: document.getElementById('filter-employee')?.value || '',
-        categoryId: document.getElementById('filter-category')?.value || '',
-        sector: document.getElementById('filter-sector')?.value || '',
-        managerName: document.getElementById('filter-manager')?.value || '',
-        eventDateStart: document.getElementById('filter-event-date-start')?.value || '',
-        eventDateEnd: document.getElementById('filter-event-date-end')?.value || '',
-        creationDateStart: document.getElementById('filter-creation-date-start')?.value || '',
-        creationDateEnd: document.getElementById('filter-creation-date-end')?.value || ''
-    };
-
-    // Filtra os registros
-    let filteredRecords = [...globalData.records];
-
-    // Aplica os filtros um por um
-    if (filterState.searchTerm) {
-        const searchTerm = filterState.searchTerm.toLowerCase();
-        filteredRecords = filteredRecords.filter(record => 
-            (record.eventName?.toLowerCase().includes(searchTerm) ||
-            (record.employeeName?.toLowerCase().includes(searchTerm)) ||
-            (record.categoryName?.toLowerCase().includes(searchTerm)) ||
-            (record.notes?.toLowerCase().includes(searchTerm))
-        );
-    }
-
-    if (filterState.eventName) {
-        filteredRecords = filteredRecords.filter(record => 
-            record.eventName?.toLowerCase().includes(filterState.eventName.toLowerCase())
-        );
-    }
-
-    if (filterState.employeeId) {
-        filteredRecords = filteredRecords.filter(record => 
-            record.employeeId === filterState.employeeId
-        );
-    }
-
-    if (filterState.categoryId) {
-        filteredRecords = filteredRecords.filter(record => 
-            record.categoryId === filterState.categoryId
-        );
-    }
-
-    if (filterState.sector) {
-        filteredRecords = filteredRecords.filter(record => 
-            record.sector === filterState.sector
-        );
-    }
-
-    if (filterState.managerName) {
-        filteredRecords = filteredRecords.filter(record => 
-            record.managerName === filterState.managerName
-        );
-    }
-
-    if (filterState.eventDateStart) {
-        filteredRecords = filteredRecords.filter(record => 
-            record.eventDate >= filterState.eventDateStart
-        );
-    }
-
-    if (filterState.eventDateEnd) {
-        filteredRecords = filteredRecords.filter(record => 
-            record.eventDate <= filterState.eventDateEnd
-        );
-    }
-
-    if (filterState.creationDateStart) {
-        const startDate = new Date(filterState.creationDateStart);
-        filteredRecords = filteredRecords.filter(record => 
-            record.createdAt?.toDate() >= startDate
-        );
-    }
-
-    if (filterState.creationDateEnd) {
-        const endDate = new Date(filterState.creationDateEnd);
-        endDate.setHours(23, 59, 59, 999); // Fim do dia
-        filteredRecords = filteredRecords.filter(record => 
-            record.createdAt?.toDate() <= endDate
-        );
-    }
-
-    // Se for gestor, filtra apenas os registros do seu setor
-    if (userProfile.isManager && !userProfile.isAdmin) {
-        filteredRecords = filteredRecords.filter(record => 
-            record.sector === userProfile.sector && record.managerId === currentUser.uid
-        );
-    }
-
-    // Atualiza a tabela com os registros filtrados
-    const tableContainer = document.getElementById('record-history-table-container');
-    if (tableContainer) {
-        tableContainer.innerHTML = generateTableHtml(filteredRecords);
-    }
-
-    // Atualiza a contagem de selecionados
-    updateSelectedCountUI();
-}
-
-// Função para limpar todos os filtros
-function clearFilters() {
-    // Reseta o estado dos filtros
-    filterState = {
-        searchTerm: '',
-        eventName: '',
-        employeeId: '',
-        categoryId: '',
-        sector: '',
-        managerName: '',
-        eventDateStart: '',
-        eventDateEnd: '',
-        creationDateStart: '',
-        creationDateEnd: ''
-    };
-
-    // Reseta os valores dos inputs
-    document.getElementById('filter-search').value = '';
-    document.getElementById('filter-event-name').value = '';
-    document.getElementById('filter-employee').value = '';
-    document.getElementById('filter-category').value = '';
-    if (document.getElementById('filter-sector')) document.getElementById('filter-sector').value = '';
-    if (document.getElementById('filter-manager')) document.getElementById('filter-manager').value = '';
-    document.getElementById('filter-event-date-start').value = '';
-    document.getElementById('filter-event-date-end').value = '';
-    document.getElementById('filter-creation-date-start').value = '';
-    document.getElementById('filter-creation-date-end').value = '';
-
-    // Aplica os filtros (que agora estão vazios, mostrando todos os registros)
-    applyFilters();
-}
-
         // Renderiza o histórico de registros
-       function renderRecordHistory() {
-    // Get initial data for display based on user role
-    let recordsToDisplay = [...globalData.records];
-    if (userProfile.isManager && !userProfile.isAdmin) {
-        recordsToDisplay = recordsToDisplay.filter(r => r.sector === userProfile.sector && r.managerId === currentUser.uid);
-    }
-    // currentFilteredRecordsForExport will be managed by applyFilters()
-
-    // HTML for filter section
-    const adminFiltersHtml = userProfile.isAdmin ? `
-        <div id="filters-container" class="bg-gray-50 rounded-lg border border-gray-200 mb-6">
-            <div id="filter-header" class="filter-header">
-                <h3 class="text-sm font-semibold text-gray-700">Filtros Avançados</h3>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-            </div>
-            <div id="filter-content" class="filter-content">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <div class="filter-group">
-                        <label for="filter-search" class="filter-label">Termo Geral:</label>
-                        <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, observações..." value="${filterState.searchTerm}">
+        function renderRecordHistory() {
+            // HTML for filter section
+            const adminFiltersHtml = userProfile.isAdmin ? `
+                <div id="filters-container" class="bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                    <div id="filter-header" class="filter-header ${filterState.isExpanded ? 'expanded' : ''}">
+                        <h3 class="text-sm font-semibold text-gray-700">Filtros Avançados</h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                     </div>
-                    <div class="filter-group">
-                        <label for="filter-event-name" class="filter-label">Nome do Evento:</label>
-                        <input type="text" id="filter-event-name" class="filter-input" placeholder="Ex: Jogo Botafogo vs Flamengo" value="${filterState.eventName}">
-                    </div>
-                    <div class="filter-group">
-                        <label for="filter-employee" class="filter-label">Funcionário:</label>
-                        <select id="filter-employee" class="filter-input">
-                            <option value="">Todos</option>
-                            ${globalData.employees.map(e => `<option value="${e.id}" ${filterState.employeeId === e.id ? 'selected' : ''}>${e.name}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="filter-category" class="filter-label">Categoria:</label>
-                        <select id="filter-category" class="filter-input">
-                            <option value="">Todas</option>
-                            ${globalData.categories.map(c => `<option value="${c.id}" ${filterState.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
-                        </select>
-                    </div>
-                    ${userProfile.isAdmin ? `
-                        <div class="filter-group">
-                            <label for="filter-sector" class="filter-label">Setor:</label>
-                            <select id="filter-sector" class="filter-input">
-                                <option value="">Todos</option>
-                                ${[...new Set(globalData.records.map(r => r.sector))].filter(Boolean).sort().map(s => `<option value="${s}" ${filterState.sector === s ? 'selected' : ''}>${s}</option>`).join('')}
-                            </select>
+                    <div id="filter-content" class="filter-content ${filterState.isExpanded ? 'expanded' : ''}">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <div class="filter-group">
+                                <label for="filter-search" class="filter-label">Termo Geral:</label>
+                                <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, observações..." value="${filterState.searchTerm}">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-event-name" class="filter-label">Nome do Evento:</label>
+                                <input type="text" id="filter-event-name" class="filter-input" placeholder="Ex: Jogo Botafogo vs Flamengo" value="${filterState.eventName}">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-employee" class="filter-label">Funcionário:</label>
+                                <select id="filter-employee" class="filter-input">
+                                    <option value="">Todos</option>
+                                    ${globalData.employees.map(e => `<option value="${e.id}" ${filterState.employeeId === e.id ? 'selected' : ''}>${e.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-category" class="filter-label">Categoria:</label>
+                                <select id="filter-category" class="filter-input">
+                                    <option value="">Todas</option>
+                                    ${globalData.categories.map(c => `<option value="${c.id}" ${filterState.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            ${userProfile.isAdmin ? `
+                                <div class="filter-group">
+                                    <label for="filter-sector" class="filter-label">Setor:</label>
+                                    <select id="filter-sector" class="filter-input">
+                                        <option value="">Todos</option>
+                                        ${[...new Set(globalData.records.map(r => r.sector))].filter(Boolean).sort().map(s => `<option value="${s}" ${filterState.sector === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-manager" class="filter-label">Gestor Lançador:</label>
+                                    <select id="filter-manager" class="filter-input">
+                                        <option value="">Todos</option>
+                                        ${[...new Set(globalData.records.map(r => r.managerName))].filter(Boolean).sort().map(m => `<option value="${m}" ${filterState.managerName === m ? 'selected' : ''}>${m}</option>`).join('')}
+                                    </select>
+                                </div>
+                            ` : ''}
+                            <div class="filter-group">
+                                <label for="filter-event-date-start" class="filter-label">Data Evento (De):</label>
+                                <input type="date" id="filter-event-date-start" class="filter-input" value="${filterState.eventDateStart}">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-event-date-end" class="filter-label">Data Evento (Até):</label>
+                                <input type="date" id="filter-event-date-end" class="filter-input" value="${filterState.eventDateEnd}">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-creation-date-start" class="filter-label">Criação (De):</label>
+                                <input type="date" id="filter-creation-date-start" class="filter-input" value="${filterState.creationDateStart}">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-creation-date-end" class="filter-label">Criação (Até):</label>
+                                <input type="date" id="filter-creation-date-end" class="filter-input" value="${filterState.creationDateEnd}">
+                            </div>
                         </div>
-                        <div class="filter-group">
-                            <label for="filter-manager" class="filter-label">Gestor Lançador:</label>
-                            <select id="filter-manager" class="filter-input">
-                                <option value="">Todos</option>
-                                ${[...new Set(globalData.records.map(r => r.managerName))].filter(Boolean).sort().map(m => `<option value="${m}" ${filterState.managerName === m ? 'selected' : ''}>${m}</option>`).join('')}
-                            </select>
+                        <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                            <button id="btn-clear-filters" class="px-4 py-2 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors shadow-sm">Limpar Filtros</button>
+                            <button id="btn-apply-filters" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">Aplicar Filtros</button>
                         </div>
-                    ` : ''}
-                    <div class="filter-group">
-                        <label for="filter-event-date-start" class="filter-label">Data Evento (De):</label>
-                        <input type="date" id="filter-event-date-start" class="filter-input" value="${filterState.eventDateStart}">
-                    </div>
-                    <div class="filter-group">
-                        <label for="filter-event-date-end" class="filter-label">Data Evento (Até):</label>
-                        <input type="date" id="filter-event-date-end" class="filter-input" value="${filterState.eventDateEnd}">
-                    </div>
-                    <div class="filter-group">
-                        <label for="filter-creation-date-start" class="filter-label">Criação (De):</label>
-                        <input type="date" id="filter-creation-date-start" class="filter-input" value="${filterState.creationDateStart}">
-                    </div>
-                    <div class="filter-group">
-                        <label for="filter-creation-date-end" class="filter-label">Criação (Até):</label>
-                        <input type="date" id="filter-creation-date-end" class="filter-input" value="${filterState.creationDateEnd}">
                     </div>
                 </div>
-                <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-                    <button id="btn-clear-filters" class="px-4 py-2 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors shadow-sm">Limpar Filtros</button>
-                    <button id="btn-apply-filters" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">Aplicar Filtros</button>
-                </div>
-            </div>
-        </div>
-    ` : '';
+            ` : '';
 
-    // Generates the table HTML based on the provided data
-    const generateTableHtml = (data) => {
-        currentFilteredRecordsForExport = [...data];
-        const tableRows = data.map(record => `
-            <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">
-                    <input type="checkbox" class="record-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-2" data-id="${record.id}" ${selectedRecordIds.has(record.id) ? 'checked' : ''}>
-                    ${record.createdAt?.toDate?.().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) || 'N/A'}
-                </td>
-                <td class="px-5 py-3.5 text-xs text-gray-700 font-medium whitespace-nowrap">${record.eventName || 'N/A'} <span class="text-gray-500">(${record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'})</span></td>
-                <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.categoryName || 'N/A'}</td>
-                <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.employeeName || 'N/A'}</td>
-                <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.sector}</td>
-                <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.managerName}</td>
-                <td class="px-5 py-3.5 text-xs text-gray-500 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
-                ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin) || userProfile.isAdmin ?
-                    `<td class="px-5 py-3.5 text-xs text-center">
-                        <button class="btn-delete-record text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md" data-id="${record.id}" title="Excluir Registro">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            // Generates the table HTML based on the provided data
+            const generateTableHtml = (data) => {
+                currentFilteredRecordsForExport = [...data];
+                const tableRows = data.map(record => `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">
+                            <input type="checkbox" class="record-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-2" data-id="${record.id}" ${selectedRecordIds.has(record.id) ? 'checked' : ''}>
+                            ${record.createdAt?.toDate?.().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) || 'N/A'}
+                        </td>
+                        <td class="px-5 py-3.5 text-xs text-gray-700 font-medium whitespace-nowrap">${record.eventName || 'N/A'} <span class="text-gray-500">(${record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'})</span></td>
+                        <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.categoryName || 'N/A'}</td>
+                        <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.employeeName || 'N/A'}</td>
+                        <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.sector}</td>
+                        <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.managerName}</td>
+                        <td class="px-5 py-3.5 text-xs text-gray-500 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
+                        <!-- Coluna de Ação visível se o usuário for gestor do setor do registro ou admin -->
+                        ${(userProfile.isManager && record.sector === userUserProfile.sector && !userProfile.isAdmin && record.managerId === currentUser.uid) || userProfile.isAdmin ?
+                            `<td class="px-5 py-3.5 text-xs text-center">
+                                <button class="btn-delete-record text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md" data-id="${record.id}" title="Excluir Registro">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </td>` : '<td class="px-5 py-3.5"></td>'
+                        }
+                    </tr>
+                `).join('');
+
+                return data.length === 0 ?
+                    `<div class="text-center py-10"><p class="text-gray-500 text-sm">Nenhum registro encontrado para os filtros aplicados.</p></div>` :
+                    `<div class="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <input type="checkbox" id="select-all-records-checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-2">
+                                        Data Criação
+                                    </th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evento (Data)</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funcionário</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
+                                    <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gestor</th>
+                                    <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs.</th>
+                                    ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin) || userProfile.isAdmin ? '<th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
+                        </table>
+                    </div>
+                    <div id="bulk-actions-container" class="mt-4 flex justify-between items-center hidden">
+                        <span id="selected-records-count" class="text-sm text-gray-600">0 registros selecionados</span>
+                        <button id="btn-delete-selected-records" class="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            Excluir Selecionados
                         </button>
-                    </td>` : '<td class="px-5 py-3.5"></td>'
-                }
-            </tr>
-        `).join('');
+                    </div>`;
+            };
 
-        return data.length === 0 ?
-            `<div class="text-center py-10"><p class="text-gray-500 text-sm">Nenhum registro encontrado para os filtros aplicados.</p></div>` :
-            `<div class="overflow-x-auto border border-gray-200 rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                <input type="checkbox" id="select-all-records-checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-2">
-                                Data Criação
-                            </th>
-                            <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evento (Data)</th>
-                            <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
-                            <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funcionário</th>
-                            <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
-                            <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gestor</th>
-                            <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs.</th>
-                            ${(userProfile.isManager && !userProfile.isAdmin) || userProfile.isAdmin ? '<th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
-                </table>
-            </div>
-            <div id="bulk-actions-container" class="mt-4 flex justify-between items-center hidden">
-                <span id="selected-records-count" class="text-sm text-gray-600">0 registros selecionados</span>
-                <button id="btn-delete-selected-records" class="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    Excluir Selecionados
-                </button>
-            </div>`;
-    };
-
-    appContent.innerHTML = `
-        <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                <div>
-                    <h2 class="text-xl font-semibold text-gray-800">Histórico de Registros</h2>
-                    ${userProfile.isManager && !userProfile.isAdmin ? `<p class="text-xs text-gray-500 mt-0.5">Setor: ${userProfile.sector}</p>` : ''}
+            appContent.innerHTML = `
+                <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800">Histórico de Registros</h2>
+                            ${userProfile.isManager && !userProfile.isAdmin ? `<p class="text-xs text-gray-500 mt-0.5">Setor: ${userProfile.sector}</p>` : ''}
+                        </div>
+                        <div class="flex items-center space-x-2 mt-3 md:mt-0">
+                            <button id="btn-export-csv" class="px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>CSV</button>
+                            <button id="btn-export-xlsx" class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>XLSX</button>
+                            <button id="btn-back-dashboard" class="px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Voltar</button>
+                        </div>
+                    </div>
+                    <!-- Nova estrutura de filtros -->
+                    <div id="filters-container" class="bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                        <div id="filter-header" class="filter-header ${filterState.isExpanded ? 'expanded' : ''}">
+                            <h3 class="text-sm font-semibold text-gray-700">Filtros Avançados</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                        </div>
+                        <div id="filter-content" class="filter-content ${filterState.isExpanded ? 'expanded' : ''}">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                <div class="filter-group">
+                                    <label for="filter-search" class="filter-label">Termo Geral:</label>
+                                    <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, observações..." value="${filterState.searchTerm}">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-event-name" class="filter-label">Nome do Evento:</label>
+                                    <input type="text" id="filter-event-name" class="filter-input" placeholder="Ex: Jogo Botafogo vs Flamengo" value="${filterState.eventName}">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-employee" class="filter-label">Funcionário:</label>
+                                    <select id="filter-employee" class="filter-input">
+                                        <option value="">Todos</option>
+                                        ${globalData.employees.map(e => `<option value="${e.id}" ${filterState.employeeId === e.id ? 'selected' : ''}>${e.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-category" class="filter-label">Categoria:</label>
+                                    <select id="filter-category" class="filter-input">
+                                        <option value="">Todas</option>
+                                        ${globalData.categories.map(c => `<option value="${c.id}" ${filterState.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                ${userProfile.isAdmin ? `
+                                    <div class="filter-group">
+                                        <label for="filter-sector" class="filter-label">Setor:</label>
+                                        <select id="filter-sector" class="filter-input">
+                                            <option value="">Todos</option>
+                                            ${[...new Set(globalData.records.map(r => r.sector))].filter(Boolean).sort().map(s => `<option value="${s}" ${filterState.sector === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label for="filter-manager" class="filter-label">Gestor Lançador:</label>
+                                        <select id="filter-manager" class="filter-input">
+                                            <option value="">Todos</option>
+                                            ${[...new Set(globalData.records.map(r => r.managerName))].filter(Boolean).sort().map(m => `<option value="${m}" ${filterState.managerName === m ? 'selected' : ''}>${m}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                ` : ''}
+                                <div class="filter-group">
+                                    <label for="filter-event-date-start" class="filter-label">Data Evento (De):</label>
+                                    <input type="date" id="filter-event-date-start" class="filter-input" value="${filterState.eventDateStart}">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-event-date-end" class="filter-label">Data Evento (Até):</label>
+                                    <input type="date" id="filter-event-date-end" class="filter-input" value="${filterState.eventDateEnd}">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-creation-date-start" class="filter-label">Criação (De):</label>
+                                    <input type="date" id="filter-creation-date-start" class="filter-input" value="${filterState.creationDateStart}">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-creation-date-end" class="filter-label">Criação (Até):</label>
+                                    <input type="date" id="filter-creation-date-end" class="filter-input" value="${filterState.creationDateEnd}">
+                                </div>
+                            </div>
+                            <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                                <button id="btn-clear-filters" class="px-4 py-2 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors shadow-sm">Limpar Filtros</button>
+                                <button id="btn-apply-filters" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">Aplicar Filtros</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="record-history-table-container">
+                        ${generateTableHtml(initialRecordsToDisplay)}
+                    </div>
                 </div>
-                <div class="flex items-center space-x-2 mt-3 md:mt-0">
-                    <button id="btn-export-csv" class="px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>CSV</button>
-                    <button id="btn-export-xlsx" class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>XLSX</button>
-                    <button id="btn-back-dashboard" class="px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Voltar</button>
-                </div>
-            </div>
-            ${adminFiltersHtml}
-            <div id="record-history-table-container">
-                ${generateTableHtml(recordsToDisplay)}
-            </div>
-        </div>
-    `;
+            `;
 
-    // Configura o clique no cabeçalho dos filtros para expandir/recolher
-    const filterHeader = document.getElementById('filter-header');
-    if (filterHeader) {
-        filterHeader.addEventListener('click', () => {
-            const filterContent = document.getElementById('filter-content');
-            if (filterContent) {
-                filterContent.classList.toggle('expanded');
-                filterHeader.classList.toggle('expanded');
-            }
-        });
-    }
+            // Function to update the count of selected records and enable/disable the delete button
+            const updateSelectedCountUI = () => {
+                const count = selectedRecordIds.size;
+                const bulkActionsContainer = document.getElementById('bulk-actions-container');
+                const selectedRecordsCountSpan = document.getElementById('selected-records-count');
+                const deleteSelectedBtn = document.getElementById('btn-delete-selected-records');
 
-    // Function to update the count of selected records and enable/disable the delete button
-    const updateSelectedCountUI = () => {
-        const count = selectedRecordIds.size;
-        const bulkActionsContainer = document.getElementById('bulk-actions-container');
-        const selectedRecordsCountSpan = document.getElementById('selected-records-count');
-        const deleteSelectedBtn = document.getElementById('btn-delete-selected-records');
-
-        if (bulkActionsContainer && selectedRecordsCountSpan && deleteSelectedBtn) {
-            if (count > 0) {
-                showElement(bulkActionsContainer);
-                selectedRecordsCountSpan.textContent = `${count} registro(s) selecionado(s)`;
-                deleteSelectedBtn.disabled = false;
-            } else {
-                hideElement(bulkActionsContainer);
-                selectedRecordsCountSpan.textContent = '';
-                deleteSelectedBtn.disabled = true;
-            }
-        }
-
-        // Update "Select All" checkbox state
-        const selectAllCheckbox = document.getElementById('select-all-records-checkbox');
-        if (selectAllCheckbox) {
-            const visibleRecordCheckboxes = document.querySelectorAll('.record-checkbox');
-            const allVisibleSelected = Array.from(visibleRecordCheckboxes).every(cb => cb.checked);
-            selectAllCheckbox.checked = allVisibleSelected && visibleRecordCheckboxes.length > 0;
-            selectAllCheckbox.indeterminate = !allVisibleSelected && count > 0;
-        }
-    };
-
-    // Function to handle the "Select All" checkbox toggle
-    const toggleSelectAllCheckboxes = (event) => {
-        const isChecked = event.target.checked;
-        document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-            checkbox.checked = isChecked;
-            const recordId = checkbox.dataset.id;
-            if (isChecked) {
-                selectedRecordIds.add(recordId);
-            } else {
-                selectedRecordIds.delete(recordId);
-            }
-        });
-        updateSelectedCountUI();
-    };
-
-    // Function to handle individual checkbox changes
-    const handleIndividualCheckboxChange = (event) => {
-        const recordId = event.target.dataset.id;
-        if (event.target.checked) {
-            selectedRecordIds.add(recordId);
-        } else {
-            selectedRecordIds.delete(recordId);
-        }
-        updateSelectedCountUI();
-    };
-
-    // Function to delete selected records
-    const deleteSelectedRecords = async () => {
-        if (selectedRecordIds.size === 0) {
-            showNotification("Nenhum registro selecionado para exclusão.", "info");
-            return;
-        }
-
-        const recordsToDeleteDetails = Array.from(selectedRecordIds).map(id => {
-            const record = globalData.records.find(r => r.id === id);
-            return record ? { id: record.id, name: `${record.eventName} (${new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR')})` } : { id: id, name: `ID: ${id}` };
-        });
-        const recordsToDeleteListHtml = recordsToDeleteDetails.map(d => `<p class="text-xs font-mono">${d.name}</p>`).join('');
-
-        openModal(
-            `Confirmar Exclusão de Registros`,
-            `<p>Você está prestes a excluir os seguintes ${selectedRecordIds.size} registro(s):</p><div class="max-h-32 overflow-y-auto p-2 bg-gray-100 rounded-md border border-gray-200 mb-4">${recordsToDeleteListHtml}</div><p>Esta ação não pode ser desfeita. Deseja continuar?</p>`,
-            async () => {
-                let successfulDeletions = 0;
-                let failedDeletions = 0;
-                const idsActuallyDeleted = new Set();
-
-                for (const recordDetail of recordsToDeleteDetails) {
-                    const result = await _performDirectDelete('records', recordDetail.id, false, getCollectionRef('records', false));
-                    if (result.success) {
-                        successfulDeletions++;
-                        idsActuallyDeleted.add(recordDetail.id);
+                if (bulkActionsContainer && selectedRecordsCountSpan && deleteSelectedBtn) { // Ensure elements exist
+                    if (count > 0) {
+                        showElement(bulkActionsContainer);
+                        selectedRecordsCountSpan.textContent = `${count} registro(s) selecionado(s)`;
+                        deleteSelectedBtn.disabled = false;
                     } else {
-                        failedDeletions++;
-                        console.error(`Falha ao excluir registro ${recordDetail.id}:`, result.error);
+                        hideElement(bulkActionsContainer);
+                        selectedRecordsCountSpan.textContent = '';
+                        deleteSelectedBtn.disabled = true;
                     }
                 }
 
-                selectedRecordIds.forEach(id => {
-                    if (idsActuallyDeleted.has(id)) {
-                        selectedRecordIds.delete(id);
+
+                // Update "Select All" checkbox state
+                const selectAllCheckbox = document.getElementById('select-all-records-checkbox');
+                if (selectAllCheckbox) {
+                    const visibleRecordCheckboxes = document.querySelectorAll('.record-checkbox');
+                    const allVisibleSelected = Array.from(visibleRecordCheckboxes).every(cb => cb.checked);
+                    selectAllCheckbox.checked = allVisibleSelected && visibleRecordCheckboxes.length > 0;
+                    selectAllCheckbox.indeterminate = !allVisibleSelected && count > 0;
+                }
+            };
+
+            // Function to handle the "Select All" checkbox toggle
+            const toggleSelectAllCheckboxes = (event) => {
+                const isChecked = event.target.checked;
+                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                    const recordId = checkbox.dataset.id;
+                    if (isChecked) {
+                        selectedRecordIds.add(recordId);
+                    } else {
+                        selectedRecordIds.delete(recordId);
+                    }
+                });
+                updateSelectedCountUI();
+            };
+
+            // Function to handle individual checkbox changes
+            const handleIndividualCheckboxChange = (event) => {
+                const recordId = event.target.dataset.id;
+                if (event.target.checked) {
+                    selectedRecordIds.add(recordId);
+                } else {
+                    selectedRecordIds.delete(recordId);
+                }
+                updateSelectedCountUI();
+            };
+
+            // Function to delete selected records
+            const deleteSelectedRecords = async () => {
+                if (selectedRecordIds.size === 0) {
+                    showNotification("Nenhum registro selecionado para exclusão.", "info");
+                    return;
+                }
+
+                const recordsToDeleteDetails = Array.from(selectedRecordIds).map(id => {
+                    const record = globalData.records.find(r => r.id === id);
+                    return record ? { id: record.id, name: `${record.eventName} (${new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR')})` } : { id: id, name: `ID: ${id}` };
+                });
+                const recordsToDeleteListHtml = recordsToDeleteDetails.map(d => `<p class="text-xs font-mono">${d.name}</p>`).join('');
+
+                openModal(
+                    `Confirmar Exclusão de Registros`,
+                    `<p>Você está prestes a excluir os seguintes ${selectedRecordIds.size} registro(s):</p><div class="max-h-32 overflow-y-auto p-2 bg-gray-100 rounded-md border border-gray-200 mb-4">${recordsToDeleteListHtml}</div><p>Esta ação não pode ser desfeita. Deseja continuar?</p>`,
+                    async () => {
+                        let successfulDeletions = 0;
+                        let failedDeletions = 0;
+                        const idsActuallyDeleted = new Set(); // Track successfully deleted IDs
+
+                        // Perform deletions sequentially to await each promise
+                        for (const recordDetail of recordsToDeleteDetails) {
+                            const result = await _performDirectDelete('records', recordDetail.id, false, getCollectionRef('records', false));
+                            if (result.success) {
+                                successfulDeletions++;
+                                idsActuallyDeleted.add(recordDetail.id);
+                            } else {
+                                failedDeletions++;
+                                console.error(`Falha ao excluir registro ${recordDetail.id}:`, result.error);
+                            }
+                        }
+
+                        // Clear the selected IDs from the global set based on which ones were actually deleted
+                        // This ensures that if a deletion failed, its checkbox state can be re-evaluated
+                        selectedRecordIds.forEach(id => {
+                            if (idsActuallyDeleted.has(id)) {
+                                selectedRecordIds.delete(id);
+                            }
+                        });
+                        // Alternatively, we could just clear all selectedRecordIds and let renderApp rebuild the set.
+                        // selectedRecordIds.clear(); // If you want to clear all selections regardless of success/failure for the bulk operation.
+
+                        showNotification(`Exclusão concluída: ${successfulDeletions} sucesso(s), ${failedDeletions} falha(s).`, successfulDeletions > 0 ? 'success' : (failedDeletions > 0 ? 'error' : 'info'));
+                        renderApp(); // Re-render to update the table
+                    },
+                    'Excluir',
+                    () => { /* Cancel action */ },
+                    'Cancelar'
+                );
+            };
+
+            // Event Listeners for Filter Buttons (Delegated to filters-container)
+            const filtersContainer = document.getElementById('filters-container');
+            if (filtersContainer) {
+                const filterHeader = document.getElementById('filter-header');
+                const filterContent = document.getElementById('filter-content');
+
+                filterHeader.addEventListener('click', () => {
+                    filterContent.classList.toggle('expanded');
+                    filterHeader.classList.toggle('expanded');
+                    filterState.isExpanded = filterContent.classList.contains('expanded'); // Update state
+                });
+
+                document.getElementById('btn-apply-filters').addEventListener('click', applyFilters);
+                document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);
+
+                // Add input listeners to update filterState immediately
+                filtersContainer.querySelectorAll('.filter-input').forEach(input => {
+                    input.addEventListener('input', (event) => {
+                        filterState[event.target.id.replace('filter-', '')] = event.target.value;
+                        // For select and date inputs, apply filters immediately on change
+                        if (event.target.tagName === 'SELECT' || event.target.type === 'date') {
+                            applyFilters();
+                        }
+                    });
+                });
+            } else {
+                console.error("Filters container not found!");
+            }
+
+            // Delegated event listeners for checkboxes (since rows are dynamically rendered)
+            const recordHistoryTableContainer = document.getElementById('record-history-table-container');
+            if (recordHistoryTableContainer) {
+                recordHistoryTableContainer.addEventListener('change', (event) => {
+                    if (event.target.classList.contains('record-checkbox')) {
+                        handleIndividualCheckboxChange(event);
+                    } else if (event.target.id === 'select-all-records-checkbox') {
+                        toggleSelectAllCheckboxes(event);
                     }
                 });
 
-                showNotification(`Exclusão concluída: ${successfulDeletions} sucesso(s), ${failedDeletions} falha(s).`, successfulDeletions > 0 ? 'success' : (failedDeletions > 0 ? 'error' : 'info'));
+                recordHistoryTableContainer.addEventListener('click', (event) => {
+                    if (event.target.classList.contains('btn-delete-record')) {
+                        const recordId = event.target.dataset.id;
+                        confirmAction(
+                            `Confirmar Exclusão`,
+                            `Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.`,
+                            async () => {
+                                await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false), true);
+                                // The onSnapshot listener will trigger renderApp and update UI
+                            }
+                        );
+                    }
+                });
+            } else {
+                console.error("Record history table container not found!");
+            }
+
+
+            document.getElementById('btn-back-dashboard').addEventListener('click', () => {
+                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
                 renderApp();
-            },
-            'Excluir',
-            () => { /* Cancel action */ },
-            'Cancelar'
-        );
-    };
+            });
 
-    // Event Listeners for Filter Buttons
-    const filtersContainer = document.getElementById('filters-container');
-    if (filtersContainer) {
-        filtersContainer.addEventListener('click', (event) => {
-            if (event.target.id === 'btn-apply-filters') {
-                applyFilters();
-            } else if (event.target.id === 'btn-clear-filters') {
-                clearFilters();
-            }
-        });
+            document.getElementById('btn-delete-selected-records')?.addEventListener('click', deleteSelectedRecords);
+            document.getElementById('btn-export-csv').addEventListener('click', () => exportToCSV(currentFilteredRecordsForExport));
+            document.getElementById('btn-export-xlsx').addEventListener('click', () => exportToXLSX(currentFilteredRecordsForExport));
 
-        filtersContainer.addEventListener('input', (event) => {
-            if (event.target.classList.contains('filter-input')) {
-                filterState[event.target.id.replace('filter-', '')] = event.target.value;
-                if (event.target.tagName === 'SELECT' || event.target.type === 'date') {
-                    applyFilters();
-                }
-            }
-        });
-    }
-
-    // Delegated event listeners for checkboxes (since rows are dynamically rendered)
-    document.getElementById('record-history-table-container').addEventListener('change', (event) => {
-        if (event.target.classList.contains('record-checkbox')) {
-            handleIndividualCheckboxChange(event);
-        } else if (event.target.id === 'select-all-records-checkbox') {
-            toggleSelectAllCheckboxes(event);
+            // Initial UI update for selected count
+            updateSelectedCountUI();
         }
-    });
-
-    document.getElementById('btn-delete-selected-records')?.addEventListener('click', deleteSelectedRecords);
-
-    // Single record delete buttons
-    document.getElementById('record-history-table-container').addEventListener('click', (event) => {
-        if (event.target.classList.contains('btn-delete-record')) {
-            const recordId = event.target.dataset.id;
-            confirmAction(
-                `Confirmar Exclusão`,
-                `Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.`,
-                async () => {
-                    await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false), true);
-                }
-            );
-        }
-    });
-
-    document.getElementById('btn-export-csv').addEventListener('click', () => exportToCSV(currentFilteredRecordsForExport));
-    document.getElementById('btn-export-xlsx').addEventListener('click', () => exportToXLSX(currentFilteredRecordsForExport));
-    document.getElementById('btn-back-dashboard').addEventListener('click', () => {
-        currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
-        renderApp();
-    });
-
-    // Initial UI update for selected count
-    updateSelectedCountUI();
-}
 
         // Renderiza o painel do administrador
         function renderAdminDashboard() {
