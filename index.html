@@ -194,7 +194,7 @@
             authDomain: "qmsafbotafogo.firebaseapp.com",
             databaseURL: "https://qmsafbotafogo-default-rtdb.firebaseio.com",
             projectId: "qmsafbotafogo",
-            storageBucket: "qmsafbotafogo.firebasestorage.app",
+            storageBucket: "qmsafbotafogo.appspot.com",
             messagingSenderId: "447753167474",
             appId: "1:447753167474:web:7706e7a5c78b4127a058eb"
         };
@@ -2213,7 +2213,7 @@ function clearFilters() {
 
 
         // Garante que o login inicial seja tentado ao carregar a página
-        document.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('load', () => {
             performInitialSignIn();
         });
 
