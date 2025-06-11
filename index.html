@@ -1474,7 +1474,6 @@
                 <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.sector}</td>
                 <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.managerName}</td>
                 <td class="px-5 py-3.5 text-xs text-gray-500 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
-                <!-- Coluna de Ação visível se o usuário for gestor do setor do registro ou admin -->
                 ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin) || userProfile.isAdmin ?
                     `<td class="px-5 py-3.5 text-xs text-center">
                         <button class="btn-delete-record text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md" data-id="${record.id}" title="Excluir Registro">
@@ -1535,6 +1534,18 @@
             </div>
         </div>
     `;
+
+    // Configura o clique no cabeçalho dos filtros para expandir/recolher
+    const filterHeader = document.getElementById('filter-header');
+    if (filterHeader) {
+        filterHeader.addEventListener('click', () => {
+            const filterContent = document.getElementById('filter-content');
+            if (filterContent) {
+                filterContent.classList.toggle('expanded');
+                filterHeader.classList.toggle('expanded');
+            }
+        });
+    }
 
     // Function to update the count of selected records and enable/disable the delete button
     const updateSelectedCountUI = () => {
@@ -1638,7 +1649,7 @@
         );
     };
 
-    // Event Listeners for Filter Buttons (Delegated to filters-container)
+    // Event Listeners for Filter Buttons
     const filtersContainer = document.getElementById('filters-container');
     if (filtersContainer) {
         filtersContainer.addEventListener('click', (event) => {
@@ -1646,12 +1657,6 @@
                 applyFilters();
             } else if (event.target.id === 'btn-clear-filters') {
                 clearFilters();
-            } else if (event.target.id === 'filter-header') {
-                const filterContent = document.getElementById('filter-content');
-                if (filterContent) {
-                    filterContent.classList.toggle('expanded');
-                    event.currentTarget.classList.toggle('expanded');
-                }
             }
         });
 
@@ -1663,8 +1668,6 @@
                 }
             }
         });
-    } else {
-        console.error("Filters container not found!");
     }
 
     // Delegated event listeners for checkboxes (since rows are dynamically rendered)
