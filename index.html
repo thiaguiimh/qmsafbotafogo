@@ -230,6 +230,8 @@
         let unsubscribers = [];
         let currentFilteredRecordsForExport = [];
         let selectedRecordIds = new Set(); // Global set to store selected record IDs for bulk deletion
+        // Placeholder; actual implementation set when history view is rendered
+        let updateSelectedCountUI = () => {};
 
         // Global filter state object
         let filterState = {
@@ -1570,7 +1572,10 @@
             const applyFilters = () => {
                 const records = getFilteredRecords();
                 const container = document.getElementById('record-history-table-container');
-                if (container) container.innerHTML = generateTableHtml(records);
+                if (container) {
+                    container.innerHTML = generateTableHtml(records);
+                    document.getElementById('btn-delete-selected-records')?.addEventListener('click', deleteSelectedRecords);
+                }
                 updateSelectedCountUI();
             };
 
@@ -1683,7 +1688,7 @@
             `;
 
             // Function to update the count of selected records and enable/disable the delete button
-            const updateSelectedCountUI = () => {
+            updateSelectedCountUI = () => {
                 const count = selectedRecordIds.size;
                 const bulkActionsContainer = document.getElementById('bulk-actions-container');
                 const selectedRecordsCountSpan = document.getElementById('selected-records-count');
