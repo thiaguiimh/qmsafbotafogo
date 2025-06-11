@@ -1495,7 +1495,7 @@
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
                                     <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gestor</th>
                                     <th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs.</th>
-                                    ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin) || userProfile.isAdmin ? '<th class="px-5 py-3.5 text-xs text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
+                                    ${(userProfile.isAdmin || userProfile.isManager) ? '<th class="px-5 py-3.5 text-xs text-left font-medium text-gray-500 uppercase tracking-wider">Ação</th>' : ''}
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
