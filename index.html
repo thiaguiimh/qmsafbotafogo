@@ -246,6 +246,20 @@
             isExpanded: false // New property to track filter section state
         };
 
+        // Mapping from filter input IDs to filterState keys for consistent updates
+        const filterIdToStateKey = {
+            'filter-search': 'searchTerm',
+            'filter-event-name': 'eventName',
+            'filter-employee': 'employeeId',
+            'filter-category': 'categoryId',
+            'filter-sector': 'sector',
+            'filter-manager': 'managerName',
+            'filter-event-date-start': 'eventDateStart',
+            'filter-event-date-end': 'eventDateEnd',
+            'filter-creation-date-start': 'creationDateStart',
+            'filter-creation-date-end': 'creationDateEnd'
+        };
+
 
         const showElement = (el) => el.classList.remove('hidden');
         const hideElement = (el) => el.classList.add('hidden');
@@ -1794,10 +1808,13 @@
                 // Add input listeners to update filterState immediately
                 filtersContainer.querySelectorAll('.filter-input').forEach(input => {
                     input.addEventListener('input', (event) => {
-                        filterState[event.target.id.replace('filter-', '')] = event.target.value;
-                        // For select and date inputs, apply filters immediately on change
-                        if (event.target.tagName === 'SELECT' || event.target.type === 'date') {
-                            applyFilters();
+                        const key = filterIdToStateKey[event.target.id];
+                        if (key) {
+                            filterState[key] = event.target.value;
+                            // For select and date inputs, apply filters immediately on change
+                            if (event.target.tagName === 'SELECT' || event.target.type === 'date') {
+                                applyFilters();
+                            }
                         }
                     });
                 });
