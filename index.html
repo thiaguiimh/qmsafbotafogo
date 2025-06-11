@@ -1469,7 +1469,7 @@
                         <td class="px-5 py-3.5 text-xs text-gray-600 whitespace-nowrap">${record.managerName}</td>
                         <td class="px-5 py-3.5 text-xs text-gray-500 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
                         <!-- Coluna de Ação visível se o usuário for gestor do setor do registro ou admin -->
-                        ${(userProfile.isManager && record.sector === userUserProfile.sector && !userProfile.isAdmin && record.managerId === currentUser.uid) || userProfile.isAdmin ?
+                        ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin && record.managerId === currentUser.uid) || userProfile.isAdmin ?
                             `<td class="px-5 py-3.5 text-xs text-center">
                                 <button class="btn-delete-record text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md" data-id="${record.id}" title="Excluir Registro">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -1509,6 +1509,76 @@
                         </button>
                     </div>`;
             };
+
+            // Helper to get records based on the current filters
+            const getFilteredRecords = () => {
+                let data = [...globalData.records];
+                const term = filterState.searchTerm.trim().toLowerCase();
+                if (term) {
+                    data = data.filter(r =>
+                        (r.eventName && r.eventName.toLowerCase().includes(term)) ||
+                        (r.employeeName && r.employeeName.toLowerCase().includes(term)) ||
+                        (r.notes && r.notes.toLowerCase().includes(term))
+                    );
+                }
+                if (filterState.eventName.trim()) {
+                    const t = filterState.eventName.trim().toLowerCase();
+                    data = data.filter(r => r.eventName?.toLowerCase().includes(t));
+                }
+                if (filterState.employeeId) {
+                    data = data.filter(r => r.employeeId === filterState.employeeId);
+                }
+                if (filterState.categoryId) {
+                    data = data.filter(r => r.categoryId === filterState.categoryId);
+                }
+                if (userProfile.isAdmin && filterState.sector) {
+                    data = data.filter(r => r.sector === filterState.sector);
+                }
+                if (userProfile.isAdmin && filterState.managerName) {
+                    data = data.filter(r => r.managerName === filterState.managerName);
+                }
+                if (filterState.eventDateStart) {
+                    data = data.filter(r => r.eventDate >= filterState.eventDateStart);
+                }
+                if (filterState.eventDateEnd) {
+                    data = data.filter(r => r.eventDate <= filterState.eventDateEnd);
+                }
+                if (filterState.creationDateStart) {
+                    data = data.filter(r => r.createdAt?.toDate?.() >= new Date(filterState.creationDateStart + 'T00:00:00'));
+                }
+                if (filterState.creationDateEnd) {
+                    const endDate = new Date(filterState.creationDateEnd + 'T23:59:59');
+                    data = data.filter(r => r.createdAt?.toDate?.() <= endDate);
+                }
+                return data;
+            };
+
+            const applyFilters = () => {
+                const records = getFilteredRecords();
+                const container = document.getElementById('record-history-table-container');
+                if (container) container.innerHTML = generateTableHtml(records);
+                updateSelectedCountUI();
+            };
+
+            const clearFilters = () => {
+                filterState = {
+                    ...filterState,
+                    searchTerm: '',
+                    eventName: '',
+                    employeeId: '',
+                    categoryId: '',
+                    sector: '',
+                    managerName: '',
+                    eventDateStart: '',
+                    eventDateEnd: '',
+                    creationDateStart: '',
+                    creationDateEnd: ''
+                };
+                document.querySelectorAll('#filters-container .filter-input').forEach(input => input.value = '');
+                applyFilters();
+            };
+
+            const initialRecordsToDisplay = getFilteredRecords();
 
             appContent.innerHTML = `
                 <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
