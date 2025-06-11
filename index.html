@@ -81,37 +81,41 @@
         textarea {
             resize: vertical;
         }
+        .filter-wrapper {
+            @apply bg-white border border-gray-200 rounded-lg shadow-sm;
+        }
         /* Estilos para filtros refinados */
         .filter-group {
-            @apply flex flex-col;
+            @apply flex flex-col gap-1;
         }
         .filter-label {
-            @apply text-xs font-medium text-gray-500 mb-1;
+            @apply text-xs font-medium text-gray-600;
         }
         .filter-input {
-            @apply w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:ring-opacity-50 outline-none transition-colors shadow-sm hover:border-gray-400;
+            @apply w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors shadow-sm hover:border-gray-400;
         }
         /* Custom styles for collapsible filter section */
         .filter-header {
-            @apply flex items-center justify-between cursor-pointer py-2 px-4 bg-gray-100 rounded-lg transition-colors duration-200 hover:bg-gray-200; /* Adjusted for rounded-lg on collapsed state */
+            @apply flex items-center justify-between cursor-pointer bg-white border border-gray-200 rounded-lg px-5 py-3 transition-colors duration-200 hover:bg-gray-50;
         }
         .filter-content {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease-out;
-            padding: 0 1rem; /* Adjust padding for collapsed state */
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            padding: 0 1.25rem;
         }
         .filter-content.expanded {
-            max-height: 500px; /* Adjust as needed for content height */
-            transition: max-height 0.3s ease-in;
-            padding: 1rem; /* Adjust padding for expanded state */
-            border: 1px solid #e2e8f0; /* Add border for expanded state */
-            border-top: none; /* No top border, as header has its own */
-            border-radius: 0 0 0.5rem 0.5rem; /* Rounded bottom corners */
+            max-height: 700px;
+            transition: max-height 0.5s ease-in, padding 0.3s ease-in;
+            padding: 1.25rem;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 0.75rem 0.75rem;
+            background-color: #ffffff;
         }
         .filter-header.expanded {
-            border-bottom: 1px solid #e2e8f0; /* Border between header and content when expanded */
-            border-radius: 0.5rem 0.5rem 0 0; /* Rounded top corners, sharp bottom */
+            border-radius: 0.75rem 0.75rem 0 0;
+            border-bottom: 1px solid #e5e7eb;
         }
         .filter-header svg {
             transition: transform 0.3s ease;
@@ -1399,7 +1403,7 @@
         function renderRecordHistory() {
             // HTML for filter section
             const adminFiltersHtml = userProfile.isAdmin ? `
-                <div id="filters-container" class="bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                <div id="filters-container" class="filter-wrapper mb-6">
                     <div id="filter-header" class="filter-header ${filterState.isExpanded ? 'expanded' : ''}">
                         <h3 class="text-sm font-semibold text-gray-700">Filtros Avançados</h3>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
@@ -1613,7 +1617,7 @@
                         </div>
                     </div>
                     <!-- Nova estrutura de filtros -->
-                    <div id="filters-container" class="bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                    <div id="filters-container" class="filter-wrapper mb-6">
                         <div id="filter-header" class="filter-header ${filterState.isExpanded ? 'expanded' : ''}">
                             <h3 class="text-sm font-semibold text-gray-700">Filtros Avançados</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
