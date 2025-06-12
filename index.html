@@ -93,6 +93,12 @@
         .filter-input {
             @apply w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none;
         }
+        .filter-toggle summary {
+            @apply cursor-pointer select-none flex items-center justify-between bg-gray-100 px-4 py-2 rounded-md text-sm font-medium text-gray-700;
+        }
+        .filter-toggle summary::-webkit-details-marker {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -1370,71 +1376,6 @@
 
         // Renderiza o histórico de registros
         function renderRecordHistory() {
-            // HTML for filter section
-            const adminFiltersHtml = userProfile.isAdmin ? `
-                <div id="filters-container" class="filter-wrapper mb-6 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <div class="filter-group">
-                            <label for="filter-search" class="filter-label">Termo Geral:</label>
-                            <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, observações..." value="${filterState.searchTerm}">
-                        </div>
-                            <div class="filter-group">
-                                <label for="filter-event-name" class="filter-label">Nome do Evento:</label>
-                                <input type="text" id="filter-event-name" class="filter-input" placeholder="Ex: Jogo Botafogo vs Flamengo" value="${filterState.eventName}">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-employee" class="filter-label">Funcionário:</label>
-                                <select id="filter-employee" class="filter-input">
-                                    <option value="">Todos</option>
-                                    ${globalData.employees.map(e => `<option value="${e.id}" ${filterState.employeeId === e.id ? 'selected' : ''}>${e.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-category" class="filter-label">Categoria:</label>
-                                <select id="filter-category" class="filter-input">
-                                    <option value="">Todas</option>
-                                    ${globalData.categories.map(c => `<option value="${c.id}" ${filterState.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
-                                </select>
-                            </div>
-                            ${userProfile.isAdmin ? `
-                                <div class="filter-group">
-                                    <label for="filter-sector" class="filter-label">Setor:</label>
-                                    <select id="filter-sector" class="filter-input">
-                                        <option value="">Todos</option>
-                                        ${[...new Set(globalData.records.map(r => r.sector))].filter(Boolean).sort().map(s => `<option value="${s}" ${filterState.sector === s ? 'selected' : ''}>${s}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div class="filter-group">
-                                    <label for="filter-manager" class="filter-label">Gestor Lançador:</label>
-                                    <select id="filter-manager" class="filter-input">
-                                        <option value="">Todos</option>
-                                        ${[...new Set(globalData.records.map(r => r.managerName))].filter(Boolean).sort().map(m => `<option value="${m}" ${filterState.managerName === m ? 'selected' : ''}>${m}</option>`).join('')}
-                                    </select>
-                                </div>
-                            ` : ''}
-                            <div class="filter-group">
-                                <label for="filter-event-date-start" class="filter-label">Data Evento (De):</label>
-                                <input type="date" id="filter-event-date-start" class="filter-input" value="${filterState.eventDateStart}">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-event-date-end" class="filter-label">Data Evento (Até):</label>
-                                <input type="date" id="filter-event-date-end" class="filter-input" value="${filterState.eventDateEnd}">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-creation-date-start" class="filter-label">Criação (De):</label>
-                                <input type="date" id="filter-creation-date-start" class="filter-input" value="${filterState.creationDateStart}">
-                            </div>
-                            <div class="filter-group">
-                                <label for="filter-creation-date-end" class="filter-label">Criação (Até):</label>
-                                <input type="date" id="filter-creation-date-end" class="filter-input" value="${filterState.creationDateEnd}">
-                            </div>
-                        </div>
-                        <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-                            <button id="btn-clear-filters" class="px-4 py-2 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors shadow-sm">Limpar Filtros</button>
-                            <button id="btn-apply-filters" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">Aplicar Filtros</button>
-                        </div>
-                </div>
-            ` : '';
 
             // Generates the table HTML based on the provided data
             const generateTableHtml = (data) => {
@@ -1581,11 +1522,16 @@
                     </div>
                     <!-- Nova estrutura de filtros -->
                     <div id="filters-container" class="filter-wrapper mb-6 space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            <div class="filter-group">
-                                <label for="filter-search" class="filter-label">Termo Geral:</label>
-                                <input type="text" id="filter-search" class="filter-input" placeholder="Nome, evento, observações..." value="${filterState.searchTerm}">
+                        <div class="filter-group">
+                            <label for="filter-search" class="filter-label">Busca Rápida:</label>
+                            <div class="relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1011.5 19.5a7.5 7.5 0 005.15-2.85z" /></svg>
+                                <input type="text" id="filter-search" class="filter-input pl-9" placeholder="Nome, evento, observações..." value="${filterState.searchTerm}">
                             </div>
+                        </div>
+                        <details class="filter-toggle w-full" open>
+                            <summary>Filtros Avançados</summary>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                                 <div class="filter-group">
                                     <label for="filter-event-name" class="filter-label">Nome do Evento:</label>
                                     <input type="text" id="filter-event-name" class="filter-input" placeholder="Ex: Jogo Botafogo vs Flamengo" value="${filterState.eventName}">
@@ -1637,10 +1583,11 @@
                                     <input type="date" id="filter-creation-date-end" class="filter-input" value="${filterState.creationDateEnd}">
                                 </div>
                             </div>
-                            <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-                                <button id="btn-clear-filters" class="px-4 py-2 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors shadow-sm">Limpar Filtros</button>
-                                <button id="btn-apply-filters" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">Aplicar Filtros</button>
-                            </div>
+                        </details>
+                        <div class="flex justify-end space-x-3">
+                            <button id="btn-clear-filters" class="px-4 py-2 text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors shadow-sm">Limpar Filtros</button>
+                            <button id="btn-apply-filters" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">Aplicar Filtros</button>
+                        </div>
                     </div>
                     <div id="record-history-table-container">
                         ${generateTableHtml(initialRecordsToDisplay)}
