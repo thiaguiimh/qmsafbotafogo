@@ -970,7 +970,7 @@
             const categoriesOptions = globalData.categories.map(cat => `<option value="${cat.id}">${cat.name} - ${cat.description}</option>`).join('');
             // Filtra funcionários pelo setor do gestor, se não for admin
             const employeesFilteredBySector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => emp.sector === userProfile.sector);
-            const employeesOptions = employeesFilteredBySector.map(emp => `<option value="${emp.id}">${emp.name} (${emp.registration}) - ${emp.sector}</option>`).join('');
+            const employeesOptions = employeesFilteredBySector.map(emp => `<option value="${emp.id}">${emp.name} (${emp.registration}) - ${emp.sector}</option>`).join('') + '<option value="OUTROS">Outros</option>';
             const inputBaseClass = "w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
 
             appContent.innerHTML = `
@@ -994,7 +994,7 @@
                             <select id="employee" required class="${inputBaseClass}">${employeesOptions ? `<option value="">Selecione o Funcionário</option>${employeesOptions}` : `<option value="">Nenhum funcionário disponível para seu setor</option>`}</select>
                         </div>
                         <div>
-                            <label for="notes" class="block text-xs font-medium text-gray-600 mb-1">Observações (Opcional):</label>
+                            <label for="notes" class="block text-xs font-medium text-gray-600 mb-1">Observações (obrigatório se selecionar "Outros"):</label>
                             <textarea id="notes" class="${inputBaseClass} h-24" placeholder="Detalhes adicionais..."></textarea>
                         </div>
                         <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
@@ -1024,6 +1024,20 @@
                 const employeeId = document.getElementById('employee').value;
                 const notes = document.getElementById('notes').value;
 
+                if (employeeId === 'OUTROS' && !notes.trim()) {
+                    openModal(
+                        'Observação Obrigatória',
+                        '<p>Para selecionar \"Outros\" no campo Funcionário é obrigatório informar o nome completo no campo Observações.</p>',
+                        null,
+                        '',
+                        () => {},
+                        'Fechar'
+                    );
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonContent;
+                    return;
+                }
+
                 if (!eventName || !eventDate || !categoryId || !employeeId) {
                     showNotification("Nome do Evento, Data do Evento, Categoria e Funcionário são obrigatórios.", "error");
                     submitButton.disabled = false;
@@ -1031,11 +1045,16 @@
                     return;
                 }
 
+                const employeeName = employeeId === 'OUTROS'
+                    ? notes.trim()
+                    : globalData.employees.find(emp => emp.id === employeeId)?.name;
+
                 const newRecordData = {
                     eventName,
                     eventDate,
                     categoryId, categoryName: globalData.categories.find(cat => cat.id === categoryId)?.name,
-                    employeeId, employeeName: globalData.employees.find(emp => emp.id === employeeId)?.name,
+                    employeeId,
+                    employeeName,
                     notes
                 };
 
@@ -1105,9 +1124,10 @@
             const listsSheetName = "Listas"; // Name for the lists sheet
 
             // Filter employees by manager's sector if not admin, otherwise get all
-            const employeesForLists = userProfile.isAdmin
+            const employeesForLists = (userProfile.isAdmin
                 ? globalData.employees.map(emp => emp.name)
-                : globalData.employees.filter(emp => emp.sector === userProfile.sector).map(emp => emp.name);
+                : globalData.employees.filter(emp => emp.sector === userProfile.sector).map(emp => emp.name))
+                .concat('Outros');
 
             // Create workbook and main sheet
             const workbook = XLSX.utils.book_new();
@@ -1281,12 +1301,21 @@
                                 throw new Error(`Categoria '${categoryName}' não encontrada na base de dados. Cadastre a categoria primeiro.`);
                             }
 
-                            // Filtra funcionários pelo setor do gestor (se não for admin)
-                            const employeesInSector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => emp.sector === userProfile.sector);
-                            const employee = employeesInSector.find(emp => emp.name?.toLowerCase() === employeeName.toLowerCase());
-
-                            if (!employee) {
-                                throw new Error(`Funcionário '${employeeName}' não encontrado ou não pertence ao seu setor ('${userProfile.sector}').`);
+                            let employeeId; let finalEmployeeName;
+                            if (employeeName.toLowerCase() === 'outros') {
+                                if (!notes.trim()) {
+                                    throw new Error("Funcionário marcado como 'Outros', mas 'Observações' está vazio. Informe o nome completo do funcionário.");
+                                }
+                                employeeId = 'OUTROS';
+                                finalEmployeeName = notes.trim();
+                            } else {
+                                const employeesInSector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => emp.sector === userProfile.sector);
+                                const employee = employeesInSector.find(emp => emp.name?.toLowerCase() === employeeName.toLowerCase());
+                                if (!employee) {
+                                    throw new Error(`Funcionário '${employeeName}' não encontrado ou não pertence ao seu setor ('${userProfile.sector}').`);
+                                }
+                                employeeId = employee.id;
+                                finalEmployeeName = employee.name;
                             }
 
                             const dataToSave = {
@@ -1294,8 +1323,8 @@
                                 eventDate,
                                 categoryId: category.id,
                                 categoryName: category.name,
-                                employeeId: employee.id,
-                                employeeName: employee.name,
+                                employeeId,
+                                employeeName: finalEmployeeName,
                                 notes,
                             };
 
