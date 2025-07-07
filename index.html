@@ -171,7 +171,7 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import {
             getAuth,
             signInWithEmailAndPassword,
@@ -182,7 +182,8 @@
             sendPasswordResetEmail,
             reauthenticateWithCredential, // Importar para reautenticação
             EmailAuthProvider,          // Importar para criar credencial
-            updatePassword              // Importar para atualizar a senha
+            updatePassword,             // Importar para atualizar a senha
+            createUserWithEmailAndPassword
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import {
             getFirestore,
@@ -375,6 +376,16 @@
         // Função de confirmação genérica
         function confirmAction(title, message, onConfirmAsync) {
             openModal(title, `<p>${message}</p>`, onConfirmAsync, 'Confirmar', () => {}, 'Cancelar');
+        }
+
+        // Cria um usuário no Firebase Auth usando uma instância secundária
+        async function createAuthUser(email, password) {
+            const tempApp = initializeApp(firebaseConfig, 'temp-' + Date.now());
+            const tempAuth = getAuth(tempApp);
+            const cred = await createUserWithEmailAndPassword(tempAuth, email, password);
+            await signOut(tempAuth);
+            await deleteApp(tempApp);
+            return cred.user.uid;
         }
 
         // Listener de autenticação do Firebase
@@ -2021,8 +2032,13 @@
                         <button id="btn-back-manage-users" class="px-3 py-2 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar para Gerenciar</button>
                     </div>
                     <form id="user-profile-form" class="space-y-4">
-                        <div><label for="userProfileUid" class="block text-xs font-medium text-gray-600 mb-1">UID do Usuário (do Firebase Auth):</label>
-                             <input type="text" id="userProfileUid" value="${userToEdit?.id || ''}" class="${inputBaseClass} ${isCreating ? '' : 'bg-gray-100 cursor-not-allowed'}" ${isCreating ? '' : 'readonly'} required placeholder="Cole o UID do Firebase Auth aqui"></div>
+                        <div>
+                            <label for="userProfileUid" class="block text-xs font-medium text-gray-600 mb-1">UID do Usuário (do Firebase Auth):</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="userProfileUid" value="${userToEdit?.id || ''}" class="${inputBaseClass} ${isCreating ? '' : 'bg-gray-100 cursor-not-allowed'}" ${isCreating ? '' : 'readonly'} required placeholder="Cole o UID do Firebase Auth aqui">
+                                ${isCreating ? `<button type="button" id="btn-create-auth-user" class="px-3 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">Criar Usuário</button>` : ''}
+                            </div>
+                        </div>
                         <div><label for="userProfileName" class="block text-xs font-medium text-gray-600 mb-1">Nome Completo:</label>
                              <input type="text" id="userProfileName" value="${userToEdit?.name || ''}" class="${inputBaseClass}" required></div>
                         <div><label for="userProfileEmail" class="block text-xs font-medium text-gray-600 mb-1">Email:</label>
@@ -2043,6 +2059,35 @@
                 </div>`;
 
             document.getElementById('btn-back-manage-users').onclick = () => { currentView = 'adminManageUsers'; renderApp(); };
+            if (isCreating) {
+                document.getElementById('btn-create-auth-user').addEventListener('click', () => {
+                    const email = document.getElementById('userProfileEmail').value.trim();
+                    if (!email) {
+                        showNotification('Preencha o email antes de criar o usuário.', 'error');
+                        return;
+                    }
+                    openModal(
+                        'Criar Usuário no Auth',
+                        '<div><label for="newAuthPassword" class="block text-sm font-medium text-gray-600 mb-1">Senha Inicial:</label><input type="password" id="newAuthPassword" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 text-sm" required></div>',
+                        async () => {
+                            const pwd = document.getElementById('newAuthPassword').value;
+                            if (!pwd || pwd.length < 6) {
+                                showNotification('A senha deve ter pelo menos 6 caracteres.', 'error');
+                                throw new Error('Senha inválida');
+                            }
+                            try {
+                                const newUid = await createAuthUser(email, pwd);
+                                document.getElementById('userProfileUid').value = newUid;
+                                showNotification('Usuário criado no Firebase Auth!', 'success');
+                            } catch (err) {
+                                console.error('Erro ao criar usuário Auth:', err);
+                                showNotification('Erro ao criar usuário: ' + err.message, 'error');
+                                throw err;
+                            }
+                        }
+                    );
+                });
+            }
             document.getElementById('user-profile-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const submitButton = e.target.querySelector('button[type="submit"]');
