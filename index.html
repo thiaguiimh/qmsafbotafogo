@@ -235,6 +235,7 @@
         const modalContainer = document.getElementById('modal-container');
         const modalContent = document.getElementById('modal-content');
         const notificationContainer = document.getElementById('notification-container');
+        const deleteUserEndpoint = typeof __delete_user_url !== 'undefined' ? __delete_user_url : null;
 
         let currentUser = null;
         let userProfile = null;
@@ -735,6 +736,41 @@
                         // No explicit renderApp() here as onSnapshot listener takes care of it
                     } else {
                         showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}.`, "error");
+                    }
+                }
+            );
+        }
+
+        // Exclui completamente um usuário (Auth e Firestore)
+        async function deleteUserCompletely(uid) {
+            if (!userProfile?.isAdmin) {
+                showNotification("Acesso negado.", "error");
+                return;
+            }
+            confirmAction(
+                `Excluir Usuário`,
+                `Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.`,
+                async () => {
+                    try {
+                        await deleteDoc(doc(getCollectionRef('users_profile', false), uid));
+                        if (deleteUserEndpoint) {
+                            const token = await currentUser.getIdToken();
+                            const resp = await fetch(deleteUserEndpoint, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({ uid })
+                            });
+                            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        } else {
+                            console.warn('deleteUserEndpoint não configurado');
+                        }
+                        showNotification('Usuário excluído com sucesso!', 'success');
+                    } catch (err) {
+                        console.error('[deleteUserCompletely] Erro ao excluir usuário:', err);
+                        showNotification('Erro ao excluir usuário.', 'error');
                     }
                 }
             );
@@ -2047,8 +2083,9 @@
                             <label class="flex items-center space-x-2 text-sm text-gray-700"><input type="checkbox" id="userProfileIsManager" ${userToEdit?.isManager ? 'checked' : ''} class="${checkboxClass}"><span>É Gestor?</span></label>
                             <label class="flex items-center space-x-2 text-sm text-gray-700"><input type="checkbox" id="userProfileIsAdmin" ${userToEdit?.isAdmin ? 'checked' : ''} class="${checkboxClass}"><span>É Admin?</span></label>
                         </div>
-                        <div class="flex justify-end pt-4">
+                        <div class="flex justify-end pt-4 space-x-2">
                             <button type="submit" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 min-w-[120px] text-center">${isCreating ? 'Criar Perfil' : 'Salvar Alterações'}</button>
+                            ${!isCreating ? `<button type="button" id="btn-delete-user-profile" class="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1">Excluir Usuário</button>` : ''}
                         </div>
                     </form>
                 </div>`;
@@ -2114,6 +2151,12 @@
                     submitButton.innerHTML = originalButtonText;
                 }
             });
+            if (!isCreating) {
+                document.getElementById('btn-delete-user-profile').addEventListener('click', () => {
+                    const uid = document.getElementById('userProfileUid').value.trim();
+                    if (uid) deleteUserCompletely(uid);
+                });
+            }
         }
 
 
@@ -2129,9 +2172,12 @@
                     <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.sector || 'N/A'}</td>
                     <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.isManager ? '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sim</span>' : '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>'}</td>
                     <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.isAdmin ? '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Sim</span>' : '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>'}</td>
-                    <td class="px-5 py-3 text-xs font-medium whitespace-nowrap">
+                    <td class="px-5 py-3 text-xs font-medium whitespace-nowrap space-x-2">
                         <button class="btn-edit-user text-blue-600 hover:text-blue-700 p-1 hover:bg-blue-50 rounded-md" data-id="${user.id}" title="Editar Usuário">
                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button class="btn-delete-user text-red-500 hover:text-red-600 p-1 hover:bg-red-50 rounded-md" data-id="${user.id}" title="Excluir Usuário">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                         </button>
                     </td>
                 </tr>
@@ -2179,6 +2225,10 @@
                 if(userToEdit) {
                     renderAdminCreateUserProfilePage(userToEdit);
                 }
+            }));
+            document.querySelectorAll('.btn-delete-user').forEach(btn => btn.addEventListener('click', (e) => {
+                const userId = e.currentTarget.dataset.id;
+                deleteUserCompletely(userId);
             }));
         }
 
