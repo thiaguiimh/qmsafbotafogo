@@ -948,6 +948,7 @@
 
         // Nova página para redefinição de senha direta
         function renderChangePasswordPage() {
+            const inputBaseClass = "w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
             appContent.innerHTML = `
                 <div class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-4 animate-fadeIn">
                     <div class="w-full max-w-sm bg-white shadow-xl rounded-xl p-8 border border-gray-200">
@@ -982,6 +983,43 @@
                 currentView = 'changePassword';
                 renderApp();
             });
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+            if (newPassword !== confirmNewPassword) {
+                showNotification('As novas senhas não conferem.', 'error');
+                return;
+            }
+            if (newPassword.length < 6) {
+                showNotification('A senha deve ter pelo menos 6 caracteres.', 'error');
+                return;
+            }
+
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalContent = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<span class="flex items-center justify-center"><span class="loader_small_blue mr-2"></span>Processando...</span>`;
+
+            try {
+                const user = auth.currentUser;
+                const credential = EmailAuthProvider.credential(user.email, currentPassword);
+                await reauthenticateWithCredential(user, credential);
+                await updatePassword(user, newPassword);
+                showNotification('Senha atualizada com sucesso!', 'success');
+                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                renderApp();
+            } catch (error) {
+                console.error('Erro ao redefinir senha:', error);
+                showNotification(error.code === 'auth/wrong-password' ? 'Senha atual incorreta.' : `Erro: ${error.message}`, 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalContent;
+            }
         }
 
 
