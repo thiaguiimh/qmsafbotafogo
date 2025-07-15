@@ -279,6 +279,17 @@
             'filter-creation-date-end': 'creationDateEnd'
         };
 
+        // Filtros para a página de Funcionários
+        let employeeFilterState = {
+            searchTerm: '',
+            sector: ''
+        };
+
+        const employeeFilterIdToStateKey = {
+            'emp-filter-search': 'searchTerm',
+            'emp-filter-sector': 'sector'
+        };
+
 
         const showElement = (el) => el.classList.remove('hidden');
         const hideElement = (el) => el.classList.add('hidden');
@@ -1989,9 +2000,44 @@
         function renderAdminManageGenericPage(collectionKey, items, fields, onAdd, onUpdate, onDelete) {
             const cdn = collectionDisplayName(collectionKey);
             const inputBaseClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
+            let itemsToDisplay = items;
+            let filtersHtml = '';
+            if (collectionKey === 'employees') {
+                const filterEmployees = () => {
+                    let data = [...items];
+                    if (employeeFilterState.searchTerm.trim()) {
+                        const term = employeeFilterState.searchTerm.trim().toLowerCase();
+                        data = data.filter(emp => (emp.name || '').toLowerCase().includes(term) || (emp.registration || '').toLowerCase().includes(term));
+                    }
+                    if (employeeFilterState.sector) {
+                        data = data.filter(emp => emp.sector === employeeFilterState.sector);
+                    }
+                    return data;
+                };
+                itemsToDisplay = filterEmployees();
+                filtersHtml = `
+                    <div id="emp-filters-container" class="filter-wrapper mb-6 space-y-3">
+                        <div class="filter-group">
+                            <label for="emp-filter-search" class="filter-label">Buscar:</label>
+                            <input type="text" id="emp-filter-search" class="filter-input" placeholder="Nome ou matrícula" value="${employeeFilterState.searchTerm}">
+                        </div>
+                        <div class="filter-group">
+                            <label for="emp-filter-sector" class="filter-label">Setor:</label>
+                            <select id="emp-filter-sector" class="filter-input">
+                                <option value="">Todos</option>
+                                ${globalData.sectors.map(s => `<option value="${s.name}" ${employeeFilterState.sector === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="emp-btn-apply-filters" class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">Aplicar</button>
+                            <button id="emp-btn-clear-filters" class="px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Limpar</button>
+                        </div>
+                    </div>
+                `;
+            }
 
             const tableHeaders = fields.map(f => `<th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${f.label}</th>`).join('');
-            const tableRows = items.map(item => `
+            const tableRows = itemsToDisplay.map(item => `
                 <tr class="hover:bg-gray-50 transition-colors">
                     ${fields.map(field => `<td class="px-5 py-3 text-xs text-gray-700 whitespace-nowrap">${field.type === 'date' && item[field.name] ? new Date(item[field.name] + 'T00:00:00').toLocaleDateString('pt-BR') : (item[field.name] || '-')}</td>`).join('')}
                     <td class="px-5 py-3 text-xs text-gray-500 whitespace-nowrap">${item.createdAt?.toDate?.().toLocaleDateString('pt-BR') || '-'}</td>
@@ -2018,7 +2064,8 @@
                             </button>
                         </div>
                     </div>
-                    ${items.length === 0 ?
+                    ${filtersHtml}
+                    ${itemsToDisplay.length === 0 ?
                         `<div class="text-center py-10"><p class="text-gray-500 text-sm">Nenhum item em "${cdn.plural}" cadastrado.</p></div>` :
                         `<div class="overflow-x-auto border border-gray-200 rounded-lg">
                             <table class="min-w-full divide-y divide-gray-200">
@@ -2062,6 +2109,17 @@
                         }
                     });
 
+                    if (collectionKey === 'employees') {
+                        const reg = formData.registration?.trim();
+                        if (reg) {
+                            const duplicate = globalData.employees.some(emp => emp.registration === reg && emp.id !== itemToEdit?.id);
+                            if (duplicate) {
+                                showNotification('Já existe um funcionário com esta matrícula.', 'error');
+                                return Promise.reject(new Error('duplicate registration'));
+                            }
+                        }
+                    }
+
                     if (itemToEdit) {
                         await onUpdate(itemToEdit.id, formData);
                     } else {
@@ -2087,6 +2145,23 @@
                 const itemId = e.currentTarget.dataset.id;
                 deleteItemFromFirestore(collectionKey, itemId);
             }));
+
+            if (collectionKey === 'employees') {
+                const container = document.getElementById('emp-filters-container');
+                if (container) {
+                    document.getElementById('emp-btn-apply-filters').addEventListener('click', () => {
+                        container.querySelectorAll('.filter-input').forEach(inp => {
+                            const key = employeeFilterIdToStateKey[inp.id];
+                            if (key) employeeFilterState[key] = inp.value;
+                        });
+                        renderApp();
+                    });
+                    document.getElementById('emp-btn-clear-filters').addEventListener('click', () => {
+                        employeeFilterState = { searchTerm: '', sector: '' };
+                        renderApp();
+                    });
+                }
+            }
         }
 
         // Renderiza a página para criar/editar perfis de usuário
