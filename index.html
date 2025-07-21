@@ -618,6 +618,29 @@
             return new Date() > maxDate;
         }
 
+        function validateRecordWithRules(recordData, sectorName) {
+            for (const rule of globalData.rules) {
+                if (rule.sector && rule.sector.toLowerCase() !== sectorName) {
+                    continue;
+                }
+                if (rule.field === 'eventDate') {
+                    const eventDateObj = new Date(recordData.eventDate + 'T00:00:00');
+                    const dow = eventDateObj.getDay();
+                    if (rule.type === 'notWeekend' && (dow === 0 || dow === 6)) {
+                        const msg = rule.message || rule.description || 'Data do evento não permitida.';
+                        showNotification(msg, 'error');
+                        return msg;
+                    }
+                    if (rule.type === 'weekendOnly' && (dow !== 0 && dow !== 6)) {
+                        const msg = rule.message || rule.description || 'Data do evento não permitida.';
+                        showNotification(msg, 'error');
+                        return msg;
+                    }
+                }
+            }
+            return null;
+        }
+
         // Adiciona um registro de quadro móvel ao Firestore
         async function addRecordToFirestore(recordData) {
             if (!userProfile) {
@@ -640,13 +663,14 @@
             }
 
             const sectorName = (userProfile.sector || '').toLowerCase();
+
+            const ruleError = validateRecordWithRules(recordData, sectorName);
+            if (ruleError) {
+                return { success: false, error: ruleError };
+            }
+
             if (sectorName === 'scout (base)') {
                 const eventDateObj = new Date(recordData.eventDate + 'T00:00:00');
-                const dow = eventDateObj.getDay();
-                if (dow !== 0 && dow !== 6) {
-                    showNotification("No setor Scout (base) apenas eventos de sábado ou domingo são permitidos.", "error");
-                    return { success: false, error: "Evento fora do fim de semana" };
-                }
 
                 const dailyExists = globalData.records.some(r =>
                     r.employeeId === recordData.employeeId &&
@@ -909,7 +933,14 @@
                     renderAdminManageGenericPage('rules', globalData.rules,
                         [
                             { name: 'name', label: 'Título da Regra', type: 'text' },
-                            { name: 'description', label: 'Descrição', type: 'text' }
+                            { name: 'description', label: 'Descrição', type: 'text' },
+                            { name: 'sector', label: 'Setor', type: 'select', options: globalData.sectors.map(s => ({ value: s.name, label: s.name })) },
+                            { name: 'field', label: 'Campo', type: 'select', options: [{ value: 'eventDate', label: 'Data do Evento' }] },
+                            { name: 'type', label: 'Tipo de Validação', type: 'select', options: [
+                                { value: 'notWeekend', label: 'Data não pode ser fim de semana' },
+                                { value: 'weekendOnly', label: 'Somente fim de semana' }
+                            ] },
+                            { name: 'message', label: 'Mensagem de Erro', type: 'text' }
                         ],
                         (data) => addItemToFirestore('rules', data),
                         (id, data) => updateItemInFirestore('rules', id, data),
