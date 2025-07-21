@@ -1517,6 +1517,21 @@
                     }
                     importSummaryP.textContent = `Importação concluída: ${successfulImports} sucesso(s), ${failedImports} falha(s)/ignorados.`;
 
+                    // Modal de confirmação com resumo da importação
+                    let resultHtml = `<p>${successfulImports} registro(s) adicionado(s) com sucesso.</p>`;
+                    if (failedImports > 0) {
+                        const errorsHtml = importErrorMessages
+                            .map(err => `<p class="font-mono break-words">${err}</p>`)
+                            .join('');
+                        resultHtml += `
+                            <p class="mt-4">${failedImports} registro(s) apresentaram problemas:</p>
+                            <div class="max-h-32 overflow-y-auto p-2 bg-gray-100 rounded-md border border-gray-200 mt-2 space-y-1 text-sm text-red-700">
+                                ${errorsHtml}
+                            </div>
+                        `;
+                    }
+                    openModal('Importação Concluída', resultHtml, null, '', () => {}, 'Fechar');
+
                 } catch (generalError) {
                     showNotification("Erro ao processar o arquivo. Verifique o formato.", "error");
                     importSummaryP.textContent = `Erro geral: ${generalError.message}.`;
