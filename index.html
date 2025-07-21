@@ -620,7 +620,7 @@
 
         function validateRecordWithRules(recordData, sectorName) {
             for (const rule of globalData.rules) {
-                if (rule.sector && rule.sector.toLowerCase() !== sectorName) {
+                if (rule.sector && rule.sector !== '*' && rule.sector.toLowerCase() !== sectorName) {
                     continue;
                 }
                 if (rule.field === 'eventDate') {
@@ -635,6 +635,17 @@
                         const msg = rule.message || rule.description || 'Data do evento não permitida.';
                         showNotification(msg, 'error');
                         return msg;
+                    }
+                    if (rule.type === 'min3DaysAhead') {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const minDate = new Date(today);
+                        minDate.setDate(minDate.getDate() + 3);
+                        if (eventDateObj < minDate) {
+                            const msg = rule.message || rule.description || 'Data do evento deve ser pelo menos 3 dias após a inclusão.';
+                            showNotification(msg, 'error');
+                            return msg;
+                        }
                     }
                 }
             }
@@ -934,11 +945,12 @@
                         [
                             { name: 'name', label: 'Título da Regra', type: 'text' },
                             { name: 'description', label: 'Descrição', type: 'text' },
-                            { name: 'sector', label: 'Setor', type: 'select', options: globalData.sectors.map(s => ({ value: s.name, label: s.name })) },
+                            { name: 'sector', label: 'Setor', type: 'select', options: [{ value: '*', label: 'Todos' }, ...globalData.sectors.map(s => ({ value: s.name, label: s.name }))] },
                             { name: 'field', label: 'Campo', type: 'select', options: [{ value: 'eventDate', label: 'Data do Evento' }] },
                             { name: 'type', label: 'Tipo de Validação', type: 'select', options: [
                                 { value: 'notWeekend', label: 'Data não pode ser fim de semana' },
-                                { value: 'weekendOnly', label: 'Somente fim de semana' }
+                                { value: 'weekendOnly', label: 'Somente fim de semana' },
+                                { value: 'min3DaysAhead', label: 'Data mínima de 3 dias após inclusão' }
                             ] },
                             { name: 'message', label: 'Mensagem de Erro', type: 'text' }
                         ],
