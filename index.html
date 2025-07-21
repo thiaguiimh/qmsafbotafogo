@@ -611,6 +611,16 @@
             return result;
         }
 
+        function addCalendarDays(date, days) {
+            const result = new Date(date);
+            result.setDate(result.getDate() + days);
+            return result;
+        }
+
+        function addDaysConsideringWorking(date, days, working) {
+            return working ? addBusinessDays(date, days) : addCalendarDays(date, days);
+        }
+
         function isPastBusinessLimit(eventDateStr, limitDays) {
             const eventDate = new Date(eventDateStr + 'T00:00:00');
             const maxDate = addBusinessDays(eventDate, limitDays);
@@ -643,6 +653,18 @@
                         minDate.setDate(minDate.getDate() + 3);
                         if (eventDateObj < minDate) {
                             const msg = rule.message || rule.description || 'Data do evento deve ser pelo menos 3 dias após a inclusão.';
+                            showNotification(msg, 'error');
+                            return msg;
+                        }
+                    }
+                    if (rule.type === 'maxDaysAhead') {
+                        const days = parseInt(rule.limitDays || '0', 10);
+                        const working = String(rule.workingDays) === 'true';
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const maxDate = addDaysConsideringWorking(today, days, working);
+                        if (eventDateObj > maxDate) {
+                            const msg = rule.message || rule.description || `Data do evento deve ser até ${days} dia(s)${working ? ' útil(eis)' : ''} após a inclusão.`;
                             showNotification(msg, 'error');
                             return msg;
                         }
@@ -950,7 +972,13 @@
                             { name: 'type', label: 'Tipo de Validação', type: 'select', options: [
                                 { value: 'notWeekend', label: 'Data não pode ser fim de semana' },
                                 { value: 'weekendOnly', label: 'Somente fim de semana' },
-                                { value: 'min3DaysAhead', label: 'Data mínima de 3 dias após inclusão' }
+                                { value: 'min3DaysAhead', label: 'Data mínima de 3 dias após inclusão' },
+                                { value: 'maxDaysAhead', label: 'Data máxima após inclusão' }
+                            ] },
+                            { name: 'limitDays', label: 'Dias de Limite', type: 'number' },
+                            { name: 'workingDays', label: 'Considerar Dias Úteis?', type: 'select', options: [
+                                { value: 'true', label: 'Sim' },
+                                { value: 'false', label: 'Não' }
                             ] },
                             { name: 'message', label: 'Mensagem de Erro', type: 'text' }
                         ],
