@@ -598,6 +598,25 @@
             selectedRecordIds.clear(); // Clear selections when data is reset
         }
 
+        // --- Utilidades de Datas ---
+        function addBusinessDays(date, days) {
+            const result = new Date(date);
+            let added = 0;
+            while (added < days) {
+                result.setDate(result.getDate() + 1);
+                const d = result.getDay();
+                if (d !== 0 && d !== 6) added++;
+            }
+            return result;
+        }
+
+        function isPastBusinessLimit(eventDateStr, limitDays) {
+            const eventDate = new Date(eventDateStr + 'T00:00:00');
+            const maxDate = addBusinessDays(eventDate, limitDays);
+            maxDate.setHours(23, 59, 59, 999);
+            return new Date() > maxDate;
+        }
+
         // Adiciona um registro de quadro móvel ao Firestore
         async function addRecordToFirestore(recordData) {
             if (!userProfile) {
@@ -612,6 +631,42 @@
                 showNotification("Setor do gestor não definido no perfil. Não é possível salvar o registro. Contacte o administrador.", "error");
                 console.error("[addRecordToFirestore] Tentativa de salvar registro, mas userProfile.sector é indefinido ou vazio:", userProfile);
                 return Promise.reject(new Error("Setor do gestor não definido"));
+            }
+
+            if (isPastBusinessLimit(recordData.eventDate, 3)) {
+                showNotification("Registros só podem ser lançados até 3 dias úteis após a data do evento.", "error");
+                return { success: false, error: "Fora do prazo" };
+            }
+
+            const sectorName = (userProfile.sector || '').toLowerCase();
+            if (sectorName === 'scout (base)') {
+                const eventDateObj = new Date(recordData.eventDate + 'T00:00:00');
+                const dow = eventDateObj.getDay();
+                if (dow !== 0 && dow !== 6) {
+                    showNotification("No setor Scout (base) apenas eventos de sábado ou domingo são permitidos.", "error");
+                    return { success: false, error: "Evento fora do fim de semana" };
+                }
+
+                const dailyExists = globalData.records.some(r =>
+                    r.employeeId === recordData.employeeId &&
+                    r.eventDate === recordData.eventDate &&
+                    r.sector?.toLowerCase() === sectorName
+                );
+                if (dailyExists) {
+                    showNotification("No Scout (base) cada funcionário só pode registrar um QM por dia.", "error");
+                    return { success: false, error: "Limite diário" };
+                }
+
+                const monthKey = `${eventDateObj.getFullYear()}-${String(eventDateObj.getMonth()+1).padStart(2,'0')}`;
+                const monthlyCount = globalData.records.filter(r =>
+                    r.employeeId === recordData.employeeId &&
+                    r.sector?.toLowerCase() === sectorName &&
+                    r.eventDate && r.eventDate.startsWith(monthKey)
+                ).length;
+                if (monthlyCount >= 8) {
+                    showNotification("Limite de 8 QMs mensais por funcionário atingido para este setor.", "error");
+                    return { success: false, error: "Limite mensal" };
+                }
             }
 
             try {
