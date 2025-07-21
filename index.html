@@ -241,7 +241,7 @@
         let userProfile = null;
         let currentView = 'login';
         let globalData = {
-            categories: [], sectors: [], employees: [], records: [], allUsers: []
+            categories: [], sectors: [], employees: [], rules: [], records: [], allUsers: []
         };
         let unsubscribers = [];
         let currentFilteredRecordsForExport = [];
@@ -580,6 +580,7 @@
                 fetchDataWithListener('categories', 'categories');
                 fetchDataWithListener('sectors', 'sectors');
                 fetchDataWithListener('employees', 'employees');
+                fetchDataWithListener('rules', 'rules');
                 // Registros não são públicos, então o isPublic é false e a coleção é direta.
                 fetchDataWithListener('records', 'records', [], false, getCollectionRef('records', false));
 
@@ -594,7 +595,7 @@
         function clearAllDataAndUnsubscribe() {
             unsubscribers.forEach(unsub => unsub());
             unsubscribers = [];
-            globalData = { categories: [], sectors: [], employees: [], records: [], allUsers: [] };
+            globalData = { categories: [], sectors: [], employees: [], rules: [], records: [], allUsers: [] };
             selectedRecordIds.clear(); // Clear selections when data is reset
         }
 
@@ -848,6 +849,7 @@
                 categories: { singular: "Categoria", plural: "Categorias" },
                 sectors: { singular: "Setor", plural: "Setores" },
                 employees: { singular: "Funcionário", plural: "Funcionários" },
+                rules: { singular: "Regra", plural: "Regras" },
                 users_profile: { singular: "Perfil de Usuário", plural: "Perfis de Usuários" },
                 records: { singular: "Registro", plural: "Registros" }
             };
@@ -902,6 +904,16 @@
                         (data) => addItemToFirestore('employees', data),
                         (id, data) => updateItemInFirestore('employees', id, data),
                         (id) => deleteItemFromFirestore('employees', id)
+                    ); break;
+                case 'adminManageRules':
+                    renderAdminManageGenericPage('rules', globalData.rules,
+                        [
+                            { name: 'name', label: 'Título da Regra', type: 'text' },
+                            { name: 'description', label: 'Descrição', type: 'text' }
+                        ],
+                        (data) => addItemToFirestore('rules', data),
+                        (id, data) => updateItemInFirestore('rules', id, data),
+                        (id) => deleteItemFromFirestore('rules', id)
                     ); break;
                 case 'adminManageUsers': renderAdminManageUsersPage(); break;
                 case 'adminCreateUserProfile': renderAdminCreateUserProfilePage(); break;
@@ -2050,6 +2062,9 @@
                             <button id="admin-manage-employees" class="${adminButtonBaseClass}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                                 <span class="text-xs font-medium">Gerenciar Funcionários</span></button>
+                            <button id="admin-manage-rules" class="${adminButtonBaseClass}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                                <span class="text-xs font-medium">Gerenciar Regras</span></button>
                             <button id="admin-manage-users" class="${adminButtonBaseClass}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="${iconBaseClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                                 <span class="text-xs font-medium">Gerenciar Perfis de Usuários</span></button>
@@ -2063,6 +2078,7 @@
             document.getElementById('admin-manage-categories').onclick = () => { currentView = 'adminManageCategories'; renderApp(); };
             document.getElementById('admin-manage-sectors').onclick = () => { currentView = 'adminManageSectors'; renderApp(); };
             document.getElementById('admin-manage-employees').onclick = () => { currentView = 'adminManageEmployees'; renderApp(); };
+            document.getElementById('admin-manage-rules').onclick = () => { currentView = 'adminManageRules'; renderApp(); };
             document.getElementById('admin-manage-users').onclick = () => { currentView = 'adminManageUsers'; renderApp(); };
         }
 
