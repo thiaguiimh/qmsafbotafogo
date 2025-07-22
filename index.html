@@ -1305,14 +1305,10 @@
                             `<p>Já existe um registro para a data "${new Date(newRecordData.eventDate + 'T00:00:00').toLocaleDateString('pt-BR')}" e o funcionário "${newRecordData.employeeName}".</p><p>Deseja adicionar mesmo assim?</p>`,
                             async () => {
                                 try {
-                                    const result = await addRecordToFirestore(newRecordData);
-                                    if (result.success) {
-                                        showNotification("Registro adicionado com sucesso (duplicado aceito)!", "success");
-                                        currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
-                                        renderApp();
-                                    } else {
-                                        showNotification(result.error || "Falha ao adicionar registro.", "error");
-                                    }
+                                    await addRecordToFirestore(newRecordData);
+                                    showNotification("Registro adicionado com sucesso (duplicado aceito)!", "success");
+                                    currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                                    renderApp();
                                 } catch (error) {
                                     console.error("Falha ao adicionar registro duplicado:", error);
                                     showNotification("Falha ao adicionar registro. Verifique o console.", "error");
@@ -1320,6 +1316,8 @@
                                     resolve();
                                 }
                             },
+                            'Sim, Adicionar',
+                            () => {
                                 showNotification("Adição de registro cancelada.", "info");
                                 resolve();
                             },
@@ -1328,21 +1326,17 @@
                     });
                 } else {
                     try {
-                        const result = await addRecordToFirestore(newRecordData);
-                        if (result.success) {
-                            showNotification("Registro adicionado com sucesso!", "success");
-                            currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
-                            renderApp();
-                        } else {
-                            showNotification(result.error || "Falha ao adicionar registro.", "error");
-                        }
+                        await addRecordToFirestore(newRecordData);
+                        showNotification("Registro adicionado com sucesso!", "success");
+                        currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                        renderApp();
                     } catch (error) {
                         console.error("Falha ao submeter formulário de novo registro:", error);
                         showNotification("Falha ao adicionar registro. Verifique o console para detalhes.", "error");
                     }
                 }
 
-submitButton.disabled = false;
+                submitButton.disabled = false;
                 submitButton.innerHTML = originalButtonContent;
             });
         }
