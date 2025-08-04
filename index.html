@@ -159,15 +159,15 @@
         </main>
 
         <footer id="app-footer" class="text-center p-5 border-t border-gray-200 text-gray-500 text-xs hidden">
-            </footer>
+        </footer>
 
         <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4 hidden animate-fadeIn">
             <div id="modal-content" class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
-                </div>
+            </div>
         </div>
 
         <div id="notification-container" class="fixed top-6 right-6 z-[100] space-y-3 w-full max-w-sm sm:max-w-md">
-            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -522,70 +522,62 @@
         }
 
         // Função para buscar dados do Firestore com listener em tempo real
-        
         async function fetchDataWithListener(collectionName, dataKey, queryConstraints = [], isPublic = true, targetCollectionRef = null) {
-            if (!userProfile) return;
+            if (!currentUser || !userProfile) return;
 
             const collRef = targetCollectionRef || getCollectionRef(collectionName, isPublic);
             let qConstraints = [...queryConstraints];
-            let managerSectors = [];
 
-            // Filtra records e employees pelo setor do gestor, se não for admin
+            // Filtra dados para gestores que não são administradores.
             if (userProfile.isManager && !userProfile.isAdmin) {
-                managerSectors = (userProfile.sectors && userProfile.sectors.length ? userProfile.sectors : userProfile.sector ? [userProfile.sector] : []);
+                const managerSectors = (userProfile.sectors && userProfile.sectors.length > 0)
+                    ? userProfile.sectors
+                    : (userProfile.sector ? [userProfile.sector] : []);
+
                 if (dataKey === 'records') {
-                    qConstraints.push(where("managerId", "==", currentUser.uid)); // Adicionando filtro por managerId para gestores
-                    // Evita usar where "in" para múltiplos setores, que gerava falha ao carregar os registros
-                    if (managerSectors.length === 1) {
-                        qConstraints.push(where("sector", "==", managerSectors[0]));
+                    qConstraints.push(where("managerId", "==", currentUser.uid));
+                    // Usa 'in' para filtrar por um ou mais setores. É mais limpo e eficiente.
+                    if (managerSectors.length > 0) {
+                        qConstraints.push(where("sector", "in", managerSectors));
+                    } else {
+                        // Adverte se um gestor não tem setores, pois a consulta pode falhar dependendo das regras de segurança.
+                        console.warn(`[fetchDataWithListener] O gestor ${currentUser.uid} não tem setores atribuídos. A consulta de registros pode falhar.`);
                     }
                 }
-                if (dataKey === 'employees') {
+                if (dataKey === 'employees' && managerSectors.length > 0) {
                     qConstraints.push(where("sector", "in", managerSectors));
                 }
             }
 
-            let q = query(collRef, ...qConstraints);
+            const q = query(collRef, ...qConstraints);
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin && managerSectors.length > 1) {
-                    // Quando o gestor possui múltiplos setores, filtramos em memória para evitar problemas de consulta
-                    items = items.filter(item => managerSectors.includes(item.sector));
-                }
                 if (dataKey === 'records') {
-                    // Ordena registros pela data de criação em ordem decrescente
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
                 }
                 globalData[dataKey] = items;
-                // Clear selected IDs for any records that might have been deleted,
-                // or if the data itself changed significantly after the snapshot.
+
                 selectedRecordIds.forEach(id => {
                     if (!items.some(item => item.id === id)) {
                         selectedRecordIds.delete(id);
                     }
                 });
-                updateSelectedCountUI(); // Update UI after globalData is updated and selections potentially adjusted.
+                updateSelectedCountUI();
 
-                // Re-render only if the current view depends on this specific data
                 if (document.getElementById('app-content')) {
-                    // Call applyFilters to ensure the displayed records match the current filter state
-                    // This is crucial because globalData.records has just been updated
-                    if (currentView === 'history') { // Only apply filters if we are on the history page
+                    if (currentView === 'history') {
                         applyFilters();
-                    } else if (currentView === 'importRecords' || currentView === 'changePassword') {
-                        renderApp(); // Rerender for these pages if data changes
+                    } else if (['adminManageCategories', 'adminManageSectors', 'adminManageEmployees', 'adminManageRules', 'adminManageUsers', 'importRecords', 'changePassword'].includes(currentView)) {
+                        renderApp();
                     }
-                    // For adminManage views, they already explicitly call renderApp when their specific data changes
                 }
             }, (error) => {
-                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, qConstraints, "Objeto do Erro Firebase:", error);
+                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}.`, error);
                 showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}. Verifique suas permissões ou tente novamente.`, "error", 5000);
-                // NOT calling loadAllData() here to avoid potential loops if security rules are the issue.
             });
             unsubscribers.push(unsubscribe);
         }
-
 
         // Carrega todos os dados iniciais
         function loadAllData() {
@@ -769,13 +761,9 @@
                 };
                 console.log("[addRecordToFirestore] Dados para salvar:", dataToSave);
                 await addDoc(recordsCollectionRef, dataToSave);
-                // showNotification("Registro adicionado com sucesso!", "success"); // Notificação movida para handleFileUpload
-                // currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard'; // Renderização movida para handleFileUpload
-                // renderApp(); // Renderização movida para handleFileUpload
                 return { success: true };
             } catch (error) {
                 console.error("[addRecordToFirestore] Erro ao adicionar registro:", error);
-                // showNotification("Falha ao adicionar registro. Verifique o console para detalhes.", "error"); // Notificação movida para handleFileUpload
                 return { success: false, error: error.message };
             }
         }
@@ -886,9 +874,6 @@
                     const result = await _performDirectDelete(collectionNameKey, id, isPublic, targetCollectionRef);
                     if (result.success) {
                         showNotification(`${collectionDisplayName(collectionNameKey).singular} excluído com sucesso!`, "success");
-                        // This will trigger onSnapshot and then renderApp, which will handle selectedRecordIds
-                        // selectedRecordIds.delete(id); // Removed, as onSnapshot update handles it
-                        // No explicit renderApp() here as onSnapshot listener takes care of it
                     } else {
                         showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}.`, "error");
                     }
@@ -1160,7 +1145,7 @@
 
             document.getElementById('change-password-form').addEventListener('submit', handleChangePassword);
             document.getElementById('back-to-dashboard-change-password').addEventListener('click', () => {
-                currentView = 'changePassword';
+                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
                 renderApp();
             });
         }
@@ -1416,9 +1401,6 @@
             // Create lists sheet with only employee names
             const wsLists = XLSX.utils.aoa_to_sheet([["Funcionários"], ...employeesForLists.map(name => [name])]); // Column A: Employee names
 
-            // No data validations or dropdowns are added to the main sheet.
-            // This ensures the main sheet is clean as requested.
-
             // Add sheets to workbook
             XLSX.utils.book_append_sheet(workbook, ws, mainSheetName);
             XLSX.utils.book_append_sheet(workbook, wsLists, listsSheetName);
@@ -1447,11 +1429,11 @@
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-xl font-semibold text-gray-800">Importar Registros de Quadro Móvel (Planilha)</h2>
                         <div class="flex items-center space-x-2">
-                               <button id="btn-download-template" class="px-2 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 = 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                Baixar Modelo (Planilha)
-                             </button>
-                               <button id="btn-back-dashboard-import" class="px-2 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar</button>
+                                <button id="btn-download-template" class="px-2 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center">
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 = 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                 Baixar Modelo (Planilha)
+                               </button>
+                                <button id="btn-back-dashboard-import" class="px-2 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar</button>
                         </div>
                     </div>
                     <p class="text-gray-600 text-sm mb-4">
@@ -1504,7 +1486,6 @@
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
 
-                    // Read all rows to get headers from the first row.
                     const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                     const headers = allRows[0].map(h => String(h).trim());
 
@@ -1520,18 +1501,11 @@
                         return;
                     }
 
-                    // Start parsing data from the 2nd row (index 1) of the Excel sheet,
-                    // and use `raw: false` to attempt to convert dates to strings.
-                    // header: 1 means the 1st row (index 0) contains headers.
-                    // range: 1 means start reading data from the 2nd row (index 1).
                     const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 1, raw: false });
 
-                    // Manually map `recordsRaw` to objects using the `headers` from Excel row 1.
                     const recordsToProcess = recordsRaw.map(row => {
                         const newRecord = {};
                         headers.forEach((header, index) => {
-                            // Ensure value is converted to string before trimming,
-                            // handling potential undefined/null values robustly.
                             newRecord[header.trim()] = (row[index] !== undefined && row[index] !== null) ? String(row[index]).trim() : '';
                         });
                         return newRecord;
@@ -1544,11 +1518,10 @@
 
                     // Step 1: Pre-validation and identification of duplicates
                     for (const record of recordsToProcess) {
-                        // rowNum needs to account for skipped header (1) + current row index (0-based) + 1
                         const rowNum = recordsToProcess.indexOf(record) + 2;
                         try {
                             const eventName = record["Nome do Evento"];
-                            const eventDateRaw = record["Data do Evento"]; // This is now already a string thanks to raw:false and String() conversion
+                            const eventDateRaw = record["Data do Evento"]; 
                             const ageCategory = isBaseExclusive ? record["Categoria"] : '';
                             const categoryName = record["Classificação"];
                             const employeeName = record["Funcionário"];
@@ -1565,9 +1538,7 @@
                                 }
                             }
 
-                            // Validação e formatação da data do evento
                             let eventDate;
-                            // Check if eventDateRaw is a number (Excel serial date) and convert it
                             if (typeof eventDateRaw === 'number') {
                                 const dateObj = XLSX.SSF.parse_date_code(eventDateRaw);
                                 eventDate = `${dateObj.y}-${String(dateObj.m).padStart(2, '0')}-${String(dateObj.d).padStart(2, '0')}`;
@@ -1578,7 +1549,7 @@
                                 eventDate = `${parts[2]}-${String(parts[0]).padStart(2, '0')}-${String(parts[1]).padStart(2, '0')}`; // Assuming M/D/YYYY
                             } else if (eventDateRaw.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) { // M/D/YY or MM/DD/YY
                                 const parts = eventDateRaw.split('/');
-                                const year = parseInt(parts[2], 10) + 2000; // Assuming 2000+ for 2-digit years
+                                const year = parseInt(parts[2], 10) + 2000;
                                 eventDate = `${year}-${String(parts[0]).padStart(2, '0')}-${String(parts[1]).padStart(2, '0')}`; // Assuming M/D/YY
                             } else if (eventDateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)) { // DD/MM/YYYY
                                 const parts = eventDateRaw.split('/');
@@ -1622,7 +1593,6 @@
                                 notes,
                             };
 
-                            // Check for duplicates in existing records
                             const isDuplicate = globalData.records.some(existingRecord =>
                                 existingRecord.eventDate === dataToSave.eventDate &&
                                 existingRecord.employeeId === dataToSave.employeeId
@@ -1696,14 +1666,12 @@
                             }
                         }
                     } else {
-                        // If not proceeding with duplicates, add them to failed imports for reporting
                         failedImports += duplicateRecords.length;
                         duplicateRecords.forEach(d => {
                             importErrorMessages.push(`Linha ${d.rowNum}: Registro duplicado ignorado por escolha do usuário.`);
                         });
                     }
 
-                    // Final Status Update
                     if (successfulImports > 0) {
                         showNotification(`Importação concluída. ${successfulImports} registro(s) adicionado(s) com sucesso!`, "success");
                         importStatusDiv.classList.add('bg-green-50');
@@ -1715,7 +1683,6 @@
                     }
                     importSummaryP.textContent = `Importação concluída: ${successfulImports} sucesso(s), ${failedImports} falha(s)/ignorados.`;
 
-                    // Modal de confirmação com resumo da importação
                     let resultHtml = `<p>${successfulImports} registro(s) adicionado(s) com sucesso.</p>`;
                     if (failedImports > 0) {
                         const errorsHtml = importErrorMessages
@@ -1736,14 +1703,14 @@
                     importStatusDiv.classList.add('bg-red-50');
                     console.error("Erro geral no processamento do arquivo:", generalError);
                 } finally {
-                    event.target.value = ''; // Limpa o input file para permitir re-upload do mesmo arquivo
+                    event.target.value = '';
                 }
             };
 
             if (file.name.endsWith('.csv')) {
-                reader.readAsText(file); // For CSV, read as text
+                reader.readAsText(file);
             } else {
-                reader.readAsArrayBuffer(file); // For XLSX/XLS, read as array buffer
+                reader.readAsArrayBuffer(file);
             }
         }
 
@@ -1751,7 +1718,6 @@
         // Renderiza o histórico de registros
         function renderRecordHistory() {
 
-            // Generates the table HTML based on the provided data
             const generateTableHtml = (data) => {
                 currentFilteredRecordsForExport = [...data];
                 const tableRows = data.map(record => `
@@ -1767,7 +1733,6 @@
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.sector}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.managerName}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-500 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
-                        <!-- Coluna de Ação visível se o usuário for gestor do setor do registro ou admin -->
                         ${(userProfile.isManager && (userProfile.sectors || [userProfile.sector]).includes(record.sector) && !userProfile.isAdmin && record.managerId === currentUser.uid) || userProfile.isAdmin ?
                             `<td class="px-4 py-2 text-[11px] text-center">
                                 <button class="btn-delete-record text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md" data-id="${record.id}" title="Excluir Registro">
@@ -1810,7 +1775,6 @@
                     </div>`;
             };
 
-            // Helper to get records based on the current filters
             const getFilteredRecords = () => {
                 let data = [...globalData.records];
                 const term = filterState.searchTerm.trim().toLowerCase();
@@ -1980,14 +1944,13 @@
                 </div>
             `;
 
-            // Function to update the count of selected records and enable/disable the delete button
             updateSelectedCountUI = () => {
                 const count = selectedRecordIds.size;
                 const bulkActionsContainer = document.getElementById('bulk-actions-container');
                 const selectedRecordsCountSpan = document.getElementById('selected-records-count');
                 const deleteSelectedBtn = document.getElementById('btn-delete-selected-records');
 
-                if (bulkActionsContainer && selectedRecordsCountSpan && deleteSelectedBtn) { // Ensure elements exist
+                if (bulkActionsContainer && selectedRecordsCountSpan && deleteSelectedBtn) {
                     if (count > 0) {
                         showElement(bulkActionsContainer);
                         selectedRecordsCountSpan.textContent = `${count} registro(s) selecionado(s)`;
@@ -1999,8 +1962,6 @@
                     }
                 }
 
-
-                // Update "Select All" checkbox state
                 const selectAllCheckbox = document.getElementById('select-all-records-checkbox');
                 if (selectAllCheckbox) {
                     const visibleRecordCheckboxes = document.querySelectorAll('.record-checkbox');
@@ -2010,7 +1971,6 @@
                 }
             };
 
-            // Function to handle the "Select All" checkbox toggle
             const toggleSelectAllCheckboxes = (event) => {
                 const isChecked = event.target.checked;
                 document.querySelectorAll('.record-checkbox').forEach(checkbox => {
@@ -2025,7 +1985,6 @@
                 updateSelectedCountUI();
             };
 
-            // Function to handle individual checkbox changes
             const handleIndividualCheckboxChange = (event) => {
                 const recordId = event.target.dataset.id;
                 if (event.target.checked) {
@@ -2036,7 +1995,6 @@
                 updateSelectedCountUI();
             };
 
-            // Function to delete selected records
             const deleteSelectedRecords = async () => {
                 if (selectedRecordIds.size === 0) {
                     showNotification("Nenhum registro selecionado para exclusão.", "info");
@@ -2055,9 +2013,8 @@
                     async () => {
                         let successfulDeletions = 0;
                         let failedDeletions = 0;
-                        const idsActuallyDeleted = new Set(); // Track successfully deleted IDs
+                        const idsActuallyDeleted = new Set();
 
-                        // Perform deletions sequentially to await each promise
                         for (const recordDetail of recordsToDeleteDetails) {
                             const result = await _performDirectDelete('records', recordDetail.id, false, getCollectionRef('records', false));
                             if (result.success) {
@@ -2068,19 +2025,15 @@
                                 console.error(`Falha ao excluir registro ${recordDetail.id}:`, result.error);
                             }
                         }
-
-                        // Clear the selected IDs from the global set based on which ones were actually deleted
-                        // This ensures that if a deletion failed, its checkbox state can be re-evaluated
+                        
                         selectedRecordIds.forEach(id => {
                             if (idsActuallyDeleted.has(id)) {
                                 selectedRecordIds.delete(id);
                             }
                         });
-                        // Alternatively, we could just clear all selectedRecordIds and let renderApp rebuild the set.
-                        // selectedRecordIds.clear(); // If you want to clear all selections regardless of success/failure for the bulk operation.
 
                         showNotification(`Exclusão concluída: ${successfulDeletions} sucesso(s), ${failedDeletions} falha(s).`, successfulDeletions > 0 ? 'success' : (failedDeletions > 0 ? 'error' : 'info'));
-                        renderApp(); // Re-render to update the table
+                        renderApp();
                     },
                     'Excluir',
                     () => { /* Cancel action */ },
@@ -2088,19 +2041,16 @@
                 );
             };
 
-            // Event Listeners for Filter Buttons (Delegated to filters-container)
             const filtersContainer = document.getElementById('filters-container');
             if (filtersContainer) {
                 document.getElementById('btn-apply-filters').addEventListener('click', applyFilters);
                 document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);
 
-                // Add input listeners to update filterState immediately
                 filtersContainer.querySelectorAll('.filter-input').forEach(input => {
                     input.addEventListener('input', (event) => {
                         const key = filterIdToStateKey[event.target.id];
                         if (key) {
                             filterState[key] = event.target.value;
-                            // For select and date inputs, apply filters immediately on change
                             if (event.target.tagName === 'SELECT' || event.target.type === 'date') {
                                 applyFilters();
                             }
@@ -2111,7 +2061,6 @@
                 console.error("Filters container not found!");
             }
 
-            // Delegated event listeners for checkboxes (since rows are dynamically rendered)
             const recordHistoryTableContainer = document.getElementById('record-history-table-container');
             if (recordHistoryTableContainer) {
                 recordHistoryTableContainer.addEventListener('change', (event) => {
@@ -2123,16 +2072,10 @@
                 });
 
                 recordHistoryTableContainer.addEventListener('click', (event) => {
-                    if (event.target.classList.contains('btn-delete-record')) {
-                        const recordId = event.target.dataset.id;
-                        confirmAction(
-                            `Confirmar Exclusão`,
-                            `Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.`,
-                            async () => {
-                                await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false), true);
-                                // The onSnapshot listener will trigger renderApp and update UI
-                            }
-                        );
+                    const deleteButton = event.target.closest('.btn-delete-record');
+                    if (deleteButton) {
+                        const recordId = deleteButton.dataset.id;
+                        deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false));
                     }
                 });
             } else {
@@ -2149,7 +2092,6 @@
             document.getElementById('btn-export-csv').addEventListener('click', () => exportToCSV(currentFilteredRecordsForExport));
             document.getElementById('btn-export-xlsx').addEventListener('click', () => exportToXLSX(currentFilteredRecordsForExport));
 
-            // Initial UI update for selected count
             updateSelectedCountUI();
         }
 
@@ -2472,24 +2414,33 @@
                 };
 
                 if (profileData.isManager && profileData.sectors.length > 1) {
-                    const proceed = confirm('Este gestor está sendo atribuído a múltiplos setores. Deseja prosseguir?');
-                    if (!proceed) {
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = originalButtonText;
-                        return;
-                    }
+                    await new Promise(resolve => {
+                        openModal(
+                            'Múltiplos Setores',
+                            '<p>Este gestor está sendo atribuído a múltiplos setores. Deseja prosseguir?</p>',
+                            () => resolve(true), 'Sim, Prosseguir',
+                            () => resolve(false), 'Não, Cancelar'
+                        );
+                    }).then(proceed => {
+                        if (!proceed) {
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = originalButtonText;
+                            throw new Error("Operação cancelada pelo usuário.");
+                        }
+                    });
                 }
 
                 try {
                     const userDocRef = doc(getCollectionRef('users_profile', false), uid);
-                    // setDoc com { merge: true } para atualizar ou criar se não existir
                     await setDoc(userDocRef, profileData, { merge: !isCreating });
                     showNotification(`Perfil de usuário ${isCreating ? 'criado' : 'atualizado'} com sucesso!`, "success");
                     currentView = 'adminManageUsers';
                     renderApp();
                 } catch (error) {
-                    showNotification(`Erro ao ${isCreating ? 'criar' : 'atualizar'} perfil. Detalhes no console.`, "error");
-                    console.error(`Erro ao salvar perfil de usuário ${uid}:`, error);
+                    if (error.message !== "Operação cancelada pelo usuário.") {
+                       showNotification(`Erro ao ${isCreating ? 'criar' : 'atualizar'} perfil. Detalhes no console.`, "error");
+                       console.error(`Erro ao salvar perfil de usuário ${uid}:`, error);
+                    }
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalButtonText;
                 }
@@ -2582,7 +2533,7 @@
                 showNotification("Nenhum dado para exportar.", "info"); return;
             }
             const headers = ["Data Criação", "Evento", "Data Evento", "Classificação", "Categoria", "Funcionário", "Setor", "Gestor Lançador", "Observações"];
-            let csvContent = headers.join(",") + "\\n";
+            let csvContent = headers.join(",") + "\n";
 
             records.forEach(record => {
                 const row = [
@@ -2596,7 +2547,7 @@
                     `"${(record.managerName || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.notes || '-').replace(/"/g, '""')}"`
                 ];
-                csvContent += row.join(",") + "\\n";
+                csvContent += row.join(",") + "\n";
             });
 
             const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
