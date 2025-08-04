@@ -632,6 +632,14 @@
             return new Date() > maxDate;
         }
 
+        function isManagerBaseExclusive() {
+            if (!userProfile || userProfile.isAdmin) return false;
+            const sectors = (userProfile.sectors && userProfile.sectors.length)
+                ? userProfile.sectors
+                : (userProfile.sector ? [userProfile.sector] : []);
+            return sectors.length === 1 && ['Scout (base)', 'Base'].includes(sectors[0]);
+        }
+
         function validateRecordWithRules(recordData, sectorName) {
             for (const rule of globalData.rules) {
                 if (rule.sector && rule.sector !== '*' && rule.sector.toLowerCase() !== sectorName) {
@@ -1221,6 +1229,8 @@
             const employeesFilteredBySector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => managerSectors.includes(emp.sector));
             const employeesOptions = employeesFilteredBySector.map(emp => `<option value="${emp.id}">${emp.name} (${emp.registration}) - ${emp.sector}</option>`).join('') + '<option value="OUTROS">Outros</option>';
             const inputBaseClass = "w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
+            const isBaseExclusive = isManagerBaseExclusive();
+            const baseCategoriesOptions = ['Sub 09','Sub 11','Sub 13','Sub 15','Sub 17','Sub 19','Sub 20','Sub 23'].map(cat => `<option value="${cat}">${cat}</option>`).join('');
 
             appContent.innerHTML = `
                 <div class="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 animate-fadeIn">
@@ -1234,6 +1244,11 @@
                             <label for="eventDate" class="block text-xs font-medium text-gray-600 mb-1">Data do Evento:</label>
                             <input type="date" id="eventDate" required class="${inputBaseClass}">
                         </div>
+                        ${isBaseExclusive ? `
+                        <div>
+                            <label for="ageCategory" class="block text-xs font-medium text-gray-600 mb-1">Categoria:</label>
+                            <select id="ageCategory" required class="${inputBaseClass}"><option value="">Selecione a Categoria</option>${baseCategoriesOptions}</select>
+                        </div>` : ''}
                         <div>
                             <label for="category" class="block text-xs font-medium text-gray-600 mb-1">Classificação (Quadro Móvel):</label>
                             <select id="category" required class="${inputBaseClass}">${categoriesOptions ? `<option value="">Selecione a Classificação</option>${categoriesOptions}` : `<option value="">Nenhuma categoria cadastrada</option>`}</select>
@@ -1272,6 +1287,7 @@
                 const categoryId = document.getElementById('category').value;
                 const employeeId = document.getElementById('employee').value;
                 const notes = document.getElementById('notes').value;
+                const ageCategory = isBaseExclusive ? document.getElementById('ageCategory').value : '';
 
                 if (employeeId === 'OUTROS' && !notes.trim()) {
                     openModal(
@@ -1287,8 +1303,8 @@
                     return;
                 }
 
-                if (!eventName || !eventDate || !categoryId || !employeeId) {
-                    showNotification("Nome do Evento, Data do Evento, Categoria e Funcionário são obrigatórios.", "error");
+                if (!eventName || !eventDate || !categoryId || !employeeId || (isBaseExclusive && !ageCategory)) {
+                    showNotification("Nome do Evento, Data do Evento, Classificação, Funcionário e Categoria são obrigatórios.", "error");
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalButtonContent;
                     return;
@@ -1301,6 +1317,7 @@
                 const newRecordData = {
                     eventName,
                     eventDate,
+                    ageCategory: isBaseExclusive ? ageCategory : '',
                     categoryId, categoryName: globalData.categories.find(cat => cat.id === categoryId)?.name,
                     employeeId,
                     employeeName,
@@ -1368,7 +1385,10 @@
                 return;
             }
 
-            const headers = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
+            const isBaseExclusive = isManagerBaseExclusive();
+            const headers = ["Nome do Evento", "Data do Evento"];
+            if (isBaseExclusive) headers.push("Categoria");
+            headers.push("Classificação", "Funcionário", "Observações");
             const mainSheetName = "Registros";
             const listsSheetName = "Listas"; // Name for the lists sheet
 
@@ -1411,6 +1431,7 @@
 
         // Nova função para importar registros via planilha
         function renderImportRecordsPage() {
+            const isBaseExclusive = isManagerBaseExclusive();
             appContent.innerHTML = `
                 <div class="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 animate-fadeIn">
                     <div class="flex justify-between items-center mb-6">
@@ -1427,6 +1448,7 @@
                         Faça o upload de uma planilha Excel (.xlsx, .xls) ou CSV. As colunas esperadas são:
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Nome do Evento</code>,
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Data do Evento</code> (formato AAAA-MM-DD ou DD/MM/AAAA),
+                        ${isBaseExclusive ? '<code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Categoria</code>,' : ''}
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Classificação</code> (Nome da Categoria),
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Funcionário</code> (Nome do Funcionário),
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Observações</code> (Opcional).
@@ -1458,6 +1480,7 @@
             const importStatusDiv = document.getElementById('import-status');
             const importSummaryP = document.getElementById('import-summary');
             const importErrorsDiv = document.getElementById('import-errors');
+            const isBaseExclusive = isManagerBaseExclusive();
             showElement(importStatusDiv);
             importSummaryP.innerHTML = 'Processando... <span class="loader_small_blue ml-2 inline-block align-middle"></span>';
             importErrorsDiv.innerHTML = '';
@@ -1475,7 +1498,9 @@
                     const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                     const headers = allRows[0].map(h => String(h).trim());
 
-                    const expectedHeaders = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
+                    const expectedHeaders = ["Nome do Evento", "Data do Evento"];
+                    if (isBaseExclusive) expectedHeaders.push("Categoria");
+                    expectedHeaders.push("Classificação", "Funcionário", "Observações");
                     const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
 
                     if (missingHeaders.length > 0) {
@@ -1514,12 +1539,20 @@
                         try {
                             const eventName = record["Nome do Evento"];
                             const eventDateRaw = record["Data do Evento"]; // This is now already a string thanks to raw:false and String() conversion
+                            const ageCategory = isBaseExclusive ? record["Categoria"] : '';
                             const categoryName = record["Classificação"];
                             const employeeName = record["Funcionário"];
                             const notes = record["Observações"] || '';
 
-                            if (!eventName || !eventDateRaw || !categoryName || !employeeName) {
-                                throw new Error("Campos obrigatórios (Nome do Evento, Data do Evento, Classificação, Funcionário) não podem estar vazios.");
+                            if (!eventName || !eventDateRaw || !categoryName || !employeeName || (isBaseExclusive && !ageCategory)) {
+                                throw new Error("Campos obrigatórios (Nome do Evento, Data do Evento, Categoria, Classificação, Funcionário) não podem estar vazios.");
+                            }
+
+                            if (isBaseExclusive) {
+                                const validCats = ['Sub 09','Sub 11','Sub 13','Sub 15','Sub 17','Sub 19','Sub 20','Sub 23'];
+                                if (!validCats.includes(ageCategory)) {
+                                    throw new Error(`Categoria '${ageCategory}' inválida.`);
+                                }
                             }
 
                             // Validação e formatação da data do evento
@@ -1571,6 +1604,7 @@
                             const dataToSave = {
                                 eventName,
                                 eventDate,
+                                ageCategory: isBaseExclusive ? ageCategory : '',
                                 categoryId: category.id,
                                 categoryName: category.name,
                                 employeeId,
@@ -1718,6 +1752,7 @@
                         </td>
                         <td class="px-4 py-2 text-[11px] text-gray-700 font-medium whitespace-nowrap">${record.eventName || 'N/A'} <span class="text-gray-500">(${record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'})</span></td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.categoryName || 'N/A'}</td>
+                        <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.ageCategory || ''}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.employeeName || 'N/A'}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.sector}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.managerName}</td>
@@ -1744,6 +1779,7 @@
                                         Data Criação
                                     </th>
                                     <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Evento (Data)</th>
+                                    <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Classificação</th>
                                     <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Categoria</th>
                                     <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Funcionário</th>
                                     <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Setor</th>
@@ -1883,7 +1919,7 @@
                                     </select>
                                 </div>
                                 <div class="filter-group">
-                                    <label for="filter-category" class="filter-label">Categoria:</label>
+                                    <label for="filter-category" class="filter-label">Classificação:</label>
                                     <select id="filter-category" class="filter-input">
                                         <option value="">Todas</option>
                                         ${globalData.categories.map(c => `<option value="${c.id}" ${filterState.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
@@ -2535,7 +2571,7 @@
             if (!records || records.length === 0) {
                 showNotification("Nenhum dado para exportar.", "info"); return;
             }
-            const headers = ["Data Criação", "Evento", "Data Evento", "Categoria", "Funcionário", "Setor", "Gestor Lançador", "Observações"];
+            const headers = ["Data Criação", "Evento", "Data Evento", "Classificação", "Categoria", "Funcionário", "Setor", "Gestor Lançador", "Observações"];
             let csvContent = headers.join(",") + "\\n";
 
             records.forEach(record => {
@@ -2544,6 +2580,7 @@
                     `"${(record.eventName || 'N/A').replace(/"/g, '""')}"`,
                     record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A',
                     `"${(record.categoryName || 'N/A').replace(/"/g, '""')}"`,
+                    `"${(record.ageCategory || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.employeeName || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.sector || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.managerName || 'N/A').replace(/"/g, '""')}"`,
@@ -2577,7 +2614,8 @@
                 "Data Criação": record.createdAt?.toDate?.().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) || 'N/A',
                 "Evento": record.eventName || 'N/A',
                 "Data Evento": record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A',
-                "Categoria": record.categoryName || 'N/A',
+                "Classificação": record.categoryName || 'N/A',
+                "Categoria": record.ageCategory || 'N/A',
                 "Funcionário": record.employeeName || 'N/A',
                 "Setor": record.sector || 'N/A',
                 "Gestor Lançador": record.managerName || 'N/A',
