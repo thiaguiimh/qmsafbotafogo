@@ -627,13 +627,6 @@
             return working ? addBusinessDays(date, days) : addCalendarDays(date, days);
         }
 
-        function isPastBusinessLimit(eventDateStr, limitDays) {
-            const eventDate = new Date(eventDateStr + 'T00:00:00');
-            const maxDate = addBusinessDays(eventDate, limitDays);
-            maxDate.setHours(23, 59, 59, 999);
-            return new Date() > maxDate;
-        }
-
         function isManagerBaseExclusive() {
             if (!userProfile || userProfile.isAdmin) return false;
             const sectors = (userProfile.sectors && userProfile.sectors.length)
@@ -703,11 +696,6 @@
                 showNotification("Setor do gestor não definido no perfil. Não é possível salvar o registro. Contacte o administrador.", "error");
                 console.error("[addRecordToFirestore] Tentativa de salvar registro, mas userProfile.sectors é indefinido ou vazio:", userProfile);
                 return Promise.reject(new Error("Setor do gestor não definido"));
-            }
-
-            if (isPastBusinessLimit(recordData.eventDate, 3)) {
-                showNotification("Registros só podem ser lançados até 3 dias úteis após a data do evento.", "error");
-                return { success: false, error: "Fora do prazo" };
             }
 
             let employeeSector = (globalData.employees.find(emp => emp.id === recordData.employeeId)?.sector || '').toLowerCase();
