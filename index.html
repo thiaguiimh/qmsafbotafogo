@@ -159,15 +159,15 @@
         </main>
 
         <footer id="app-footer" class="text-center p-5 border-t border-gray-200 text-gray-500 text-xs hidden">
-        </footer>
+            </footer>
 
         <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4 hidden animate-fadeIn">
             <div id="modal-content" class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
-            </div>
+                </div>
         </div>
 
         <div id="notification-container" class="fixed top-6 right-6 z-[100] space-y-3 w-full max-w-sm sm:max-w-md">
-        </div>
+            </div>
     </div>
 
     <script type="module">
@@ -486,7 +486,6 @@
         // Atualiza a UI do cabeçalho com informações do usuário
         function updateHeaderUI() {
             if (userProfile) {
-                const managerSectorsText = (userProfile.sectors || [userProfile.sector]).filter(Boolean).join(', ');
                 userInfoHeader.innerHTML = `
                     <button id="btn-change-password" class="text-sm font-medium text-gray-600 hover:text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-100 transition-colors duration-150 flex items-center space-x-1.5">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -494,7 +493,7 @@
                     </button>
                     <span class="text-sm text-gray-600 hidden sm:block">
                         Olá, <span class="font-medium text-gray-800">${userProfile.name}</span>
-                        <span class="text-gray-400">(${userProfile.isAdmin ? 'Admin' : userProfile.isManager ? `Gestor - ${managerSectorsText}` : 'Usuário'})</span>
+                        <span class="text-gray-400">(${userProfile.isAdmin ? 'Admin' : userProfile.isManager ? `Gestor - ${userProfile.sector}` : 'Usuário'})</span>
                     </span>
                     <button id="logout-btn" class="text-sm font-medium text-blue-600 hover:text-blue-700 py-2 px-3 rounded-lg hover:bg-blue-50 transition-colors duration-150 flex items-center space-x-1.5">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -523,58 +522,53 @@
 
         // Função para buscar dados do Firestore com listener em tempo real
         async function fetchDataWithListener(collectionName, dataKey, queryConstraints = [], isPublic = true, targetCollectionRef = null) {
-            if (!currentUser || !userProfile) return;
+            if (!userProfile) return;
 
             const collRef = targetCollectionRef || getCollectionRef(collectionName, isPublic);
             let qConstraints = [...queryConstraints];
 
-            // Filtra dados para gestores que não são administradores.
-            if (userProfile.isManager && !userProfile.isAdmin) {
-                const managerSectors = (userProfile.sectors && userProfile.sectors.length > 0)
-                    ? userProfile.sectors
-                    : (userProfile.sector ? [userProfile.sector] : []);
-
-                if (dataKey === 'records') {
-                    qConstraints.push(where("managerId", "==", currentUser.uid));
-                    // Usa 'in' para filtrar por um ou mais setores. É mais limpo e eficiente.
-                    if (managerSectors.length > 0) {
-                        qConstraints.push(where("sector", "in", managerSectors));
-                    } else {
-                        // Adverte se um gestor não tem setores, pois a consulta pode falhar dependendo das regras de segurança.
-                        console.warn(`[fetchDataWithListener] O gestor ${currentUser.uid} não tem setores atribuídos. A consulta de registros pode falhar.`);
-                    }
-                }
-                if (dataKey === 'employees' && managerSectors.length > 0) {
-                    qConstraints.push(where("sector", "in", managerSectors));
-                }
+            // Filtra records e employees pelo setor do gestor, se não for admin
+            if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin) {
+                qConstraints.push(where("sector", "==", userProfile.sector));
+                qConstraints.push(where("managerId", "==", currentUser.uid)); // Adicionando filtro por managerId para gestores
+            }
+            if (dataKey === 'employees' && userProfile.isManager && !userProfile.isAdmin) {
+                qConstraints.push(where("sector", "==", userProfile.sector));
             }
 
-            const q = query(collRef, ...qConstraints);
+            let q = query(collRef, ...qConstraints);
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
-                let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (dataKey === 'records') {
+                    // Ordena registros pela data de criação em ordem decrescente
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
                 }
                 globalData[dataKey] = items;
-
+                // Clear selected IDs for any records that might have been deleted,
+                // or if the data itself changed significantly after the snapshot.
                 selectedRecordIds.forEach(id => {
                     if (!items.some(item => item.id === id)) {
                         selectedRecordIds.delete(id);
                     }
                 });
-                updateSelectedCountUI();
+                updateSelectedCountUI(); // Update UI after globalData is updated and selections potentially adjusted.
 
+                // Re-render only if the current view depends on this specific data
                 if (document.getElementById('app-content')) {
-                    if (currentView === 'history') {
+                    // Call applyFilters to ensure the displayed records match the current filter state
+                    // This is crucial because globalData.records has just been updated
+                    if (currentView === 'history') { // Only apply filters if we are on the history page
                         applyFilters();
-                    } else if (['adminManageCategories', 'adminManageSectors', 'adminManageEmployees', 'adminManageRules', 'adminManageUsers', 'importRecords', 'changePassword'].includes(currentView)) {
-                        renderApp();
+                    } else if (currentView === 'importRecords' || currentView === 'changePassword') {
+                        renderApp(); // Rerender for these pages if data changes
                     }
+                    // For adminManage views, they already explicitly call renderApp when their specific data changes
                 }
             }, (error) => {
-                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}.`, error);
+                console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}. Query Constraints:`, qConstraints, "Objeto do Erro Firebase:", error);
                 showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}. Verifique suas permissões ou tente novamente.`, "error", 5000);
+                // NOT calling loadAllData() here to avoid potential loops if security rules are the issue.
             });
             unsubscribers.push(unsubscribe);
         }
@@ -627,12 +621,11 @@
             return working ? addBusinessDays(date, days) : addCalendarDays(date, days);
         }
 
-        function isManagerBaseExclusive() {
-            if (!userProfile || userProfile.isAdmin) return false;
-            const sectors = (userProfile.sectors && userProfile.sectors.length)
-                ? userProfile.sectors
-                : (userProfile.sector ? [userProfile.sector] : []);
-            return sectors.length === 1 && ['Scout (base)', 'Base'].includes(sectors[0]);
+        function isPastBusinessLimit(eventDateStr, limitDays) {
+            const eventDate = new Date(eventDateStr + 'T00:00:00');
+            const maxDate = addBusinessDays(eventDate, limitDays);
+            maxDate.setHours(23, 59, 59, 999);
+            return new Date() > maxDate;
         }
 
         function validateRecordWithRules(recordData, sectorName) {
@@ -691,22 +684,18 @@
                 showNotification("Apenas gestores podem adicionar registros.", "error");
                 return Promise.reject(new Error("Acesso negado, não é gestor"));
             }
-            const managerSectors = (userProfile.sectors && userProfile.sectors.length ? userProfile.sectors : userProfile.sector ? [userProfile.sector] : []);
-            if (managerSectors.length === 0) {
+            if (!userProfile.sector || userProfile.sector.trim() === "") {
                 showNotification("Setor do gestor não definido no perfil. Não é possível salvar o registro. Contacte o administrador.", "error");
-                console.error("[addRecordToFirestore] Tentativa de salvar registro, mas userProfile.sectors é indefinido ou vazio:", userProfile);
+                console.error("[addRecordToFirestore] Tentativa de salvar registro, mas userProfile.sector é indefinido ou vazio:", userProfile);
                 return Promise.reject(new Error("Setor do gestor não definido"));
             }
 
-            let employeeSector = (globalData.employees.find(emp => emp.id === recordData.employeeId)?.sector || '').toLowerCase();
-            if (recordData.employeeId === 'OUTROS') {
-                employeeSector = (managerSectors[0] || '').toLowerCase();
+            if (isPastBusinessLimit(recordData.eventDate, 3)) {
+                showNotification("Registros só podem ser lançados até 3 dias úteis após a data do evento.", "error");
+                return { success: false, error: "Fora do prazo" };
             }
-            if (!managerSectors.map(s => s.toLowerCase()).includes(employeeSector)) {
-                showNotification("Funcionário não pertence a um setor gerenciado por você.", "error");
-                return { success: false, error: "Setor inválido" };
-            }
-            const sectorName = employeeSector;
+
+            const sectorName = (userProfile.sector || '').toLowerCase();
 
             const ruleError = validateRecordWithRules(recordData, sectorName);
             if (ruleError) {
@@ -744,14 +733,18 @@
                     ...recordData,
                     managerId: currentUser.uid,
                     managerName: userProfile.name,
-                    sector: sectorName,
+                    sector: userProfile.sector,
                     createdAt: Timestamp.now()
                 };
                 console.log("[addRecordToFirestore] Dados para salvar:", dataToSave);
                 await addDoc(recordsCollectionRef, dataToSave);
+                // showNotification("Registro adicionado com sucesso!", "success"); // Notificação movida para handleFileUpload
+                // currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard'; // Renderização movida para handleFileUpload
+                // renderApp(); // Renderização movida para handleFileUpload
                 return { success: true };
             } catch (error) {
                 console.error("[addRecordToFirestore] Erro ao adicionar registro:", error);
+                // showNotification("Falha ao adicionar registro. Verifique o console para detalhes.", "error"); // Notificação movida para handleFileUpload
                 return { success: false, error: error.message };
             }
         }
@@ -862,6 +855,9 @@
                     const result = await _performDirectDelete(collectionNameKey, id, isPublic, targetCollectionRef);
                     if (result.success) {
                         showNotification(`${collectionDisplayName(collectionNameKey).singular} excluído com sucesso!`, "success");
+                        // This will trigger onSnapshot and then renderApp, which will handle selectedRecordIds
+                        // selectedRecordIds.delete(id); // Removed, as onSnapshot update handles it
+                        // No explicit renderApp() here as onSnapshot listener takes care of it
                     } else {
                         showNotification(`Erro ao excluir ${collectionDisplayName(collectionNameKey).singular}.`, "error");
                     }
@@ -1133,7 +1129,7 @@
 
             document.getElementById('change-password-form').addEventListener('submit', handleChangePassword);
             document.getElementById('back-to-dashboard-change-password').addEventListener('click', () => {
-                currentView = userProfile.isAdmin ? 'adminDashboard' : 'managerDashboard';
+                currentView = 'changePassword';
                 renderApp();
             });
         }
@@ -1178,11 +1174,10 @@
 
         // Renderiza o painel do gestor
         function renderManagerDashboard() {
-            const managerSectorsText = (userProfile.sectors || [userProfile.sector]).filter(Boolean).join(', ');
             appContent.innerHTML = `
                 <div class="animate-fadeIn bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
                     <h2 class="text-2xl font-semibold text-gray-800 mb-1">Bem-vindo, Gestor <span class="text-blue-600">${userProfile.name}</span>!</h2>
-                    <p class="text-gray-500 mb-6 text-sm">Setor(es): <span class="font-medium text-gray-700">${managerSectorsText}</span>. Utilize as opções abaixo.</p>
+                    <p class="text-gray-500 mb-6 text-sm">Setor: <span class="font-medium text-gray-700">${userProfile.sector}</span>. Utilize as opções abaixo.</p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
                         <button id="btn-new-record" class="flex flex-col items-center justify-center text-center p-6 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded-lg transition-all duration-150 ease-in-out border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="mb-2 text-blue-600 size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -1207,13 +1202,10 @@
         // Renderiza o formulário para inclusão de novo registro
         function renderNewRecordForm() {
             const categoriesOptions = globalData.categories.map(cat => `<option value="${cat.id}">${cat.name} - ${cat.description}</option>`).join('');
-            // Filtra funcionários pelos setores do gestor, se não for admin
-            const managerSectors = userProfile.isAdmin ? [] : (userProfile.sectors || [userProfile.sector]);
-            const employeesFilteredBySector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => managerSectors.includes(emp.sector));
+            // Filtra funcionários pelo setor do gestor, se não for admin
+            const employeesFilteredBySector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => emp.sector === userProfile.sector);
             const employeesOptions = employeesFilteredBySector.map(emp => `<option value="${emp.id}">${emp.name} (${emp.registration}) - ${emp.sector}</option>`).join('') + '<option value="OUTROS">Outros</option>';
             const inputBaseClass = "w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
-            const isBaseExclusive = isManagerBaseExclusive();
-            const baseCategoriesOptions = ['Sub 09','Sub 11','Sub 13','Sub 15','Sub 17','Sub 19','Sub 20','Sub 23'].map(cat => `<option value="${cat}">${cat}</option>`).join('');
 
             appContent.innerHTML = `
                 <div class="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 animate-fadeIn">
@@ -1227,11 +1219,6 @@
                             <label for="eventDate" class="block text-xs font-medium text-gray-600 mb-1">Data do Evento:</label>
                             <input type="date" id="eventDate" required class="${inputBaseClass}">
                         </div>
-                        ${isBaseExclusive ? `
-                        <div>
-                            <label for="ageCategory" class="block text-xs font-medium text-gray-600 mb-1">Categoria:</label>
-                            <select id="ageCategory" required class="${inputBaseClass}"><option value="">Selecione a Categoria</option>${baseCategoriesOptions}</select>
-                        </div>` : ''}
                         <div>
                             <label for="category" class="block text-xs font-medium text-gray-600 mb-1">Classificação (Quadro Móvel):</label>
                             <select id="category" required class="${inputBaseClass}">${categoriesOptions ? `<option value="">Selecione a Classificação</option>${categoriesOptions}` : `<option value="">Nenhuma categoria cadastrada</option>`}</select>
@@ -1270,7 +1257,6 @@
                 const categoryId = document.getElementById('category').value;
                 const employeeId = document.getElementById('employee').value;
                 const notes = document.getElementById('notes').value;
-                const ageCategory = isBaseExclusive ? document.getElementById('ageCategory').value : '';
 
                 if (employeeId === 'OUTROS' && !notes.trim()) {
                     openModal(
@@ -1286,8 +1272,8 @@
                     return;
                 }
 
-                if (!eventName || !eventDate || !categoryId || !employeeId || (isBaseExclusive && !ageCategory)) {
-                    showNotification("Nome do Evento, Data do Evento, Classificação, Funcionário e Categoria são obrigatórios.", "error");
+                if (!eventName || !eventDate || !categoryId || !employeeId) {
+                    showNotification("Nome do Evento, Data do Evento, Categoria e Funcionário são obrigatórios.", "error");
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalButtonContent;
                     return;
@@ -1300,7 +1286,6 @@
                 const newRecordData = {
                     eventName,
                     eventDate,
-                    ageCategory: isBaseExclusive ? ageCategory : '',
                     categoryId, categoryName: globalData.categories.find(cat => cat.id === categoryId)?.name,
                     employeeId,
                     employeeName,
@@ -1368,17 +1353,14 @@
                 return;
             }
 
-            const isBaseExclusive = isManagerBaseExclusive();
-            const headers = ["Nome do Evento", "Data do Evento"];
-            if (isBaseExclusive) headers.push("Categoria");
-            headers.push("Classificação", "Funcionário", "Observações");
+            const headers = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
             const mainSheetName = "Registros";
             const listsSheetName = "Listas"; // Name for the lists sheet
 
-            // Filter employees by manager's sectors if not admin, otherwise get all
+            // Filter employees by manager's sector if not admin, otherwise get all
             const employeesForLists = (userProfile.isAdmin
                 ? globalData.employees.map(emp => emp.name)
-                : globalData.employees.filter(emp => (userProfile.sectors || [userProfile.sector]).includes(emp.sector)).map(emp => emp.name))
+                : globalData.employees.filter(emp => emp.sector === userProfile.sector).map(emp => emp.name))
                 .concat('Outros');
 
             // Create workbook and main sheet
@@ -1388,6 +1370,9 @@
 
             // Create lists sheet with only employee names
             const wsLists = XLSX.utils.aoa_to_sheet([["Funcionários"], ...employeesForLists.map(name => [name])]); // Column A: Employee names
+
+            // No data validations or dropdowns are added to the main sheet.
+            // This ensures the main sheet is clean as requested.
 
             // Add sheets to workbook
             XLSX.utils.book_append_sheet(workbook, ws, mainSheetName);
@@ -1411,24 +1396,22 @@
 
         // Nova função para importar registros via planilha
         function renderImportRecordsPage() {
-            const isBaseExclusive = isManagerBaseExclusive();
             appContent.innerHTML = `
                 <div class="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 animate-fadeIn">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-xl font-semibold text-gray-800">Importar Registros de Quadro Móvel (Planilha)</h2>
                         <div class="flex items-center space-x-2">
-                                <button id="btn-download-template" class="px-2 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center">
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 = 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                 Baixar Modelo (Planilha)
-                               </button>
-                                <button id="btn-back-dashboard-import" class="px-2 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar</button>
+                               <button id="btn-download-template" class="px-2 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 = 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Baixar Modelo (Planilha)
+                             </button>
+                               <button id="btn-back-dashboard-import" class="px-2 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Voltar</button>
                         </div>
                     </div>
                     <p class="text-gray-600 text-sm mb-4">
                         Faça o upload de uma planilha Excel (.xlsx, .xls) ou CSV. As colunas esperadas são:
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Nome do Evento</code>,
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Data do Evento</code> (formato AAAA-MM-DD ou DD/MM/AAAA),
-                        ${isBaseExclusive ? '<code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Categoria</code>,' : ''}
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Classificação</code> (Nome da Categoria),
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Funcionário</code> (Nome do Funcionário),
                         <code class="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">Observações</code> (Opcional).
@@ -1460,7 +1443,6 @@
             const importStatusDiv = document.getElementById('import-status');
             const importSummaryP = document.getElementById('import-summary');
             const importErrorsDiv = document.getElementById('import-errors');
-            const isBaseExclusive = isManagerBaseExclusive();
             showElement(importStatusDiv);
             importSummaryP.innerHTML = 'Processando... <span class="loader_small_blue ml-2 inline-block align-middle"></span>';
             importErrorsDiv.innerHTML = '';
@@ -1474,12 +1456,11 @@
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
 
+                    // Read all rows to get headers from the first row.
                     const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                     const headers = allRows[0].map(h => String(h).trim());
 
-                    const expectedHeaders = ["Nome do Evento", "Data do Evento"];
-                    if (isBaseExclusive) expectedHeaders.push("Categoria");
-                    expectedHeaders.push("Classificação", "Funcionário", "Observações");
+                    const expectedHeaders = ["Nome do Evento", "Data do Evento", "Classificação", "Funcionário", "Observações"];
                     const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
 
                     if (missingHeaders.length > 0) {
@@ -1489,11 +1470,18 @@
                         return;
                     }
 
+                    // Start parsing data from the 2nd row (index 1) of the Excel sheet,
+                    // and use `raw: false` to attempt to convert dates to strings.
+                    // header: 1 means the 1st row (index 0) contains headers.
+                    // range: 1 means start reading data from the 2nd row (index 1).
                     const recordsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 1, raw: false });
 
+                    // Manually map `recordsRaw` to objects using the `headers` from Excel row 1.
                     const recordsToProcess = recordsRaw.map(row => {
                         const newRecord = {};
                         headers.forEach((header, index) => {
+                            // Ensure value is converted to string before trimming,
+                            // handling potential undefined/null values robustly.
                             newRecord[header.trim()] = (row[index] !== undefined && row[index] !== null) ? String(row[index]).trim() : '';
                         });
                         return newRecord;
@@ -1506,27 +1494,22 @@
 
                     // Step 1: Pre-validation and identification of duplicates
                     for (const record of recordsToProcess) {
+                        // rowNum needs to account for skipped header (1) + current row index (0-based) + 1
                         const rowNum = recordsToProcess.indexOf(record) + 2;
                         try {
                             const eventName = record["Nome do Evento"];
-                            const eventDateRaw = record["Data do Evento"]; 
-                            const ageCategory = isBaseExclusive ? record["Categoria"] : '';
+                            const eventDateRaw = record["Data do Evento"]; // This is now already a string thanks to raw:false and String() conversion
                             const categoryName = record["Classificação"];
                             const employeeName = record["Funcionário"];
                             const notes = record["Observações"] || '';
 
-                            if (!eventName || !eventDateRaw || !categoryName || !employeeName || (isBaseExclusive && !ageCategory)) {
-                                throw new Error("Campos obrigatórios (Nome do Evento, Data do Evento, Categoria, Classificação, Funcionário) não podem estar vazios.");
+                            if (!eventName || !eventDateRaw || !categoryName || !employeeName) {
+                                throw new Error("Campos obrigatórios (Nome do Evento, Data do Evento, Classificação, Funcionário) não podem estar vazios.");
                             }
 
-                            if (isBaseExclusive) {
-                                const validCats = ['Sub 09','Sub 11','Sub 13','Sub 15','Sub 17','Sub 19','Sub 20','Sub 23'];
-                                if (!validCats.includes(ageCategory)) {
-                                    throw new Error(`Categoria '${ageCategory}' inválida.`);
-                                }
-                            }
-
+                            // Validação e formatação da data do evento
                             let eventDate;
+                            // Check if eventDateRaw is a number (Excel serial date) and convert it
                             if (typeof eventDateRaw === 'number') {
                                 const dateObj = XLSX.SSF.parse_date_code(eventDateRaw);
                                 eventDate = `${dateObj.y}-${String(dateObj.m).padStart(2, '0')}-${String(dateObj.d).padStart(2, '0')}`;
@@ -1537,7 +1520,7 @@
                                 eventDate = `${parts[2]}-${String(parts[0]).padStart(2, '0')}-${String(parts[1]).padStart(2, '0')}`; // Assuming M/D/YYYY
                             } else if (eventDateRaw.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) { // M/D/YY or MM/DD/YY
                                 const parts = eventDateRaw.split('/');
-                                const year = parseInt(parts[2], 10) + 2000;
+                                const year = parseInt(parts[2], 10) + 2000; // Assuming 2000+ for 2-digit years
                                 eventDate = `${year}-${String(parts[0]).padStart(2, '0')}-${String(parts[1]).padStart(2, '0')}`; // Assuming M/D/YY
                             } else if (eventDateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)) { // DD/MM/YYYY
                                 const parts = eventDateRaw.split('/');
@@ -1560,11 +1543,10 @@
                                 employeeId = 'OUTROS';
                                 finalEmployeeName = notes.trim();
                             } else {
-                                const managerSectors = userProfile.isAdmin ? [] : (userProfile.sectors || [userProfile.sector]);
-                                const employeesInSector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => managerSectors.includes(emp.sector));
+                                const employeesInSector = userProfile.isAdmin ? globalData.employees : globalData.employees.filter(emp => emp.sector === userProfile.sector);
                                 const employee = employeesInSector.find(emp => emp.name?.toLowerCase() === employeeName.toLowerCase());
                                 if (!employee) {
-                                    throw new Error(`Funcionário '${employeeName}' não encontrado ou não pertence aos seus setores ('${managerSectors.join(', ')}').`);
+                                    throw new Error(`Funcionário '${employeeName}' não encontrado ou não pertence ao seu setor ('${userProfile.sector}').`);
                                 }
                                 employeeId = employee.id;
                                 finalEmployeeName = employee.name;
@@ -1573,7 +1555,6 @@
                             const dataToSave = {
                                 eventName,
                                 eventDate,
-                                ageCategory: isBaseExclusive ? ageCategory : '',
                                 categoryId: category.id,
                                 categoryName: category.name,
                                 employeeId,
@@ -1581,6 +1562,7 @@
                                 notes,
                             };
 
+                            // Check for duplicates in existing records
                             const isDuplicate = globalData.records.some(existingRecord =>
                                 existingRecord.eventDate === dataToSave.eventDate &&
                                 existingRecord.employeeId === dataToSave.employeeId
@@ -1654,12 +1636,14 @@
                             }
                         }
                     } else {
+                        // If not proceeding with duplicates, add them to failed imports for reporting
                         failedImports += duplicateRecords.length;
                         duplicateRecords.forEach(d => {
                             importErrorMessages.push(`Linha ${d.rowNum}: Registro duplicado ignorado por escolha do usuário.`);
                         });
                     }
 
+                    // Final Status Update
                     if (successfulImports > 0) {
                         showNotification(`Importação concluída. ${successfulImports} registro(s) adicionado(s) com sucesso!`, "success");
                         importStatusDiv.classList.add('bg-green-50');
@@ -1671,6 +1655,7 @@
                     }
                     importSummaryP.textContent = `Importação concluída: ${successfulImports} sucesso(s), ${failedImports} falha(s)/ignorados.`;
 
+                    // Modal de confirmação com resumo da importação
                     let resultHtml = `<p>${successfulImports} registro(s) adicionado(s) com sucesso.</p>`;
                     if (failedImports > 0) {
                         const errorsHtml = importErrorMessages
@@ -1691,14 +1676,14 @@
                     importStatusDiv.classList.add('bg-red-50');
                     console.error("Erro geral no processamento do arquivo:", generalError);
                 } finally {
-                    event.target.value = '';
+                    event.target.value = ''; // Limpa o input file para permitir re-upload do mesmo arquivo
                 }
             };
 
             if (file.name.endsWith('.csv')) {
-                reader.readAsText(file);
+                reader.readAsText(file); // For CSV, read as text
             } else {
-                reader.readAsArrayBuffer(file);
+                reader.readAsArrayBuffer(file); // For XLSX/XLS, read as array buffer
             }
         }
 
@@ -1706,6 +1691,7 @@
         // Renderiza o histórico de registros
         function renderRecordHistory() {
 
+            // Generates the table HTML based on the provided data
             const generateTableHtml = (data) => {
                 currentFilteredRecordsForExport = [...data];
                 const tableRows = data.map(record => `
@@ -1716,12 +1702,12 @@
                         </td>
                         <td class="px-4 py-2 text-[11px] text-gray-700 font-medium whitespace-nowrap">${record.eventName || 'N/A'} <span class="text-gray-500">(${record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'})</span></td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.categoryName || 'N/A'}</td>
-                        <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.ageCategory || ''}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.employeeName || 'N/A'}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.sector}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-600 whitespace-nowrap">${record.managerName}</td>
                         <td class="px-4 py-2 text-[11px] text-gray-500 max-w-xs truncate" title="${record.notes || ''}">${record.notes || '-'}</td>
-                        ${(userProfile.isManager && (userProfile.sectors || [userProfile.sector]).includes(record.sector) && !userProfile.isAdmin && record.managerId === currentUser.uid) || userProfile.isAdmin ?
+                        <!-- Coluna de Ação visível se o usuário for gestor do setor do registro ou admin -->
+                        ${(userProfile.isManager && record.sector === userProfile.sector && !userProfile.isAdmin && record.managerId === currentUser.uid) || userProfile.isAdmin ?
                             `<td class="px-4 py-2 text-[11px] text-center">
                                 <button class="btn-delete-record text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md" data-id="${record.id}" title="Excluir Registro">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -1742,7 +1728,6 @@
                                         Data Criação
                                     </th>
                                     <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Evento (Data)</th>
-                                    <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Classificação</th>
                                     <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Categoria</th>
                                     <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Funcionário</th>
                                     <th class="px-4 py-1.5 text-[11px] font-medium text-gray-500 uppercase tracking-wider text-left">Setor</th>
@@ -1763,6 +1748,7 @@
                     </div>`;
             };
 
+            // Helper to get records based on the current filters
             const getFilteredRecords = () => {
                 let data = [...globalData.records];
                 const term = filterState.searchTerm.trim().toLowerCase();
@@ -1845,7 +1831,7 @@
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                         <div>
                             <h2 class="text-xl font-semibold text-gray-800">Histórico de Registros</h2>
-                            ${userProfile.isManager && !userProfile.isAdmin ? `<p class="text-xs text-gray-500 mt-0.5">Setor(es): ${(userProfile.sectors || [userProfile.sector]).filter(Boolean).join(', ')}</p>` : ''}
+                            ${userProfile.isManager && !userProfile.isAdmin ? `<p class="text-xs text-gray-500 mt-0.5">Setor: ${userProfile.sector}</p>` : ''}
                         </div>
                         <div class="flex items-center space-x-2 mt-3 md:mt-0">
                             <button id="btn-export-csv" class="px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>CSV</button>
@@ -1881,7 +1867,7 @@
                                     </select>
                                 </div>
                                 <div class="filter-group">
-                                    <label for="filter-category" class="filter-label">Classificação:</label>
+                                    <label for="filter-category" class="filter-label">Categoria:</label>
                                     <select id="filter-category" class="filter-input">
                                         <option value="">Todas</option>
                                         ${globalData.categories.map(c => `<option value="${c.id}" ${filterState.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
@@ -1932,13 +1918,14 @@
                 </div>
             `;
 
+            // Function to update the count of selected records and enable/disable the delete button
             updateSelectedCountUI = () => {
                 const count = selectedRecordIds.size;
                 const bulkActionsContainer = document.getElementById('bulk-actions-container');
                 const selectedRecordsCountSpan = document.getElementById('selected-records-count');
                 const deleteSelectedBtn = document.getElementById('btn-delete-selected-records');
 
-                if (bulkActionsContainer && selectedRecordsCountSpan && deleteSelectedBtn) {
+                if (bulkActionsContainer && selectedRecordsCountSpan && deleteSelectedBtn) { // Ensure elements exist
                     if (count > 0) {
                         showElement(bulkActionsContainer);
                         selectedRecordsCountSpan.textContent = `${count} registro(s) selecionado(s)`;
@@ -1950,6 +1937,8 @@
                     }
                 }
 
+
+                // Update "Select All" checkbox state
                 const selectAllCheckbox = document.getElementById('select-all-records-checkbox');
                 if (selectAllCheckbox) {
                     const visibleRecordCheckboxes = document.querySelectorAll('.record-checkbox');
@@ -1959,6 +1948,7 @@
                 }
             };
 
+            // Function to handle the "Select All" checkbox toggle
             const toggleSelectAllCheckboxes = (event) => {
                 const isChecked = event.target.checked;
                 document.querySelectorAll('.record-checkbox').forEach(checkbox => {
@@ -1973,6 +1963,7 @@
                 updateSelectedCountUI();
             };
 
+            // Function to handle individual checkbox changes
             const handleIndividualCheckboxChange = (event) => {
                 const recordId = event.target.dataset.id;
                 if (event.target.checked) {
@@ -1983,6 +1974,7 @@
                 updateSelectedCountUI();
             };
 
+            // Function to delete selected records
             const deleteSelectedRecords = async () => {
                 if (selectedRecordIds.size === 0) {
                     showNotification("Nenhum registro selecionado para exclusão.", "info");
@@ -2001,8 +1993,9 @@
                     async () => {
                         let successfulDeletions = 0;
                         let failedDeletions = 0;
-                        const idsActuallyDeleted = new Set();
+                        const idsActuallyDeleted = new Set(); // Track successfully deleted IDs
 
+                        // Perform deletions sequentially to await each promise
                         for (const recordDetail of recordsToDeleteDetails) {
                             const result = await _performDirectDelete('records', recordDetail.id, false, getCollectionRef('records', false));
                             if (result.success) {
@@ -2013,15 +2006,19 @@
                                 console.error(`Falha ao excluir registro ${recordDetail.id}:`, result.error);
                             }
                         }
-                        
+
+                        // Clear the selected IDs from the global set based on which ones were actually deleted
+                        // This ensures that if a deletion failed, its checkbox state can be re-evaluated
                         selectedRecordIds.forEach(id => {
                             if (idsActuallyDeleted.has(id)) {
                                 selectedRecordIds.delete(id);
                             }
                         });
+                        // Alternatively, we could just clear all selectedRecordIds and let renderApp rebuild the set.
+                        // selectedRecordIds.clear(); // If you want to clear all selections regardless of success/failure for the bulk operation.
 
                         showNotification(`Exclusão concluída: ${successfulDeletions} sucesso(s), ${failedDeletions} falha(s).`, successfulDeletions > 0 ? 'success' : (failedDeletions > 0 ? 'error' : 'info'));
-                        renderApp();
+                        renderApp(); // Re-render to update the table
                     },
                     'Excluir',
                     () => { /* Cancel action */ },
@@ -2029,16 +2026,19 @@
                 );
             };
 
+            // Event Listeners for Filter Buttons (Delegated to filters-container)
             const filtersContainer = document.getElementById('filters-container');
             if (filtersContainer) {
                 document.getElementById('btn-apply-filters').addEventListener('click', applyFilters);
                 document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);
 
+                // Add input listeners to update filterState immediately
                 filtersContainer.querySelectorAll('.filter-input').forEach(input => {
                     input.addEventListener('input', (event) => {
                         const key = filterIdToStateKey[event.target.id];
                         if (key) {
                             filterState[key] = event.target.value;
+                            // For select and date inputs, apply filters immediately on change
                             if (event.target.tagName === 'SELECT' || event.target.type === 'date') {
                                 applyFilters();
                             }
@@ -2049,6 +2049,7 @@
                 console.error("Filters container not found!");
             }
 
+            // Delegated event listeners for checkboxes (since rows are dynamically rendered)
             const recordHistoryTableContainer = document.getElementById('record-history-table-container');
             if (recordHistoryTableContainer) {
                 recordHistoryTableContainer.addEventListener('change', (event) => {
@@ -2060,10 +2061,16 @@
                 });
 
                 recordHistoryTableContainer.addEventListener('click', (event) => {
-                    const deleteButton = event.target.closest('.btn-delete-record');
-                    if (deleteButton) {
-                        const recordId = deleteButton.dataset.id;
-                        deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false));
+                    if (event.target.classList.contains('btn-delete-record')) {
+                        const recordId = event.target.dataset.id;
+                        confirmAction(
+                            `Confirmar Exclusão`,
+                            `Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.`,
+                            async () => {
+                                await deleteItemFromFirestore('records', recordId, false, getCollectionRef('records', false), true);
+                                // The onSnapshot listener will trigger renderApp and update UI
+                            }
+                        );
                     }
                 });
             } else {
@@ -2080,6 +2087,7 @@
             document.getElementById('btn-export-csv').addEventListener('click', () => exportToCSV(currentFilteredRecordsForExport));
             document.getElementById('btn-export-xlsx').addEventListener('click', () => exportToXLSX(currentFilteredRecordsForExport));
 
+            // Initial UI update for selected count
             updateSelectedCountUI();
         }
 
@@ -2317,7 +2325,7 @@
         function renderAdminCreateUserProfilePage(userToEdit = null) {
             const isCreating = !userToEdit;
             const cdn = collectionDisplayName('users_profile');
-            const sectorsOptionsHtml = globalData.sectors.map(s => `<option value="${s.name}" ${(userToEdit?.sectors || []).includes(s.name) ? 'selected' : ''}>${s.name}</option>`).join('');
+            const sectorsOptionsHtml = globalData.sectors.map(s => `<option value="${s.name}" ${userToEdit?.sector === s.name ? 'selected' : ''}>${s.name}</option>`).join('');
             const inputBaseClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-800 placeholder-gray-400 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors";
             const checkboxClass = "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500";
 
@@ -2336,8 +2344,9 @@
                         <div><label for="userProfileEmail" class="block text-xs font-medium text-gray-600 mb-1">Email:</label>
                              <input type="email" id="userProfileEmail" value="${userToEdit?.email || ''}" class="${inputBaseClass}" required placeholder="email.do.usuario@example.com"></div>
                         ${isCreating ? `<div><label for="userProfilePassword" class="block text-xs font-medium text-gray-600 mb-1">Senha Inicial:</label><input type="password" id="userProfilePassword" class="${inputBaseClass}" required></div>` : ''}
-                        <div><label for="userProfileSector" class="block text-xs font-medium text-gray-600 mb-1">Setor(es):</label>
-                             <select id="userProfileSector" class="${inputBaseClass}" multiple>
+                        <div><label for="userProfileSector" class="block text-xs font-medium text-gray-600 mb-1">Setor:</label>
+                             <select id="userProfileSector" class="${inputBaseClass}">
+                                 <option value="" ${!(userToEdit?.sector) ? 'selected': ''}>Nenhum</option>
                                  ${sectorsOptionsHtml}
                              </select></div>
                         <div class="grid grid-cols-2 gap-4 pt-1">
@@ -2389,46 +2398,25 @@
                     }
                 }
 
-                const selectedSectors = Array.from(document.getElementById('userProfileSector').selectedOptions).map(opt => opt.value);
-
                 const profileData = {
                     name: document.getElementById('userProfileName').value,
                     email: email,
-                    sectors: selectedSectors,
-                    sector: selectedSectors[0] || '',
+                    sector: document.getElementById('userProfileSector').value,
                     isManager: document.getElementById('userProfileIsManager').checked,
                     isAdmin: document.getElementById('userProfileIsAdmin').checked,
                     uid: uid
                 };
 
-                if (profileData.isManager && profileData.sectors.length > 1) {
-                    await new Promise(resolve => {
-                        openModal(
-                            'Múltiplos Setores',
-                            '<p>Este gestor está sendo atribuído a múltiplos setores. Deseja prosseguir?</p>',
-                            () => resolve(true), 'Sim, Prosseguir',
-                            () => resolve(false), 'Não, Cancelar'
-                        );
-                    }).then(proceed => {
-                        if (!proceed) {
-                            submitButton.disabled = false;
-                            submitButton.innerHTML = originalButtonText;
-                            throw new Error("Operação cancelada pelo usuário.");
-                        }
-                    });
-                }
-
                 try {
                     const userDocRef = doc(getCollectionRef('users_profile', false), uid);
+                    // setDoc com { merge: true } para atualizar ou criar se não existir
                     await setDoc(userDocRef, profileData, { merge: !isCreating });
                     showNotification(`Perfil de usuário ${isCreating ? 'criado' : 'atualizado'} com sucesso!`, "success");
                     currentView = 'adminManageUsers';
                     renderApp();
                 } catch (error) {
-                    if (error.message !== "Operação cancelada pelo usuário.") {
-                       showNotification(`Erro ao ${isCreating ? 'criar' : 'atualizar'} perfil. Detalhes no console.`, "error");
-                       console.error(`Erro ao salvar perfil de usuário ${uid}:`, error);
-                    }
+                    showNotification(`Erro ao ${isCreating ? 'criar' : 'atualizar'} perfil. Detalhes no console.`, "error");
+                    console.error(`Erro ao salvar perfil de usuário ${uid}:`, error);
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalButtonText;
                 }
@@ -2451,7 +2439,7 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-5 py-3 text-xs text-gray-700 font-medium whitespace-nowrap">${user.name || 'N/A'}</td>
                     <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.email}</td>
-                    <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${(user.sectors && user.sectors.length) ? user.sectors.join(', ') : (user.sector || 'N/A')}</td>
+                    <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.sector || 'N/A'}</td>
                     <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.isManager ? '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sim</span>' : '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>'}</td>
                     <td class="px-5 py-3 text-xs text-gray-600 whitespace-nowrap">${user.isAdmin ? '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Sim</span>' : '<span class="px-2 py-0.5 inline-flex text-xxs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Não</span>'}</td>
                     <td class="px-5 py-3 text-xs font-medium whitespace-nowrap space-x-2">
@@ -2484,7 +2472,7 @@
                                 <thead class="bg-gray-50"><tr>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor(es)</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gestor?</th>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin?</th>
                                     <th class="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
@@ -2520,8 +2508,8 @@
             if (!records || records.length === 0) {
                 showNotification("Nenhum dado para exportar.", "info"); return;
             }
-            const headers = ["Data Criação", "Evento", "Data Evento", "Classificação", "Categoria", "Funcionário", "Setor", "Gestor Lançador", "Observações"];
-            let csvContent = headers.join(",") + "\n";
+            const headers = ["Data Criação", "Evento", "Data Evento", "Categoria", "Funcionário", "Setor", "Gestor Lançador", "Observações"];
+            let csvContent = headers.join(",") + "\\n";
 
             records.forEach(record => {
                 const row = [
@@ -2529,13 +2517,12 @@
                     `"${(record.eventName || 'N/A').replace(/"/g, '""')}"`,
                     record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A',
                     `"${(record.categoryName || 'N/A').replace(/"/g, '""')}"`,
-                    `"${(record.ageCategory || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.employeeName || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.sector || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.managerName || 'N/A').replace(/"/g, '""')}"`,
                     `"${(record.notes || '-').replace(/"/g, '""')}"`
                 ];
-                csvContent += row.join(",") + "\n";
+                csvContent += row.join(",") + "\\n";
             });
 
             const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
@@ -2563,8 +2550,7 @@
                 "Data Criação": record.createdAt?.toDate?.().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) || 'N/A',
                 "Evento": record.eventName || 'N/A',
                 "Data Evento": record.eventDate ? new Date(record.eventDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A',
-                "Classificação": record.categoryName || 'N/A',
-                "Categoria": record.ageCategory || 'N/A',
+                "Categoria": record.categoryName || 'N/A',
                 "Funcionário": record.employeeName || 'N/A',
                 "Setor": record.sector || 'N/A',
                 "Gestor Lançador": record.managerName || 'N/A',
