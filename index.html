@@ -535,9 +535,49 @@
                 managerSectors = (userProfile.sectors && userProfile.sectors.length ? userProfile.sectors : userProfile.sector ? [userProfile.sector] : []);
                 if (dataKey === 'records') {
                     qConstraints.push(where("managerId", "==", currentUser.uid)); // Adicionando filtro por managerId para gestores
-                    // Evita usar where "in" para múltiplos setores, que gerava falha ao carregar os registros
                     if (managerSectors.length === 1) {
+                        // Com apenas um setor, filtramos diretamente na consulta
                         qConstraints.push(where("sector", "==", managerSectors[0]));
+                    } else if (managerSectors.length > 1) {
+                        // Com múltiplos setores, precisamos registrar um listener para cada setor
+                        const sectorSnapshots = {};
+                        const handleCombinedSnapshot = () => {
+                            let items = Object.values(sectorSnapshots).flat();
+                            // Ordena registros pela data de criação em ordem decrescente
+                            items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
+                            globalData[dataKey] = items;
+
+                            // Remove IDs selecionados que não existem mais
+                            selectedRecordIds.forEach(id => {
+                                if (!items.some(item => item.id === id)) {
+                                    selectedRecordIds.delete(id);
+                                }
+                            });
+                            updateSelectedCountUI();
+
+                            if (document.getElementById('app-content')) {
+                                if (currentView === 'history') {
+                                    applyFilters();
+                                } else if (currentView === 'importRecords' || currentView === 'changePassword') {
+                                    renderApp();
+                                }
+                            }
+                        };
+
+                        const errorHandler = (error) => {
+                            console.error(`[fetchDataWithListener] Erro ao carregar ${collectionName} (dataKey: ${dataKey}). Path: ${collRef.path}.`, error);
+                            showNotification(`Falha ao carregar ${collectionDisplayName(collectionName).plural}. Verifique suas permissões ou tente novamente.`, "error", 5000);
+                        };
+
+                        managerSectors.forEach(sector => {
+                            const sectorQuery = query(collRef, where("managerId", "==", currentUser.uid), where("sector", "==", sector), ...queryConstraints);
+                            const unsub = onSnapshot(sectorQuery, (snapshot) => {
+                                sectorSnapshots[sector] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                                handleCombinedSnapshot();
+                            }, errorHandler);
+                            unsubscribers.push(unsub);
+                        });
+                        return; // Já estamos escutando múltiplas consultas
                     }
                 }
                 if (dataKey === 'employees') {
@@ -545,19 +585,16 @@
                 }
             }
 
-            let q = query(collRef, ...qConstraints);
+            const q = query(collRef, ...qConstraints);
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin && managerSectors.length > 1) {
-                    // Quando o gestor possui múltiplos setores, filtramos em memória para evitar problemas de consulta
-                    items = items.filter(item => managerSectors.includes(item.sector));
-                }
                 if (dataKey === 'records') {
                     // Ordena registros pela data de criação em ordem decrescente
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
                 }
                 globalData[dataKey] = items;
+
                 // Clear selected IDs for any records that might have been deleted,
                 // or if the data itself changed significantly after the snapshot.
                 selectedRecordIds.forEach(id => {
