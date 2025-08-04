@@ -522,18 +522,23 @@
         }
 
         // Função para buscar dados do Firestore com listener em tempo real
+        
         async function fetchDataWithListener(collectionName, dataKey, queryConstraints = [], isPublic = true, targetCollectionRef = null) {
             if (!userProfile) return;
 
             const collRef = targetCollectionRef || getCollectionRef(collectionName, isPublic);
             let qConstraints = [...queryConstraints];
+            let managerSectors = [];
 
             // Filtra records e employees pelo setor do gestor, se não for admin
             if (userProfile.isManager && !userProfile.isAdmin) {
-                const managerSectors = (userProfile.sectors && userProfile.sectors.length ? userProfile.sectors : userProfile.sector ? [userProfile.sector] : []);
+                managerSectors = (userProfile.sectors && userProfile.sectors.length ? userProfile.sectors : userProfile.sector ? [userProfile.sector] : []);
                 if (dataKey === 'records') {
-                    qConstraints.push(where("sector", "in", managerSectors));
                     qConstraints.push(where("managerId", "==", currentUser.uid)); // Adicionando filtro por managerId para gestores
+                    // Evita usar where "in" para múltiplos setores, que gerava falha ao carregar os registros
+                    if (managerSectors.length === 1) {
+                        qConstraints.push(where("sector", "==", managerSectors[0]));
+                    }
                 }
                 if (dataKey === 'employees') {
                     qConstraints.push(where("sector", "in", managerSectors));
@@ -543,7 +548,11 @@
             let q = query(collRef, ...qConstraints);
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
-                const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (dataKey === 'records' && userProfile.isManager && !userProfile.isAdmin && managerSectors.length > 1) {
+                    // Quando o gestor possui múltiplos setores, filtramos em memória para evitar problemas de consulta
+                    items = items.filter(item => managerSectors.includes(item.sector));
+                }
                 if (dataKey === 'records') {
                     // Ordena registros pela data de criação em ordem decrescente
                     items.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
@@ -576,6 +585,7 @@
             });
             unsubscribers.push(unsubscribe);
         }
+
 
         // Carrega todos os dados iniciais
         function loadAllData() {
