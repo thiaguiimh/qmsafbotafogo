@@ -533,7 +533,6 @@
                 const managerSectors = (userProfile.sectors && userProfile.sectors.length ? userProfile.sectors : userProfile.sector ? [userProfile.sector] : []);
                 if (dataKey === 'records') {
                     qConstraints.push(where("sector", "in", managerSectors));
-                    qConstraints.push(where("managerId", "==", currentUser.uid)); // Adicionando filtro por managerId para gestores
                 }
                 if (dataKey === 'employees') {
                     qConstraints.push(where("sector", "in", managerSectors));
